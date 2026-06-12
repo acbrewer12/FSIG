@@ -72,22 +72,6 @@
       border-radius: 6px;
     }
 
-    /* asymmetry badge */
-    .asym-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 18px;
-      border-radius: 6px;
-      font-size: 1rem;
-      font-weight: 700;
-      margin-top: 12px;
-      transition: all .3s;
-    }
-    .asym-badge.left-bigger  { background: #fdf0d5; color: var(--warn); border: 2px solid var(--warn); }
-    .asym-badge.right-bigger { background: #fdf0d5; color: var(--warn); border: 2px solid var(--warn); }
-    .asym-badge.balanced     { background: #eafaf1; color: var(--ok);   border: 2px solid var(--ok);   }
-
     /* ── SIDES GRID ── */
     .sides-grid {
       display: grid;
@@ -282,7 +266,6 @@
   <div class="card">
     <h2>Property Map — Top-Down View</h2>
     <svg id="house-visual" viewBox="0 0 800 530" xmlns="http://www.w3.org/2000/svg"></svg>
-    <div id="asym-badge" class="asym-badge balanced">✓ Left &amp; Right Are Balanced</div>
   </div>
 
   <!-- Perspective Views -->
@@ -694,28 +677,11 @@
     });
 
     updateHouseVisual();
-    updateAsymBadge(totals.left, totals.right);
     drawSideView('front', 'view-front');
     drawSideView('left',  'view-left');
     drawSideView('back',  'view-back');
     drawSideView('right', 'view-right');
     updateCosts();
-  }
-
-  // ── Asymmetry badge ──
-  function updateAsymBadge(left, right) {
-    const badge = document.getElementById('asym-badge');
-    badge.className = 'asym-badge';
-    if (left > right) {
-      badge.className += ' left-bigger';
-      badge.innerHTML = '⚠ LEFT SIDE IS LARGER  (' + left.toFixed(0) + ' sq ft vs ' + right.toFixed(0) + ' sq ft)';
-    } else if (right > left) {
-      badge.className += ' right-bigger';
-      badge.innerHTML = '⚠ RIGHT SIDE IS LARGER  (' + right.toFixed(0) + ' sq ft vs ' + left.toFixed(0) + ' sq ft)';
-    } else {
-      badge.className += ' balanced';
-      badge.innerHTML = '✓ Left &amp; Right Are Balanced';
-    }
   }
 
   // ── SVG Top-Down Property Map ──
@@ -752,8 +718,6 @@
 
     const lt = sideTotalSqft('left');
     const rt = sideTotalSqft('right');
-    const leftBigger  = lt > rt && (lt + rt > 0);
-    const rightBigger = rt > lt && (lt + rt > 0);
 
     let h = '';
     // Background
@@ -768,8 +732,6 @@
     function drawLR(side, band) {
       const rows = sides[side].filter(r => (parseFloat(r.len)||0) > 0);
       const totalLen = rows.reduce((s,r) => s + (parseFloat(r.len)||0), 0);
-      const isBig = side === 'left' ? leftBigger : rightBigger;
-
       if (!rows.length || !totalLen) {
         h += `<rect x="${band.x}" y="${band.y}" width="${band.w}" height="${band.h}" fill="${C_EMPTY}" stroke="#bbb" stroke-dasharray="6,4" stroke-width="1.5" rx="3"/>`;
         h += `<text x="${band.x+band.w/2}" y="${band.y+band.h/2}" text-anchor="middle" dominant-baseline="middle" fill="#aaa" font-size="12" font-style="italic">no fence</text>`;
@@ -807,10 +769,6 @@
         curY += bh;
       });
 
-      // Orange highlight border when this side is the bigger one
-      if (isBig) {
-        h += `<rect x="${band.x - 2}" y="${band.y - 2}" width="${band.w + 4}" height="${band.h + 4}" fill="none" stroke="#e67e22" stroke-width="4" rx="4"/>`;
-      }
     }
 
     // ── Draw a front/back fence side ──
@@ -876,23 +834,13 @@
     h += `<text x="${HX+HW/2}" y="18" text-anchor="middle" fill="#555" font-size="12" font-weight="700">▲  FRONT  (street side)</text>`;
     h += `<text x="${HX+HW/2}" y="${VH - 8}" text-anchor="middle" fill="#555" font-size="12" font-weight="700">▼  BACK</text>`;
 
-    // LEFT label with total + bigger indicator
-    const lc = leftBigger ? '#e67e22' : '#444';
-    h += `<text x="${LF.x - 8}" y="${HY + HH/2 - 14}" text-anchor="end" fill="${lc}" font-size="15" font-weight="bold">◀ LEFT</text>`;
-    h += `<text x="${LF.x - 8}" y="${HY + HH/2 + 6}"  text-anchor="end" fill="${lc}" font-size="12">${lt.toFixed(0)} sq ft</text>`;
-    if (leftBigger) {
-      h += `<rect x="${LF.x - 70}" y="${HY + HH/2 + 18}" width="62" height="18" rx="3" fill="#e67e22"/>`;
-      h += `<text x="${LF.x - 39}" y="${HY + HH/2 + 31}" text-anchor="middle" fill="white" font-size="10" font-weight="bold">⚠ BIGGER</text>`;
-    }
+    // LEFT label with total
+    h += `<text x="${LF.x - 8}" y="${HY + HH/2 - 14}" text-anchor="end" fill="#444" font-size="15" font-weight="bold">◀ LEFT</text>`;
+    h += `<text x="${LF.x - 8}" y="${HY + HH/2 + 6}"  text-anchor="end" fill="#444" font-size="12">${lt.toFixed(0)} sq ft</text>`;
 
-    // RIGHT label with total + bigger indicator
-    const rc = rightBigger ? '#e67e22' : '#444';
-    h += `<text x="${RF.x + RF.w + 8}" y="${HY + HH/2 - 14}" text-anchor="start" fill="${rc}" font-size="15" font-weight="bold">RIGHT ▶</text>`;
-    h += `<text x="${RF.x + RF.w + 8}" y="${HY + HH/2 + 6}"  text-anchor="start" fill="${rc}" font-size="12">${rt.toFixed(0)} sq ft</text>`;
-    if (rightBigger) {
-      h += `<rect x="${RF.x + RF.w + 8}" y="${HY + HH/2 + 18}" width="62" height="18" rx="3" fill="#e67e22"/>`;
-      h += `<text x="${RF.x + RF.w + 39}" y="${HY + HH/2 + 31}" text-anchor="middle" fill="white" font-size="10" font-weight="bold">⚠ BIGGER</text>`;
-    }
+    // RIGHT label with total
+    h += `<text x="${RF.x + RF.w + 8}" y="${HY + HH/2 - 14}" text-anchor="start" fill="#444" font-size="15" font-weight="bold">RIGHT ▶</text>`;
+    h += `<text x="${RF.x + RF.w + 8}" y="${HY + HH/2 + 6}"  text-anchor="start" fill="#444" font-size="12">${rt.toFixed(0)} sq ft</text>`;
 
     // ── Legend ──
     const legX = HX, legY = BF.y + BF.h + 22;
