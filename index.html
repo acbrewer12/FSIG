@@ -431,6 +431,53 @@
     </div>
   </div>
 
+  <!-- Stain Product -->
+  <div class="card">
+    <h2>Stain</h2>
+    <div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px">
+        <label style="font-size:.8rem;color:var(--muted);display:block;margin-bottom:5px">Product</label>
+        <select id="stain-product" onchange="selectStain(this.value)" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:.9rem;background:white;color:var(--text)">
+          <option value="">— select a stain —</option>
+          <optgroup label="$0.20 / sq ft  ·  150 sq ft / gal">
+            <option>Black Walnut</option>
+            <option>Cedar Tone</option>
+            <option>Chestnut</option>
+            <option>Clear Glow</option>
+            <option>Leatherwood</option>
+            <option>Oxford Brown</option>
+            <option>Redwood</option>
+          </optgroup>
+          <optgroup label="$0.28 / sq ft  ·  125 sq ft / gal">
+            <option>Barn Red</option>
+            <option>Black</option>
+            <option>Cape Cod</option>
+            <option>Chameleon Gray</option>
+            <option>Charcoal Gray</option>
+            <option>Coffee Brown</option>
+            <option>Colorado</option>
+            <option>Cumberland Brown</option>
+            <option>Dark Sierra</option>
+            <option>Desert Sand</option>
+            <option>Golden Rod</option>
+            <option>Graystone</option>
+            <option>Mesa Gray</option>
+            <option>Prairie Gray</option>
+            <option>Rustic Oak</option>
+            <option>Sable Brown</option>
+            <option>Sedona</option>
+            <option>Sierra</option>
+            <option>Wrangler</option>
+          </optgroup>
+        </select>
+      </div>
+      <div id="stain-product-specs" style="display:none;font-size:.85rem;padding-bottom:8px;color:var(--muted);line-height:1.6">
+        <span id="sp-name" style="font-weight:700;color:var(--text);display:block"></span>
+        <span id="sp-rate"></span>&ensp;·&ensp;<span id="sp-cov"></span>
+      </div>
+    </div>
+  </div>
+
   <!-- Job Summary -->
   <div class="card">
     <h2>Job Summary — What to Bring</h2>
@@ -1221,6 +1268,65 @@
     document.getElementById('tl-hours').textContent      = hours.toFixed(1);
     document.getElementById('tl-labor-cost').textContent = laborCost.toFixed(2);
     document.getElementById('tl-net-profit').textContent = netProfit.toFixed(2);
+  }
+
+  // ── Stain product catalogue ──
+  const STAIN_PRODUCTS = [
+    { name: 'Black Walnut',     rate: 0.20, cov: 150 },
+    { name: 'Cedar Tone',       rate: 0.20, cov: 150 },
+    { name: 'Chestnut',         rate: 0.20, cov: 150 },
+    { name: 'Clear Glow',       rate: 0.20, cov: 150 },
+    { name: 'Leatherwood',      rate: 0.20, cov: 150 },
+    { name: 'Oxford Brown',     rate: 0.20, cov: 150 },
+    { name: 'Redwood',          rate: 0.20, cov: 150 },
+    { name: 'Barn Red',         rate: 0.28, cov: 125 },
+    { name: 'Black',            rate: 0.28, cov: 125 },
+    { name: 'Cape Cod',         rate: 0.28, cov: 125 },
+    { name: 'Chameleon Gray',   rate: 0.28, cov: 125 },
+    { name: 'Charcoal Gray',    rate: 0.28, cov: 125 },
+    { name: 'Coffee Brown',     rate: 0.28, cov: 125 },
+    { name: 'Colorado',         rate: 0.28, cov: 125 },
+    { name: 'Cumberland Brown', rate: 0.28, cov: 125 },
+    { name: 'Dark Sierra',      rate: 0.28, cov: 125 },
+    { name: 'Desert Sand',      rate: 0.28, cov: 125 },
+    { name: 'Golden Rod',       rate: 0.28, cov: 125 },
+    { name: 'Graystone',        rate: 0.28, cov: 125 },
+    { name: 'Mesa Gray',        rate: 0.28, cov: 125 },
+    { name: 'Prairie Gray',     rate: 0.28, cov: 125 },
+    { name: 'Rustic Oak',       rate: 0.28, cov: 125 },
+    { name: 'Sable Brown',      rate: 0.28, cov: 125 },
+    { name: 'Sedona',           rate: 0.28, cov: 125 },
+    { name: 'Sierra',           rate: 0.28, cov: 125 },
+    { name: 'Wrangler',         rate: 0.28, cov: 125 },
+  ];
+
+  function selectStain(name) {
+    const p = STAIN_PRODUCTS.find(s => s.name === name);
+    const specs = document.getElementById('stain-product-specs');
+    if (!p) { specs.style.display = 'none'; return; }
+
+    // Always fill sqft inputs directly from product data
+    document.getElementById('s-rate-sqft').value = p.rate.toFixed(2);
+    document.getElementById('s-cov-sqft').value  = p.cov;
+
+    // Convert to linft using current average height if sections have heights
+    const totalLF = totalLinearFeet();
+    const totalSF = ALL_SIDES.reduce((acc, s) =>
+      acc + sides[s].reduce((a, r) =>
+        a + (parseFloat(r.len)||0) * (parseFloat(r.hgt)||0) * faceMult(r), 0), 0);
+    if (totalLF > 0 && totalSF > 0) {
+      const avgH = totalSF / totalLF;
+      document.getElementById('s-rate').value = (p.rate * avgH).toFixed(3);
+      document.getElementById('s-cov').value  = Math.round(p.cov / avgH);
+    }
+
+    // Update specs display
+    specs.style.display = 'block';
+    document.getElementById('sp-name').textContent = p.name;
+    document.getElementById('sp-rate').textContent = '$' + p.rate.toFixed(2) + ' / sq ft';
+    document.getElementById('sp-cov').textContent  = p.cov + ' sq ft / gal';
+
+    updateCosts();
   }
 
   // Wire cost inputs to recalc
