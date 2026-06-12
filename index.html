@@ -204,6 +204,28 @@
     }
     .print-btn:hover { background: var(--brand-light); }
 
+    /* ── QUOTE MODE TOGGLE ── */
+    .mode-toggle { display: flex; margin-bottom: 18px; }
+    .mode-btn {
+      flex: 1;
+      padding: 9px 12px;
+      border: 2px solid var(--brand);
+      background: white;
+      color: var(--brand);
+      cursor: pointer;
+      font-size: .88rem;
+      font-weight: 600;
+    }
+    .mode-btn:first-child { border-radius: 5px 0 0 5px; }
+    .mode-btn:last-child  { border-radius: 0 5px 5px 0; border-left: none; }
+    .mode-btn.active      { background: var(--brand); color: #fff; }
+
+    /* rows that show only in one mode */
+    .linft-row { display: table-row; }
+    .sqft-row  { display: none; }
+    body.sqft-mode .linft-row { display: none; }
+    body.sqft-mode .sqft-row  { display: table-row; }
+
     /* ── GATE ROW ── */
     .gate-row {
       display: flex;
@@ -490,24 +512,41 @@
   <div class="card">
     <h2>Cost Calculator</h2>
 
+    <div class="mode-toggle">
+      <button class="mode-btn active" id="mode-linft" onclick="setMode('linft')">Per Linear Foot</button>
+      <button class="mode-btn"        id="mode-sqft"  onclick="setMode('sqft')">Per Square Foot</button>
+    </div>
+
     <div class="cost-section stain">
       <span class="section-label">STAIN</span>
       <table class="cost-tbl">
-        <tr class="highlight">
+        <tr class="highlight linft-row">
           <td>Stain Linear Feet</td>
-          <td><span id="s-stain-sqft">0</span> lin ft</td>
+          <td><span id="s-stain-linft">0</span> lin ft</td>
         </tr>
-        <tr>
+        <tr class="linft-row">
           <td>Rate ($/linear ft)</td>
           <td><input type="number" id="s-rate" value="3.50" step="0.25" min="0" /></td>
+        </tr>
+        <tr class="linft-row">
+          <td>Coverage (lin ft/gal)</td>
+          <td><input type="number" id="s-cov" value="30" step="1" min="1" /></td>
+        </tr>
+        <tr class="highlight sqft-row">
+          <td>Stain Sq Footage</td>
+          <td><span id="s-stain-sqft">0</span> sq ft</td>
+        </tr>
+        <tr class="sqft-row">
+          <td>Rate ($/sq ft)</td>
+          <td><input type="number" id="s-rate-sqft" value="0.70" step="0.01" min="0" /></td>
+        </tr>
+        <tr class="sqft-row">
+          <td>Coverage (sq ft/gal)</td>
+          <td><input type="number" id="s-cov-sqft" value="175" step="1" min="1" /></td>
         </tr>
         <tr>
           <td>Customer Charged</td>
           <td>$<span id="s-charged">0.00</span></td>
-        </tr>
-        <tr>
-          <td>Coverage (lin ft/gal)</td>
-          <td><input type="number" id="s-cov" value="30" step="1" min="1" /></td>
         </tr>
         <tr>
           <td>Gallons Needed</td>
@@ -531,21 +570,29 @@
     <div class="cost-section bleach">
       <span class="section-label">BLEACH</span>
       <table class="cost-tbl">
-        <tr class="highlight">
+        <tr class="highlight linft-row">
           <td>Bleach Linear Feet</td>
-          <td><span id="b-sqft">0</span> lin ft</td>
+          <td><span id="b-linft">0</span> lin ft</td>
         </tr>
-        <tr>
+        <tr class="linft-row">
           <td>Rate ($/linear ft)</td>
           <td><input type="number" id="b-rate" value="1.50" step="0.25" min="0" /></td>
         </tr>
-        <tr>
-          <td>Customer Charged</td>
-          <td>$<span id="b-charged">0.00</span></td>
-        </tr>
-        <tr>
+        <tr class="linft-row">
           <td>Coverage (lin ft/gal)</td>
           <td><input type="number" id="b-cov" value="20" step="1" min="1" /></td>
+        </tr>
+        <tr class="highlight sqft-row">
+          <td>Bleach Sq Footage</td>
+          <td><span id="b-sqft">0</span> sq ft</td>
+        </tr>
+        <tr class="sqft-row">
+          <td>Rate ($/sq ft)</td>
+          <td><input type="number" id="b-rate-sqft" value="0.30" step="0.01" min="0" /></td>
+        </tr>
+        <tr class="sqft-row">
+          <td>Coverage (sq ft/gal)</td>
+          <td><input type="number" id="b-cov-sqft" value="128" step="1" min="1" /></td>
         </tr>
         <tr>
           <td>Gallons Needed</td>
@@ -704,6 +751,33 @@
 
   function totalLinFtByType(type) {
     return ALL_SIDES.reduce((sum, s) => sum + sideLinFtByType(s, type), 0);
+  }
+
+  function totalSqftByType(type) {
+    return ALL_SIDES.reduce((sum, s) => sum + sideSqftByType(s, type), 0);
+  }
+
+  function gateSqftForCalc(side) {
+    const count = parseInt(document.getElementById('gate-count-' + side)?.value) || 0;
+    const width = parseFloat(document.getElementById('gate-w-' + side)?.value) || 4;
+    const avgHgt = sides[side].length
+      ? sides[side].reduce((s,r) => s + (parseFloat(r.hgt)||6), 0) / sides[side].length
+      : 6;
+    return count * width * avgHgt;
+  }
+
+  function totalGateSqft() {
+    return ALL_SIDES.reduce((sum, s) => sum + gateSqftForCalc(s), 0);
+  }
+
+  // ── Quote mode ──
+  let quoteMode = 'linft';
+  function setMode(mode) {
+    quoteMode = mode;
+    document.body.classList.toggle('sqft-mode', mode === 'sqft');
+    document.getElementById('mode-linft').classList.toggle('active', mode === 'linft');
+    document.getElementById('mode-sqft').classList.toggle('active', mode === 'sqft');
+    updateCosts();
   }
 
   // ── Perspective fence view for one side ──
@@ -1119,18 +1193,26 @@
 
   // ── Cost calculations ──
   function updateCosts() {
-    // All calculations run on linear feet
-    const stainLinFt  = totalLinFtByType('stain')  + totalGateLinFt();
+    const stainLinFt = totalLinFtByType('stain')  + totalGateLinFt();
     const bleachLinFt = totalLinFtByType('bleach');
+    const stainSqft  = totalSqftByType('stain')   + totalGateSqft();
+    const bleachSqft = totalSqftByType('bleach');
+    const linFt      = totalLinearFeet();
 
-    document.getElementById('s-stain-sqft').textContent = stainLinFt.toFixed(0);
-    document.getElementById('b-sqft').textContent       = bleachLinFt.toFixed(0);
+    // Populate both mode displays
+    document.getElementById('s-stain-linft').textContent = stainLinFt.toFixed(0);
+    document.getElementById('s-stain-sqft').textContent  = stainSqft.toFixed(0);
+    document.getElementById('b-linft').textContent       = bleachLinFt.toFixed(0);
+    document.getElementById('b-sqft').textContent        = bleachSqft.toFixed(0);
 
-    const sRate    = parseFloat(document.getElementById('s-rate').value) || 0;
-    const sCov     = parseFloat(document.getElementById('s-cov').value) || 1;
+    const sqft = quoteMode === 'sqft';
+    const sMeasure = sqft ? stainSqft  : stainLinFt;
+    const bMeasure = sqft ? bleachSqft : bleachLinFt;
+    const sRate    = parseFloat(document.getElementById(sqft ? 's-rate-sqft' : 's-rate').value) || 0;
+    const sCov     = parseFloat(document.getElementById(sqft ? 's-cov-sqft'  : 's-cov').value)  || 1;
     const sGalCost = parseFloat(document.getElementById('s-gal-cost').value) || 0;
-    const sCharged = stainLinFt * sRate;
-    const sGal     = Math.ceil(stainLinFt / sCov);
+    const sCharged = sMeasure * sRate;
+    const sGal     = Math.ceil(sMeasure / sCov);
     const sMat     = sGal * sGalCost;
     const sProfit  = sCharged - sMat;
 
@@ -1139,11 +1221,11 @@
     document.getElementById('s-mat').textContent     = sMat.toFixed(2);
     document.getElementById('s-profit').textContent  = sProfit.toFixed(2);
 
-    const bRate    = parseFloat(document.getElementById('b-rate').value) || 0;
-    const bCov     = parseFloat(document.getElementById('b-cov').value) || 1;
+    const bRate    = parseFloat(document.getElementById(sqft ? 'b-rate-sqft' : 'b-rate').value) || 0;
+    const bCov     = parseFloat(document.getElementById(sqft ? 'b-cov-sqft'  : 'b-cov').value)  || 1;
     const bGalCost = parseFloat(document.getElementById('b-gal-cost').value) || 0;
-    const bCharged = bleachLinFt * bRate;
-    const bGal     = Math.ceil(bleachLinFt / bCov);
+    const bCharged = bMeasure * bRate;
+    const bGal     = Math.ceil(bMeasure / bCov);
     const bMat     = bGal * bGalCost;
     const bProfit  = bCharged - bMat;
 
@@ -1156,7 +1238,6 @@
     document.getElementById('total-charged').textContent = totalCharge.toFixed(2);
     document.getElementById('total-profit').textContent  = (sProfit + bProfit).toFixed(2);
 
-    // Summary chips
     document.getElementById('sum-stain-gal').textContent    = sGal;
     document.getElementById('sum-bleach-gal').textContent   = bGal;
     document.getElementById('sum-gates').textContent        = totalGateCount();
@@ -1182,7 +1263,8 @@
   }
 
   // Wire cost inputs to recalc
-  ['s-rate','s-cov','s-gal-cost','b-rate','b-cov','b-gal-cost'].forEach(id => {
+  ['s-rate','s-cov','s-gal-cost','b-rate','b-cov','b-gal-cost',
+   's-rate-sqft','s-cov-sqft','b-rate-sqft','b-cov-sqft'].forEach(id => {
     document.getElementById(id).addEventListener('input', updateCosts);
   });
   // Wire time/labor inputs to recalc
