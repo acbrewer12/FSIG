@@ -535,8 +535,6 @@
       const SW = 58;          // side-strip width
       const CX1 = SW, CX2 = VW - SW, HCX = VW / 2;
       const ROOF_PEAK = 12, ROOF_BASE = 70;
-      const FENCE_TOP = 138, FENCE_BOT = GROUND - 2;
-      const FENCE_H = FENCE_BOT - FENCE_TOP;
 
       let h = `<defs>
         <linearGradient id="sky-front" x1="0" y1="0" x2="0" y2="1">
@@ -616,63 +614,6 @@
       // ── Ground ──
       h += `<rect x="0" y="${GROUND}" width="${VW}" height="${VH-GROUND}" fill="url(#gnd-front)"/>`;
       h += `<rect x="0" y="${GROUND-3}" width="${VW}" height="6" fill="#3a6e22"/>`;
-
-      // ── Front fence across the center (foreground) ──
-      const frontRows = sides.front.filter(r => (parseFloat(r.len)||0) > 0);
-      const frontLen  = frontRows.reduce((s,r) => s + (parseFloat(r.len)||0), 0);
-      const FW = CX2 - CX1;   // available width between strips
-
-      if (frontRows.length && frontLen) {
-        let curX = CX1;
-        frontRows.forEach((row, idx) => {
-          const bw   = (parseFloat(row.len)||0) / frontLen * FW;
-          const col  = fc(row.type);
-          const dark = dc(row.type);
-          const sq   = rowSqft(row);
-          const pan  = parseInt(row.pan) || 1;
-
-          h += `<rect x="${curX}" y="${FENCE_TOP}" width="${bw}" height="${FENCE_H}" fill="${col}"/>`;
-          const pW = 9, pG = 3;
-          for (let px = curX + 2; px + pW < curX + bw - 1; px += pW + pG) {
-            h += `<rect x="${px}" y="${FENCE_TOP+10}" width="${pW}" height="${FENCE_H-10}" fill="${dark}" rx="1"/>`;
-            h += `<polygon points="${px},${FENCE_TOP+10} ${px+pW/2},${FENCE_TOP} ${px+pW},${FENCE_TOP+10}" fill="${dark}"/>`;
-          }
-          const r1 = FENCE_TOP + 20, r2 = FENCE_BOT - 20;
-          h += `<rect x="${curX}" y="${r1}" width="${bw}" height="5" fill="${dark}" opacity=".55"/>`;
-          h += `<rect x="${curX}" y="${r2}" width="${bw}" height="5" fill="${dark}" opacity=".55"/>`;
-          if (idx > 0) h += `<rect x="${curX-3}" y="${FENCE_TOP-4}" width="6" height="${FENCE_H+8}" fill="${C_POST}" rx="1"/>`;
-
-          const cx = curX + bw / 2;
-          const panTag  = pan > 1 ? ` ×${pan}` : '';
-          const typeTxt = row.type.charAt(0).toUpperCase() + row.type.slice(1) + panTag;
-          if (bw >= 100) {
-            const lw = Math.min(bw - 6, 195);
-            h += `<rect x="${cx-lw/2}" y="${FENCE_TOP-26}" width="${lw}" height="24" rx="4" fill="rgba(0,0,0,.5)"/>`;
-            h += `<text x="${cx}" y="${FENCE_TOP-16}" text-anchor="middle" dominant-baseline="middle"
-                   fill="white" font-size="10" font-weight="bold">${row.len}' × ${row.hgt}' × ${row.pan}</text>`;
-            h += `<text x="${cx}" y="${FENCE_TOP-4}"  text-anchor="middle" dominant-baseline="middle"
-                   fill="rgba(255,255,255,.9)" font-size="9">${sq} sq ft  •  ${typeTxt}</text>`;
-          } else if (bw >= 50) {
-            h += `<rect x="${cx-45}" y="${FENCE_TOP-18}" width="90" height="16" rx="3" fill="rgba(0,0,0,.5)"/>`;
-            h += `<text x="${cx}" y="${FENCE_TOP-9}" text-anchor="middle" dominant-baseline="middle"
-                   fill="white" font-size="9" font-weight="bold">${sq} sq ft</text>`;
-          }
-          curX += bw;
-        });
-        h += `<rect x="${CX1-3}" y="${FENCE_TOP-4}" width="6" height="${FENCE_H+8}" fill="${C_POST}" rx="1"/>`;
-        h += `<rect x="${CX2-3}" y="${FENCE_TOP-4}" width="6" height="${FENCE_H+8}" fill="${C_POST}" rx="1"/>`;
-      } else {
-        // No front fence — show dashed placeholder
-        h += `<rect x="${CX1}" y="${FENCE_TOP}" width="${FW}" height="${FENCE_H}"
-               fill="#dedad4" stroke="#bbb" stroke-dasharray="8,5" stroke-width="1.5" rx="4"/>`;
-        h += `<text x="${HCX}" y="${FENCE_TOP+FENCE_H/2}" text-anchor="middle"
-               dominant-baseline="middle" fill="#aaa" font-size="12" font-style="italic">No front fence</text>`;
-      }
-
-      const tot = sideTotalSqft('front');
-      if (tot > 0) {
-        h += `<text x="${VW-4}" y="${VH-4}" text-anchor="end" fill="rgba(255,255,255,.6)" font-size="10">${tot.toFixed(0)} sq ft front</text>`;
-      }
 
       svg.innerHTML = h;
       return;
