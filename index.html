@@ -92,6 +92,8 @@
     .side-panel.right h3 { background: #e8f5e9; color: var(--ok);   }
     .side-panel.front h3,
     .side-panel.back  h3 { background: #e3f2fd; color: #1565c0; }
+    .side-panel.frontleft h3,
+    .side-panel.frontright h3 { background: #f3e5f5; color: #6a1b9a; }
 
     /* section row */
     .section-row {
@@ -350,6 +352,34 @@
         <button class="add-btn" onclick="addRow('back')">+ Add Section</button>
         <div class="side-total" id="total-back">Total: 0 sq ft</div>
       </div>
+
+      <div class="side-panel frontleft">
+        <h3>Front Left</h3>
+        <div class="col-headers">
+          <span class="ch-len">Length</span>
+          <span class="ch-hgt">Height</span>
+          <span class="ch-pan">Panels</span>
+          <span class="ch-type">Treatment</span>
+          <span class="ch-sqft">Sq Ft</span>
+        </div>
+        <div id="rows-frontLeft"></div>
+        <button class="add-btn" onclick="addRow('frontLeft')">+ Add Section</button>
+        <div class="side-total" id="total-frontLeft">Total: 0 sq ft</div>
+      </div>
+
+      <div class="side-panel frontright">
+        <h3>Front Right</h3>
+        <div class="col-headers">
+          <span class="ch-len">Length</span>
+          <span class="ch-hgt">Height</span>
+          <span class="ch-pan">Panels</span>
+          <span class="ch-type">Treatment</span>
+          <span class="ch-sqft">Sq Ft</span>
+        </div>
+        <div id="rows-frontRight"></div>
+        <button class="add-btn" onclick="addRow('frontRight')">+ Add Section</button>
+        <div class="side-total" id="total-frontRight">Total: 0 sq ft</div>
+      </div>
     </div>
   </div>
 
@@ -444,7 +474,7 @@
 
 <script>
   // ── Data model ──
-  const sides = { left: [], right: [], front: [], back: [] };
+  const sides = { left: [], right: [], front: [], back: [], frontLeft: [], frontRight: [] };
   let rowCounter = 0;
 
   // ── Add a fence section row ──
@@ -532,8 +562,9 @@
     // ── FRONT VIEW: house centered between left / right fence strips ──
     if (side === 'front') {
       const VH = 260, GROUND = 205;
-      const SW = 58;          // side-strip width
-      const CX1 = SW, CX2 = VW - SW, HCX = VW / 2;
+      const SW  = 52;   // left/right side-strip width
+      const FSW = 52;   // front-left/right strip width
+      const CX1 = SW + FSW, CX2 = VW - SW - FSW, HCX = VW / 2;
       const ROOF_PEAK = 12, ROOF_BASE = 70;
 
       let h = `<defs>
@@ -577,6 +608,8 @@
       }
       drawStrip(0,        'left',  'LEFT');
       drawStrip(VW - SW,  'right', 'RIGHT');
+      drawStrip(SW,       'frontLeft',  'FRONT L');
+      drawStrip(VW-SW-FSW,'frontRight', 'FRONT R');
 
       // ── House body (behind the front fence) ──
       h += `<rect x="${CX1}" y="${ROOF_BASE}" width="${CX2-CX1}" height="${GROUND-ROOF_BASE}" fill="#f5f0e8" stroke="#c0b8b0" stroke-width="1.5"/>`;
@@ -708,7 +741,7 @@
   // ── Recalculate everything ──
   function recalc() {
     const totals = {};
-    ['left','right','front','back'].forEach(s => {
+    ['left','right','front','back','frontLeft','frontRight'].forEach(s => {
       totals[s] = sideTotalSqft(s);
       document.getElementById('total-' + s).textContent =
         'Total: ' + totals[s].toFixed(1) + ' sq ft';
@@ -894,7 +927,7 @@
 
   // ── Cost calculations ──
   function updateCosts() {
-    const allSides = ['left','right','front','back'];
+    const allSides = ['left','right','front','back','frontLeft','frontRight'];
     let stainSqft = 0, bleachSqft = 0;
     allSides.forEach(s => {
       stainSqft  += sideSqftByType(s, 'stain');
