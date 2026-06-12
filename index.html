@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FSIG · Jobsite Analysis</title>
+  <style>
+    :root {
+      --brand: #8B1A1A;
+      --brand-light: #c0392b;
+      --warn: #e67e22;
+      --ok: #27ae60;
+      --bg: #f4f4f2;
+      --card: #ffffff;
+      --border: #ddd;
+      --text: #222;
+      --muted: #666;
+      --highlight: #fff176;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); }
+
+    /* ── HEADER ── */
+    header {
+      background: var(--brand);
+      color: #fff;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    header h1 { font-size: 1.4rem; letter-spacing: 1px; }
+    header span { font-size: .85rem; opacity: .8; }
+
+    /* ── LAYOUT ── */
+    .container { max-width: 1100px; margin: 0 auto; padding: 20px 16px; }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--card);
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .card h2 {
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--brand);
+      border-bottom: 2px solid var(--brand);
+      padding-bottom: 8px;
+      margin-bottom: 16px;
+    }
+
+    /* ── ADDRESS ── */
+    .addr-row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .addr-row input {
+      flex: 1;
+      min-width: 200px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      font-size: .95rem;
+    }
+
+    /* ── HOUSE VISUAL ── */
+    #house-visual {
+      width: 100%;
+      overflow: visible;
+    }
+
+    /* asymmetry badge */
+    .asym-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-weight: 700;
+      margin-top: 12px;
+      transition: all .3s;
+    }
+    .asym-badge.left-bigger  { background: #fdf0d5; color: var(--warn); border: 2px solid var(--warn); }
+    .asym-badge.right-bigger { background: #fdf0d5; color: var(--warn); border: 2px solid var(--warn); }
+    .asym-badge.balanced     { background: #eafaf1; color: var(--ok);   border: 2px solid var(--ok);   }
+
+    /* ── SIDES GRID ── */
+    .sides-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media(max-width:600px){ .sides-grid { grid-template-columns: 1fr; } }
+
+    .side-panel h3 {
+      font-size: .9rem;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      margin-bottom: 10px;
+      padding: 6px 10px;
+      border-radius: 4px;
+    }
+    .side-panel.left  h3 { background: #fff3e0; color: var(--warn); }
+    .side-panel.right h3 { background: #e8f5e9; color: var(--ok);   }
+    .side-panel.front h3,
+    .side-panel.back  h3 { background: #e3f2fd; color: #1565c0; }
+
+    /* section row */
+    .section-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .section-row label { font-size: .78rem; color: var(--muted); min-width: 34px; }
+    .section-row input[type=number] {
+      width: 64px;
+      padding: 5px 6px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: .88rem;
+      text-align: center;
+    }
+    .section-row select {
+      padding: 5px 6px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: .82rem;
+    }
+    .section-row .sq { font-size: .82rem; color: var(--muted); min-width: 70px; }
+    .section-row .del-btn {
+      background: none;
+      border: none;
+      color: #c0392b;
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 2px 4px;
+    }
+    .add-btn {
+      background: none;
+      border: 1px dashed var(--border);
+      color: var(--muted);
+      cursor: pointer;
+      font-size: .82rem;
+      padding: 5px 10px;
+      border-radius: 4px;
+      margin-top: 4px;
+      width: 100%;
+    }
+    .add-btn:hover { border-color: var(--brand); color: var(--brand); }
+
+    .side-total {
+      margin-top: 8px;
+      font-weight: 700;
+      font-size: .9rem;
+      text-align: right;
+      color: var(--text);
+    }
+
+    /* ── COST TABLE ── */
+    .cost-section { margin-bottom: 16px; }
+    .cost-section .section-label {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 3px;
+      font-weight: 700;
+      font-size: .85rem;
+      margin-bottom: 10px;
+    }
+    .cost-section.stain .section-label { background: var(--brand); color: #fff; }
+    .cost-section.bleach .section-label { background: #2980b9; color: #fff; }
+
+    table.cost-tbl {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+    .cost-tbl td {
+      padding: 6px 10px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .cost-tbl td:first-child { color: var(--muted); }
+    .cost-tbl td:last-child { text-align: right; font-weight: 600; }
+    .cost-tbl tr.highlight td { background: var(--highlight); }
+    .cost-tbl input {
+      width: 70px;
+      padding: 3px 6px;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      font-size: .88rem;
+      text-align: right;
+    }
+
+    .gross-total {
+      background: var(--highlight);
+      font-size: 1.2rem;
+      font-weight: 700;
+      text-align: right;
+      padding: 14px 16px;
+      border-radius: 5px;
+      margin-top: 10px;
+    }
+
+    /* print */
+    .print-btn {
+      background: var(--brand);
+      color: #fff;
+      border: none;
+      padding: 10px 22px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: .9rem;
+      font-weight: 600;
+    }
+    .print-btn:hover { background: var(--brand-light); }
+
+    @media print {
+      header, .print-btn { -webkit-print-color-adjust: exact; }
+    }
+
+    /* col headers for section rows */
+    .col-headers {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 4px;
+      flex-wrap: wrap;
+      font-size: .72rem;
+      color: var(--muted);
+      padding-left: 0;
+    }
+    .col-headers span { text-align: center; }
+    .ch-len  { width: 64px; }
+    .ch-hgt  { width: 64px; }
+    .ch-pan  { width: 64px; }
+    .ch-type { width: 80px; }
+    .ch-sqft { min-width: 70px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>FSIG &nbsp;·&nbsp; Jobsite Analysis</h1>
+  <button class="print-btn" onclick="window.print()">Print / Save PDF</button>
+</header>
+
+<div class="container">
+
+  <!-- Address -->
+  <div class="card">
+    <h2>Property</h2>
+    <div class="addr-row">
+      <input id="addr" type="text" placeholder="Street Address" />
+      <input id="city" type="text" placeholder="City" />
+      <input id="state" type="text" placeholder="State" style="max-width:80px" />
+      <input id="zip" type="text" placeholder="ZIP" style="max-width:90px" />
+    </div>
+  </div>
+
+  <!-- House Visual -->
+  <div class="card">
+    <h2>Front-View Asymmetry Display</h2>
+    <svg id="house-visual" viewBox="0 0 700 260" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div id="asym-badge" class="asym-badge balanced">✓ Left &amp; Right Are Balanced</div>
+  </div>
+
+  <!-- Fence Sections -->
+  <div class="card">
+    <h2>Fence Sections</h2>
+    <div class="sides-grid">
+      <div class="side-panel left" id="panel-left">
+        <h3>Left Side</h3>
+        <div class="col-headers">
+          <span class="ch-len">Length</span>
+          <span class="ch-hgt">Height</span>
+          <span class="ch-pan">Panels</span>
+          <span class="ch-type">Treatment</span>
+          <span class="ch-sqft">Sq Ft</span>
+        </div>
+        <div id="rows-left"></div>
+        <button class="add-btn" onclick="addRow('left')">+ Add Section</button>
+        <div class="side-total" id="total-left">Total: 0 sq ft</div>
+      </div>
+
+      <div class="side-panel right" id="panel-right">
+        <h3>Right Side</h3>
+        <div class="col-headers">
+          <span class="ch-len">Length</span>
+          <span class="ch-hgt">Height</span>
+          <span class="ch-pan">Panels</span>
+          <span class="ch-type">Treatment</span>
+          <span class="ch-sqft">Sq Ft</span>
+        </div>
+        <div id="rows-right"></div>
+        <button class="add-btn" onclick="addRow('right')">+ Add Section</button>
+        <div class="side-total" id="total-right">Total: 0 sq ft</div>
+      </div>
+
+      <div class="side-panel front">
+        <h3>Front</h3>
+        <div class="col-headers">
+          <span class="ch-len">Length</span>
+          <span class="ch-hgt">Height</span>
+          <span class="ch-pan">Panels</span>
+          <span class="ch-type">Treatment</span>
+          <span class="ch-sqft">Sq Ft</span>
+        </div>
+        <div id="rows-front"></div>
+        <button class="add-btn" onclick="addRow('front')">+ Add Section</button>
+        <div class="side-total" id="total-front">Total: 0 sq ft</div>
+      </div>
+
+      <div class="side-panel back">
+        <h3>Back</h3>
+        <div class="col-headers">
+          <span class="ch-len">Length</span>
+          <span class="ch-hgt">Height</span>
+          <span class="ch-pan">Panels</span>
+          <span class="ch-type">Treatment</span>
+          <span class="ch-sqft">Sq Ft</span>
+        </div>
+        <div id="rows-back"></div>
+        <button class="add-btn" onclick="addRow('back')">+ Add Section</button>
+        <div class="side-total" id="total-back">Total: 0 sq ft</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cost Calculator -->
+  <div class="card">
+    <h2>Cost Calculator</h2>
+
+    <div class="cost-section stain">
+      <span class="section-label">STAIN</span>
+      <table class="cost-tbl">
+        <tr>
+          <td>Total Square Footage</td>
+          <td><span id="s-sqft">0</span> sq ft</td>
+        </tr>
+        <tr class="highlight">
+          <td>Stain Sq Footage</td>
+          <td><span id="s-stain-sqft">0</span> sq ft</td>
+        </tr>
+        <tr>
+          <td>Rate ($/sq ft)</td>
+          <td><input type="number" id="s-rate" value="0.70" step="0.01" min="0" /></td>
+        </tr>
+        <tr>
+          <td>Customer Charged</td>
+          <td>$<span id="s-charged">0.00</span></td>
+        </tr>
+        <tr>
+          <td>Coverage (sq ft/gal)</td>
+          <td><input type="number" id="s-cov" value="175" step="1" min="1" /></td>
+        </tr>
+        <tr>
+          <td>Gallons Needed</td>
+          <td><span id="s-gal">0</span> gal</td>
+        </tr>
+        <tr>
+          <td>Cost per Gallon ($)</td>
+          <td><input type="number" id="s-gal-cost" value="35.33" step="0.01" min="0" /></td>
+        </tr>
+        <tr>
+          <td>Material Cost</td>
+          <td>$<span id="s-mat">0.00</span></td>
+        </tr>
+        <tr class="highlight">
+          <td><strong>Gross Profit — Stain</strong></td>
+          <td><strong>$<span id="s-profit">0.00</span></strong></td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="cost-section bleach">
+      <span class="section-label">BLEACH</span>
+      <table class="cost-tbl">
+        <tr class="highlight">
+          <td>Bleach Sq Footage</td>
+          <td><span id="b-sqft">0</span> sq ft</td>
+        </tr>
+        <tr>
+          <td>Rate ($/sq ft)</td>
+          <td><input type="number" id="b-rate" value="0.30" step="0.01" min="0" /></td>
+        </tr>
+        <tr>
+          <td>Customer Charged</td>
+          <td>$<span id="b-charged">0.00</span></td>
+        </tr>
+        <tr>
+          <td>Coverage (sq ft/gal)</td>
+          <td><input type="number" id="b-cov" value="128" step="1" min="1" /></td>
+        </tr>
+        <tr>
+          <td>Gallons Needed</td>
+          <td><span id="b-gal">0</span> gal</td>
+        </tr>
+        <tr>
+          <td>Cost per Gallon ($)</td>
+          <td><input type="number" id="b-gal-cost" value="6.00" step="0.01" min="0" /></td>
+        </tr>
+        <tr>
+          <td>Material Cost</td>
+          <td>$<span id="b-mat">0.00</span></td>
+        </tr>
+        <tr class="highlight">
+          <td><strong>Gross Profit — Bleach</strong></td>
+          <td><strong>$<span id="b-profit">0.00</span></strong></td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="gross-total">Total Gross Profit: &nbsp;$<span id="total-profit">0.00</span></div>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+  // ── Data model ──
+  const sides = { left: [], right: [], front: [], back: [] };
+  let rowCounter = 0;
+
+  // ── Add a fence section row ──
+  function addRow(side, len='', hgt='6', pan='1', type='stain') {
+    const id = ++rowCounter;
+    sides[side].push({ id, len, hgt, pan, type });
+    renderRows(side);
+    recalc();
+  }
+
+  function removeRow(side, id) {
+    sides[side] = sides[side].filter(r => r.id !== id);
+    renderRows(side);
+    recalc();
+  }
+
+  function renderRows(side) {
+    const container = document.getElementById('rows-' + side);
+    container.innerHTML = '';
+    sides[side].forEach(row => {
+      const div = document.createElement('div');
+      div.className = 'section-row';
+      div.innerHTML = `
+        <input type="number" min="0" step="0.5" placeholder="ft" value="${row.len}"
+          onchange="updateRow('${side}',${row.id},'len',this.value)" style="width:64px" />
+        <span style="color:var(--muted);font-size:.8rem">×</span>
+        <input type="number" min="0" step="0.5" placeholder="ft" value="${row.hgt}"
+          onchange="updateRow('${side}',${row.id},'hgt',this.value)" style="width:64px" />
+        <span style="color:var(--muted);font-size:.8rem">×</span>
+        <input type="number" min="1" step="1" placeholder="#" value="${row.pan}"
+          onchange="updateRow('${side}',${row.id},'pan',this.value)" style="width:46px" />
+        <select onchange="updateRow('${side}',${row.id},'type',this.value)">
+          <option value="stain"  ${row.type==='stain'  ?'selected':''}>Stain</option>
+          <option value="bleach" ${row.type==='bleach' ?'selected':''}>Bleach</option>
+          <option value="both"   ${row.type==='both'   ?'selected':''}>Both</option>
+        </select>
+        <span class="sq" id="sqft-${row.id}">${rowSqft(row)} sq ft</span>
+        <button class="del-btn" onclick="removeRow('${side}',${row.id})" title="Remove">✕</button>
+      `;
+      container.appendChild(div);
+    });
+  }
+
+  function updateRow(side, id, field, value) {
+    const row = sides[side].find(r => r.id === id);
+    if (!row) return;
+    row[field] = value;
+    const el = document.getElementById('sqft-' + id);
+    if (el) el.textContent = rowSqft(row) + ' sq ft';
+    recalc();
+  }
+
+  function rowSqft(row) {
+    const l = parseFloat(row.len) || 0;
+    const h = parseFloat(row.hgt) || 0;
+    const p = parseFloat(row.pan) || 1;
+    return (l * h * p).toFixed(1);
+  }
+
+  function sideTotalSqft(side) {
+    return sides[side].reduce((sum, r) => sum + (parseFloat(rowSqft(r)) || 0), 0);
+  }
+
+  function sideSqftByType(side, type) {
+    return sides[side].reduce((sum, r) => {
+      const sq = parseFloat(rowSqft(r)) || 0;
+      if (r.type === type || r.type === 'both') return sum + sq;
+      return sum;
+    }, 0);
+  }
+
+  // ── Recalculate everything ──
+  function recalc() {
+    const totals = {};
+    ['left','right','front','back'].forEach(s => {
+      totals[s] = sideTotalSqft(s);
+      document.getElementById('total-' + s).textContent =
+        'Total: ' + totals[s].toFixed(1) + ' sq ft';
+    });
+
+    updateHouseVisual(totals.left, totals.right, totals.front, totals.back);
+    updateAsymBadge(totals.left, totals.right);
+    updateCosts();
+  }
+
+  // ── Asymmetry badge ──
+  function updateAsymBadge(left, right) {
+    const badge = document.getElementById('asym-badge');
+    badge.className = 'asym-badge';
+    if (left > right) {
+      badge.className += ' left-bigger';
+      badge.innerHTML = '⚠ LEFT SIDE IS LARGER  (' + left.toFixed(0) + ' sq ft vs ' + right.toFixed(0) + ' sq ft)';
+    } else if (right > left) {
+      badge.className += ' right-bigger';
+      badge.innerHTML = '⚠ RIGHT SIDE IS LARGER  (' + right.toFixed(0) + ' sq ft vs ' + left.toFixed(0) + ' sq ft)';
+    } else {
+      badge.className += ' balanced';
+      badge.innerHTML = '✓ Left &amp; Right Are Balanced';
+    }
+  }
+
+  // ── SVG House Visual ──
+  function updateHouseVisual(leftSqft, rightSqft, frontSqft, backSqft) {
+    const svg = document.getElementById('house-visual');
+
+    // Base dimensions
+    const VW = 700, VH = 260;
+    const houseX = 240, houseW = 220, houseY = 60, houseH = 150;
+    const roofPeakX = houseX + houseW / 2, roofPeakY = 15;
+    const maxFenceH = 140;
+    const fenceBaseY = houseY + houseH; // bottom of fence = bottom of house
+
+    // Scale fence heights proportionally
+    const maxSq = Math.max(leftSqft, rightSqft, frontSqft, backSqft, 1);
+    const lH = Math.max(10, (leftSqft / maxSq) * maxFenceH);
+    const rH = Math.max(10, (rightSqft / maxSq) * maxFenceH);
+
+    // Colors
+    const leftColor  = leftSqft > rightSqft  ? '#e67e22' : (leftSqft === rightSqft ? '#95a5a6' : '#27ae60');
+    const rightColor = rightSqft > leftSqft  ? '#e67e22' : (leftSqft === rightSqft ? '#95a5a6' : '#27ae60');
+
+    // Left fence panel
+    const lX = houseX - 120;
+    const lY = fenceBaseY - lH;
+    const lW = 100;
+
+    // Right fence panel
+    const rX = houseX + houseW + 20;
+    const rY = fenceBaseY - rH;
+    const rW = 100;
+
+    // Build SVG
+    let html = '';
+
+    // Sky/ground
+    html += `<rect x="0" y="0" width="${VW}" height="${VH}" fill="#e8f4f8" rx="6"/>`;
+    html += `<rect x="0" y="${fenceBaseY}" width="${VW}" height="${VH - fenceBaseY}" fill="#c8e6c9"/>`;
+
+    // Ground line
+    html += `<line x1="0" y1="${fenceBaseY}" x2="${VW}" y2="${fenceBaseY}" stroke="#a5d6a7" stroke-width="2"/>`;
+
+    // ── Left fence ──
+    // Picket fence effect
+    const picketW = 10, picketGap = 4, totalPicketW = picketW + picketGap;
+    const numPickets = Math.floor(lW / totalPicketW);
+    for (let i = 0; i < numPickets; i++) {
+      const px = lX + i * totalPicketW;
+      html += `<rect x="${px}" y="${lY + 10}" width="${picketW}" height="${lH - 10}" fill="${leftColor}" rx="1"/>`;
+      html += `<polygon points="${px},${lY + 10} ${px + picketW/2},${lY} ${px + picketW},${lY + 10}" fill="${leftColor}"/>`;
+    }
+    // Top rail
+    html += `<rect x="${lX}" y="${lY + 10}" width="${lW}" height="5" fill="${leftColor}" opacity=".6"/>`;
+    // Bottom rail
+    html += `<rect x="${lX}" y="${fenceBaseY - 20}" width="${lW}" height="5" fill="${leftColor}" opacity=".6"/>`;
+    // Label
+    html += `<rect x="${lX}" y="${lY - 36}" width="${lW}" height="28" rx="4" fill="${leftColor}"/>`;
+    html += `<text x="${lX + lW/2}" y="${lY - 24}" text-anchor="middle" fill="white" font-size="11" font-weight="bold">LEFT</text>`;
+    html += `<text x="${lX + lW/2}" y="${lY - 12}" text-anchor="middle" fill="white" font-size="10">${leftSqft.toFixed(0)} sq ft</text>`;
+
+    // ── Right fence ──
+    const numPicketsR = Math.floor(rW / totalPicketW);
+    for (let i = 0; i < numPicketsR; i++) {
+      const px = rX + i * totalPicketW;
+      html += `<rect x="${px}" y="${rY + 10}" width="${picketW}" height="${rH - 10}" fill="${rightColor}" rx="1"/>`;
+      html += `<polygon points="${px},${rY + 10} ${px + picketW/2},${rY} ${px + picketW},${rY + 10}" fill="${rightColor}"/>`;
+    }
+    html += `<rect x="${rX}" y="${rY + 10}" width="${rW}" height="5" fill="${rightColor}" opacity=".6"/>`;
+    html += `<rect x="${rX}" y="${fenceBaseY - 20}" width="${rW}" height="5" fill="${rightColor}" opacity=".6"/>`;
+    html += `<rect x="${rX}" y="${rY - 36}" width="${rW}" height="28" rx="4" fill="${rightColor}"/>`;
+    html += `<text x="${rX + rW/2}" y="${rY - 24}" text-anchor="middle" fill="white" font-size="11" font-weight="bold">RIGHT</text>`;
+    html += `<text x="${rX + rW/2}" y="${rY - 12}" text-anchor="middle" fill="white" font-size="10">${rightSqft.toFixed(0)} sq ft</text>`;
+
+    // ── House ──
+    // Body
+    html += `<rect x="${houseX}" y="${houseY}" width="${houseW}" height="${houseH}" fill="#fff9f0" stroke="#aaa" stroke-width="1.5"/>`;
+    // Roof
+    html += `<polygon points="${houseX - 10},${houseY} ${roofPeakX},${roofPeakY} ${houseX + houseW + 10},${houseY}" fill="#8B1A1A" stroke="#6b1414" stroke-width="1"/>`;
+    // Siding lines
+    for (let sy = houseY + 20; sy < houseY + houseH; sy += 18) {
+      html += `<line x1="${houseX}" y1="${sy}" x2="${houseX + houseW}" y2="${sy}" stroke="#e0d5c8" stroke-width=".8"/>`;
+    }
+    // Door
+    const doorX = houseX + houseW/2 - 16, doorY = houseY + houseH - 55;
+    html += `<rect x="${doorX}" y="${doorY}" width="32" height="55" fill="#795548" rx="2"/>`;
+    html += `<rect x="${doorX}" y="${doorY}" width="32" height="55" fill="none" stroke="#5d4037" stroke-width="1"/>`;
+    html += `<circle cx="${doorX + 25}" cy="${doorY + 28}" r="3" fill="#ffd54f"/>`;
+    // Window left
+    const wlX = houseX + 20, wlY = houseY + 30;
+    html += `<rect x="${wlX}" y="${wlY}" width="40" height="32" fill="#b3e5fc" stroke="#90caf9" stroke-width="1" rx="1"/>`;
+    html += `<line x1="${wlX + 20}" y1="${wlY}" x2="${wlX + 20}" y2="${wlY + 32}" stroke="#90caf9" stroke-width=".8"/>`;
+    html += `<line x1="${wlX}" y1="${wlY + 16}" x2="${wlX + 40}" y2="${wlY + 16}" stroke="#90caf9" stroke-width=".8"/>`;
+    // Window right
+    const wrX = houseX + houseW - 60, wrY = houseY + 30;
+    html += `<rect x="${wrX}" y="${wrY}" width="40" height="32" fill="#b3e5fc" stroke="#90caf9" stroke-width="1" rx="1"/>`;
+    html += `<line x1="${wrX + 20}" y1="${wrY}" x2="${wrX + 20}" y2="${wrY + 32}" stroke="#90caf9" stroke-width=".8"/>`;
+    html += `<line x1="${wrX}" y1="${wrY + 16}" x2="${wrX + 40}" y2="${wrY + 16}" stroke="#90caf9" stroke-width=".8"/>`;
+
+    // ── Connecting lines from house to fences ──
+    html += `<line x1="${lX + lW}" y1="${fenceBaseY}" x2="${houseX}" y2="${fenceBaseY}" stroke="#aaa" stroke-width="1" stroke-dasharray="4,4"/>`;
+    html += `<line x1="${houseX + houseW}" y1="${fenceBaseY}" x2="${rX}" y2="${fenceBaseY}" stroke="#aaa" stroke-width="1" stroke-dasharray="4,4"/>`;
+
+    // ── Asymmetry arrow indicator ──
+    if (leftSqft !== rightSqft && (leftSqft > 0 || rightSqft > 0)) {
+      const arrowY = 18;
+      if (leftSqft > rightSqft) {
+        // Arrow pointing left
+        const ax = houseX - 130;
+        html += `<text x="${ax}" y="${arrowY}" text-anchor="middle" fill="#e67e22" font-size="22">◀</text>`;
+        html += `<text x="${ax}" y="${arrowY + 14}" text-anchor="middle" fill="#e67e22" font-size="9" font-weight="bold">BIGGER</text>`;
+      } else {
+        // Arrow pointing right
+        const ax = houseX + houseW + 130;
+        html += `<text x="${ax}" y="${arrowY}" text-anchor="middle" fill="#e67e22" font-size="22">▶</text>`;
+        html += `<text x="${ax}" y="${arrowY + 14}" text-anchor="middle" fill="#e67e22" font-size="9" font-weight="bold">BIGGER</text>`;
+      }
+    }
+
+    svg.innerHTML = html;
+  }
+
+  // ── Cost calculations ──
+  function updateCosts() {
+    const allSides = ['left','right','front','back'];
+    let stainSqft = 0, bleachSqft = 0;
+    allSides.forEach(s => {
+      stainSqft  += sideSqftByType(s, 'stain');
+      bleachSqft += sideSqftByType(s, 'bleach');
+    });
+    const totalSqft = stainSqft + bleachSqft;
+
+    document.getElementById('s-sqft').textContent = totalSqft.toFixed(0);
+    document.getElementById('s-stain-sqft').textContent = stainSqft.toFixed(0);
+    document.getElementById('b-sqft').textContent = bleachSqft.toFixed(0);
+
+    const sRate    = parseFloat(document.getElementById('s-rate').value) || 0;
+    const sCov     = parseFloat(document.getElementById('s-cov').value) || 1;
+    const sGalCost = parseFloat(document.getElementById('s-gal-cost').value) || 0;
+    const sCharged = stainSqft * sRate;
+    const sGal     = Math.ceil(stainSqft / sCov);
+    const sMat     = sGal * sGalCost;
+    const sProfit  = sCharged - sMat;
+
+    document.getElementById('s-charged').textContent = sCharged.toFixed(2);
+    document.getElementById('s-gal').textContent     = sGal;
+    document.getElementById('s-mat').textContent     = sMat.toFixed(2);
+    document.getElementById('s-profit').textContent  = sProfit.toFixed(2);
+
+    const bRate    = parseFloat(document.getElementById('b-rate').value) || 0;
+    const bCov     = parseFloat(document.getElementById('b-cov').value) || 1;
+    const bGalCost = parseFloat(document.getElementById('b-gal-cost').value) || 0;
+    const bCharged = bleachSqft * bRate;
+    const bGal     = Math.ceil(bleachSqft / bCov);
+    const bMat     = bGal * bGalCost;
+    const bProfit  = bCharged - bMat;
+
+    document.getElementById('b-charged').textContent = bCharged.toFixed(2);
+    document.getElementById('b-gal').textContent     = bGal;
+    document.getElementById('b-mat').textContent     = bMat.toFixed(2);
+    document.getElementById('b-profit').textContent  = bProfit.toFixed(2);
+
+    document.getElementById('total-profit').textContent = (sProfit + bProfit).toFixed(2);
+  }
+
+  // Wire cost inputs to recalc
+  ['s-rate','s-cov','s-gal-cost','b-rate','b-cov','b-gal-cost'].forEach(id => {
+    document.getElementById(id).addEventListener('input', updateCosts);
+  });
+
+  // ── Seed with sample data matching the form in the image ──
+  function seedSampleData() {
+    addRow('front', '68', '6', '1', 'stain');
+    addRow('left',  '72', '6', '2', 'stain');
+    addRow('right', '59', '6', '1', 'stain');
+    addRow('right', '11', '6', '2', 'bleach');
+    addRow('back',  '8',  '6', '2', 'bleach');
+    addRow('back',  '6.5','6', '2', 'bleach');
+    document.getElementById('addr').value  = '3603 Wintergreen';
+    document.getElementById('city').value  = 'Midlothian';
+    document.getElementById('state').value = 'TX';
+    document.getElementById('zip').value   = '76065';
+  }
+
+  // Init
+  seedSampleData();
+  updateHouseVisual(0, 0, 0, 0);
+</script>
+</body>
+</html>
