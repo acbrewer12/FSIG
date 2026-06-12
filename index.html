@@ -223,6 +223,23 @@
       header, .print-btn { -webkit-print-color-adjust: exact; }
     }
 
+    /* ── PERSPECTIVE VIEWS ── */
+    .views-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    @media(max-width:640px) { .views-grid { grid-template-columns: 1fr; } }
+    .view-dir {
+      font-size: .82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+    .view-svg { width: 100%; border-radius: 6px; display: block; }
+
     /* col headers for section rows */
     .col-headers {
       display: flex;
@@ -266,6 +283,29 @@
     <h2>Property Map — Top-Down View</h2>
     <svg id="house-visual" viewBox="0 0 800 530" xmlns="http://www.w3.org/2000/svg"></svg>
     <div id="asym-badge" class="asym-badge balanced">✓ Left &amp; Right Are Balanced</div>
+  </div>
+
+  <!-- Perspective Views -->
+  <div class="card">
+    <h2>Fence Views — Standing at Each Side</h2>
+    <div class="views-grid">
+      <div class="view-item">
+        <div class="view-dir">▲ Front (street side)</div>
+        <svg id="view-front" class="view-svg" viewBox="0 0 500 195"></svg>
+      </div>
+      <div class="view-item">
+        <div class="view-dir">◀ Left Side</div>
+        <svg id="view-left" class="view-svg" viewBox="0 0 500 195"></svg>
+      </div>
+      <div class="view-item">
+        <div class="view-dir">▼ Back</div>
+        <svg id="view-back" class="view-svg" viewBox="0 0 500 195"></svg>
+      </div>
+      <div class="view-item">
+        <div class="view-dir">Right Side ▶</div>
+        <svg id="view-right" class="view-svg" viewBox="0 0 500 195"></svg>
+      </div>
+    </div>
   </div>
 
   <!-- Fence Sections -->
@@ -493,6 +533,138 @@
     }, 0);
   }
 
+  // ── Perspective fence view for one side ──
+  function drawSideView(side, svgId) {
+    const svg = document.getElementById(svgId);
+    if (!svg) return;
+
+    const VW = 500, VH = 195;
+    const GROUND_Y  = 125;   // where grass starts
+    const FENCE_TOP = 28;    // top of fence (pointed picket tips)
+    const RAIL_BOT  = GROUND_Y - 4;  // bottom of fence
+    const FENCE_H   = RAIL_BOT - FENCE_TOP;
+
+    const C_STAIN  = '#B8760E', C_DS = '#7a4d08';
+    const C_BLEACH = '#1F7EC2', C_DB = '#134e80';
+    const C_BOTH   = '#7B3FA0', C_DP = '#4d2070';
+    const C_POST   = '#3d2008';
+
+    function fc(t) { return t==='stain'?C_STAIN  : t==='bleach'?C_BLEACH  : C_BOTH; }
+    function dc(t) { return t==='stain'?C_DS     : t==='bleach'?C_DB      : C_DP; }
+
+    const lt = sideTotalSqft('left');
+    const rt = sideTotalSqft('right');
+    const thisBigger = (side==='left' && lt > rt && lt+rt > 0)
+                    || (side==='right' && rt > lt && lt+rt > 0);
+
+    const rows = sides[side].filter(r => (parseFloat(r.len)||0) > 0);
+    const totalLen = rows.reduce((s,r) => s + (parseFloat(r.len)||0), 0);
+    const uid = side; // unique id suffix for gradients
+
+    let h = `<defs>
+      <linearGradient id="sky-${uid}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#4a90c4"/>
+        <stop offset="100%" stop-color="#c5e8f7"/>
+      </linearGradient>
+      <linearGradient id="gnd-${uid}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#4e8c30"/>
+        <stop offset="100%" stop-color="#3a6820"/>
+      </linearGradient>
+    </defs>`;
+
+    // Sky
+    h += `<rect x="0" y="0" width="${VW}" height="${VH}" fill="url(#sky-${uid})"/>`;
+    // Ground
+    h += `<rect x="0" y="${GROUND_Y}" width="${VW}" height="${VH-GROUND_Y}" fill="url(#gnd-${uid})"/>`;
+    h += `<rect x="0" y="${GROUND_Y-3}" width="${VW}" height="6" fill="#3a6e22"/>`;
+
+    if (!rows.length || !totalLen) {
+      h += `<rect x="10" y="${FENCE_TOP}" width="${VW-20}" height="${FENCE_H}"
+             fill="#dedad4" stroke="#bbb" stroke-dasharray="8,5" stroke-width="1.5" rx="4"/>`;
+      h += `<text x="${VW/2}" y="${FENCE_TOP+FENCE_H/2}" text-anchor="middle"
+             dominant-baseline="middle" fill="#aaa" font-size="13" font-style="italic">No fence sections</text>`;
+      svg.innerHTML = h;
+      return;
+    }
+
+    let curX = 0;
+    rows.forEach((row, idx) => {
+      const len  = parseFloat(row.len) || 0;
+      const bw   = (len / totalLen) * VW;
+      const col  = fc(row.type);
+      const dark = dc(row.type);
+      const sq   = rowSqft(row);
+      const pan  = parseInt(row.pan) || 1;
+
+      // Section background
+      h += `<rect x="${curX}" y="${FENCE_TOP}" width="${bw}" height="${FENCE_H}" fill="${col}"/>`;
+
+      // Pickets
+      const pW = 9, pG = 3;
+      for (let px = curX + 2; px + pW < curX + bw - 1; px += pW + pG) {
+        // body
+        h += `<rect x="${px}" y="${FENCE_TOP+10}" width="${pW}" height="${FENCE_H-10}" fill="${dark}" rx="1"/>`;
+        // pointed tip
+        h += `<polygon points="${px},${FENCE_TOP+10} ${px+pW/2},${FENCE_TOP} ${px+pW},${FENCE_TOP+10}" fill="${dark}"/>`;
+      }
+
+      // Two horizontal rails
+      const r1 = FENCE_TOP + 22, r2 = RAIL_BOT - 22;
+      h += `<rect x="${curX}" y="${r1}" width="${bw}" height="6" fill="${dark}" opacity=".55"/>`;
+      h += `<rect x="${curX}" y="${r2}" width="${bw}" height="6" fill="${dark}" opacity=".55"/>`;
+
+      // Post between sections
+      if (idx > 0) {
+        h += `<rect x="${curX-3}" y="${FENCE_TOP-5}" width="6" height="${FENCE_H+10}" fill="${C_POST}" rx="1"/>`;
+      }
+
+      // Label pill above fence
+      const cx   = curX + bw / 2;
+      const pill = FENCE_TOP - 6;
+      const panTag = pan > 1 ? ` ×${pan}` : '';
+      const typeTxt = row.type.charAt(0).toUpperCase() + row.type.slice(1) + panTag;
+
+      if (bw >= 110) {
+        const lw = Math.min(bw - 6, 200);
+        h += `<rect x="${cx - lw/2}" y="${pill-26}" width="${lw}" height="24" rx="4" fill="rgba(0,0,0,.5)"/>`;
+        h += `<text x="${cx}" y="${pill-16}" text-anchor="middle" dominant-baseline="middle"
+               fill="white" font-size="10" font-weight="bold">${row.len}' × ${row.hgt}' × ${row.pan}</text>`;
+        h += `<text x="${cx}" y="${pill-4}" text-anchor="middle" dominant-baseline="middle"
+               fill="rgba(255,255,255,.9)" font-size="9">${sq} sq ft  •  ${typeTxt}</text>`;
+      } else if (bw >= 55) {
+        const lw = Math.min(bw - 4, 130);
+        h += `<rect x="${cx - lw/2}" y="${pill-18}" width="${lw}" height="16" rx="3" fill="rgba(0,0,0,.5)"/>`;
+        h += `<text x="${cx}" y="${pill-9}" text-anchor="middle" dominant-baseline="middle"
+               fill="white" font-size="9" font-weight="bold">${sq} sq ft</text>`;
+      } else if (bw >= 28) {
+        h += `<text x="${cx}" y="${pill-4}" text-anchor="middle" fill="white" font-size="8">${sq}sf</text>`;
+      }
+
+      curX += bw;
+    });
+
+    // End posts
+    h += `<rect x="-3" y="${FENCE_TOP-5}" width="6" height="${FENCE_H+10}" fill="${C_POST}" rx="1"/>`;
+    h += `<rect x="${VW-3}" y="${FENCE_TOP-5}" width="6" height="${FENCE_H+10}" fill="${C_POST}" rx="1"/>`;
+
+    // "BIGGER SIDE" banner + orange outline for the asymmetric side
+    if (thisBigger) {
+      h += `<rect x="2" y="2" width="${VW-4}" height="${VH-4}" fill="none" stroke="#e67e22" stroke-width="5" rx="6"/>`;
+      h += `<rect x="${VW/2-58}" y="2" width="116" height="22" rx="4" fill="#e67e22"/>`;
+      h += `<text x="${VW/2}" y="13" text-anchor="middle" dominant-baseline="middle"
+             fill="white" font-size="11" font-weight="bold">⚠  BIGGER SIDE</text>`;
+    }
+
+    // Total sq ft in corner
+    const total = sideTotalSqft(side);
+    if (total > 0) {
+      h += `<text x="${VW-5}" y="${VH-5}" text-anchor="end"
+             fill="rgba(255,255,255,.65)" font-size="10">${total.toFixed(0)} sq ft total</text>`;
+    }
+
+    svg.innerHTML = h;
+  }
+
   // ── Recalculate everything ──
   function recalc() {
     const totals = {};
@@ -504,6 +676,10 @@
 
     updateHouseVisual();
     updateAsymBadge(totals.left, totals.right);
+    drawSideView('front', 'view-front');
+    drawSideView('left',  'view-left');
+    drawSideView('back',  'view-back');
+    drawSideView('right', 'view-right');
     updateCosts();
   }
 
