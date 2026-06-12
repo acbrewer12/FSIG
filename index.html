@@ -602,9 +602,9 @@
   const ALL_SIDES = ['left','right','back','frontLeft','frontRight'];
 
   // ── Add a fence section row ──
-  function addRow(side, len='', hgt='6', pan='1', type='stain') {
+  function addRow(side, len='', hgt='', face='outside', type='stain') {
     const id = ++rowCounter;
-    sides[side].push({ id, len, hgt, pan, type });
+    sides[side].push({ id, len, hgt, face, type });
     renderRows(side);
     recalc();
   }
@@ -628,8 +628,11 @@
         <input type="number" min="0" step="0.5" placeholder="ft" value="${row.hgt}"
           onchange="updateRow('${side}',${row.id},'hgt',this.value)" style="width:64px" />
         <span style="color:var(--muted);font-size:.8rem">×</span>
-        <input type="number" min="1" step="1" placeholder="#" value="${row.pan}"
-          onchange="updateRow('${side}',${row.id},'pan',this.value)" style="width:46px" />
+        <select onchange="updateRow('${side}',${row.id},'face',this.value)" style="font-size:.82rem;padding:5px 4px;border:1px solid var(--border);border-radius:4px">
+          <option value="inside"  ${row.face==='inside'  ?'selected':''}>Inside</option>
+          <option value="outside" ${row.face==='outside' ?'selected':''}>Outside</option>
+          <option value="both"    ${row.face==='both'    ?'selected':''}>Both</option>
+        </select>
         <select onchange="updateRow('${side}',${row.id},'type',this.value)">
           <option value="stain"  ${row.type==='stain'  ?'selected':''}>Stain</option>
           <option value="bleach" ${row.type==='bleach' ?'selected':''}>Bleach</option>
@@ -651,18 +654,18 @@
     recalc();
   }
 
+  function faceMult(row) { return row.face === 'both' ? 2 : 1; }
+
   function rowLinFt(row) {
     const l = parseFloat(row.len) || 0;
-    const p = parseFloat(row.pan) || 1;
-    return (l * p).toFixed(1);
+    return (l * faceMult(row)).toFixed(1);
   }
 
-  // kept for visual drawings that still need sqft
+  // kept for visual drawings and sqft mode
   function rowSqft(row) {
     const l = parseFloat(row.len) || 0;
     const h = parseFloat(row.hgt) || 0;
-    const p = parseFloat(row.pan) || 1;
-    return (l * h * p).toFixed(1);
+    return (l * h * faceMult(row)).toFixed(1);
   }
 
   function sideTotalLinFt(side) {
@@ -683,7 +686,7 @@
 
   function sideLinFtByType(side, type) {
     return sides[side].reduce((sum, r) => {
-      const lf = (parseFloat(r.len)||0) * (parseInt(r.pan)||1);
+      const lf = (parseFloat(r.len)||0) * faceMult(r);
       if (r.type === type || r.type === 'both') return sum + lf;
       return sum;
     }, 0);
@@ -855,7 +858,7 @@
       const col  = fc(row.type);
       const dark = dc(row.type);
       const sq   = rowSqft(row);
-      const pan  = parseInt(row.pan) || 1;
+      const pan  = faceMult(row);
 
       h += `<rect x="${curX}" y="${FENCE_TOP}" width="${bw}" height="${FENCE_H}" fill="${col}"/>`;
       const pW = 9, pG = 3;
@@ -877,7 +880,7 @@
         const lw = Math.min(bw - 6, 200);
         h += `<rect x="${cx-lw/2}" y="${pill-26}" width="${lw}" height="24" rx="4" fill="rgba(0,0,0,.5)"/>`;
         h += `<text x="${cx}" y="${pill-16}" text-anchor="middle" dominant-baseline="middle"
-               fill="white" font-size="10" font-weight="bold">${row.len}' × ${row.hgt}' × ${row.pan}</text>`;
+               fill="white" font-size="10" font-weight="bold">${row.len}' × ${row.hgt}' (${row.face||'out'})</text>`;
         h += `<text x="${cx}" y="${pill-4}" text-anchor="middle" dominant-baseline="middle"
                fill="rgba(255,255,255,.9)" font-size="9">${sq} sq ft  •  ${typeTxt}</text>`;
       } else if (bw >= 55) {
@@ -905,9 +908,7 @@
 
   function totalLinearFeet() {
     return ALL_SIDES.reduce((sum, s) => {
-      return sum + sides[s].reduce((ss, r) => {
-        return ss + (parseFloat(r.len)||0) * (parseInt(r.pan)||1);
-      }, 0);
+      return sum + sides[s].reduce((ss, r) => ss + (parseFloat(r.len)||0) * faceMult(r), 0);
     }, 0);
   }
 
@@ -954,9 +955,9 @@
       return t === 'stain' ? C_STAIN : t === 'bleach' ? C_BLEACH : C_BOTH;
     }
     function typeLabel(row) {
-      const p = parseInt(row.pan) || 1;
       const t = row.type.charAt(0).toUpperCase() + row.type.slice(1);
-      return p > 1 ? `${t} ×${p}` : t;
+      const f = row.face === 'both' ? ' (both)' : row.face === 'inside' ? ' (in)' : '';
+      return t + f;
     }
 
     const lt = sideTotalSqft('left');
@@ -999,11 +1000,11 @@
         const cx = band.x + band.w / 2;
         const cy = curY + bh / 2;
         if (bh >= 60) {
-          h += `<text x="${cx}" y="${cy - 18}" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="10" font-weight="bold">${row.len}' × ${row.hgt}' × ${row.pan}</text>`;
+          h += `<text x="${cx}" y="${cy - 18}" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="10" font-weight="bold">${row.len}' × ${row.hgt}' (${row.face||'out'})</text>`;
           h += `<text x="${cx}" y="${cy - 2}"  text-anchor="middle" dominant-baseline="middle" fill="white" font-size="11" font-weight="bold">${sq} sq ft</text>`;
           h += `<text x="${cx}" y="${cy + 15}" text-anchor="middle" dominant-baseline="middle" fill="rgba(255,255,255,.85)" font-size="9">${typeLabel(row)}</text>`;
         } else if (bh >= 36) {
-          h += `<text x="${cx}" y="${cy - 8}" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="9" font-weight="bold">${row.len}' × ${row.hgt}' × ${row.pan}</text>`;
+          h += `<text x="${cx}" y="${cy - 8}" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="9" font-weight="bold">${row.len}' × ${row.hgt}' (${row.face||'out'})</text>`;
           h += `<text x="${cx}" y="${cy + 5}" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="10" font-weight="bold">${sq} sq ft</text>`;
         } else if (bh >= 18) {
           h += `<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="9" font-weight="bold">${sq} sq ft</text>`;
@@ -1041,7 +1042,7 @@
         const cx = curX + bw / 2;
         const cy = band.y + band.h / 2;
         if (bw >= 90) {
-          h += `<text x="${cx}" y="${cy - 16}" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="10" font-weight="bold">${row.len}' × ${row.hgt}' × ${row.pan}</text>`;
+          h += `<text x="${cx}" y="${cy - 16}" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="10" font-weight="bold">${row.len}' × ${row.hgt}' (${row.face||'out'})</text>`;
           h += `<text x="${cx}" y="${cy - 1}"  text-anchor="middle" dominant-baseline="middle" fill="white" font-size="11" font-weight="bold">${sq} sq ft</text>`;
           h += `<text x="${cx}" y="${cy + 14}" text-anchor="middle" dominant-baseline="middle" fill="rgba(255,255,255,.85)" font-size="9">${typeLabel(row)}</text>`;
         } else if (bw >= 55) {
@@ -1178,23 +1179,8 @@
     document.getElementById(id).addEventListener('input', updateCosts);
   });
 
-  // ── Seed with sample data matching the form in the image ──
-  function seedSampleData() {
-    addRow('frontLeft',  '34', '6', '1', 'stain');
-    addRow('frontRight', '34', '6', '1', 'stain');
-    addRow('left',  '72', '6', '2', 'stain');
-    addRow('right', '59', '6', '1', 'stain');
-    addRow('right', '11', '6', '2', 'bleach');
-    addRow('back',  '8',  '6', '2', 'bleach');
-    addRow('back',  '6.5','6', '2', 'bleach');
-    document.getElementById('addr').value  = '3603 Wintergreen';
-    document.getElementById('city').value  = 'Midlothian';
-    document.getElementById('state').value = 'TX';
-    document.getElementById('zip').value   = '76065';
-  }
-
-  // Init
-  seedSampleData();
+  // Init — start with one blank row per side
+  ALL_SIDES.forEach(s => addRow(s));
 </script>
 </body>
 </html>
