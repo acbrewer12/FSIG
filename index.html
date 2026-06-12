@@ -1342,16 +1342,15 @@
   // ── Print invoice generation ──
 
   function buildPrintMapSVG() {
-    const VW = 580, VH = 255;
-    const FX = 118, FY = 55, FW = 344, FH = 158;
+    const VW = 580, VH = 270;
+    const FX = 118, FY = 68, FW = 344, FH = 158;
     const BW = 15;
     const C_STAIN = '#B8760E', C_BLEACH = '#1F7EC2', C_BOTH = '#7B3FA0', C_EMPTY = '#d5d2cd';
     function tc(t) { return t==='stain'?C_STAIN:t==='bleach'?C_BLEACH:C_BOTH; }
     function faceDimLabel(row) {
-      const dim = `${row.len}' × ${row.hgt}' × ${faceMult(row)}`;
-      if (row.face === 'inside') return `← ${dim}`;
-      if (row.face === 'both')   return `← ${dim} →`;
-      return `${dim} →`;
+      if (row.face === 'inside') return '←';
+      if (row.face === 'both')   return '←→';
+      return '→';
     }
 
     let svg = `<svg viewBox="0 0 ${VW} ${VH}" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;margin:8px auto">`;
@@ -1413,23 +1412,27 @@
     // Dimension labels outside each band
     backC.forEach(({ sx, sw, row }) => {
       const cx = sx + sw/2;
-      svg += `<text x="${cx}" y="${FY-27}" text-anchor="middle" fill="#111" font-size="9.5" font-weight="bold" font-family="Arial">${faceDimLabel(row)}</text>`;
-      svg += `<text x="${cx}" y="${FY-13}" text-anchor="middle" fill="#555" font-size="8.5" font-family="Arial">(${rowSqft(row)} sq ft)</text>`;
+      svg += `<text x="${cx}" y="${FY-38}" text-anchor="middle" fill="#111" font-size="9.5" font-weight="bold" font-family="Arial">${row.len}' × ${row.hgt}' × ${faceMult(row)}</text>`;
+      svg += `<text x="${cx}" y="${FY-25}" text-anchor="middle" fill="#1565c0" font-size="10" font-weight="bold" font-family="Arial">${faceDimLabel(row)}</text>`;
+      svg += `<text x="${cx}" y="${FY-12}" text-anchor="middle" fill="#555" font-size="8.5" font-family="Arial">(${rowSqft(row)} sq ft)</text>`;
     });
     leftC.forEach(({ sy, sh, row }) => {
       const cy = sy + sh/2;
-      svg += `<text x="${FX-10}" y="${cy-7}" text-anchor="end" fill="#111" font-size="9.5" font-weight="bold" font-family="Arial">${faceDimLabel(row)}</text>`;
-      svg += `<text x="${FX-10}" y="${cy+7}" text-anchor="end" fill="#555" font-size="8.5" font-family="Arial">(${rowSqft(row)} sq ft)</text>`;
+      svg += `<text x="${FX-10}" y="${cy-12}" text-anchor="end" fill="#111" font-size="9.5" font-weight="bold" font-family="Arial">${row.len}' × ${row.hgt}' × ${faceMult(row)}</text>`;
+      svg += `<text x="${FX-10}" y="${cy+1}" text-anchor="end" fill="#1565c0" font-size="10" font-weight="bold" font-family="Arial">${faceDimLabel(row)}</text>`;
+      svg += `<text x="${FX-10}" y="${cy+14}" text-anchor="end" fill="#555" font-size="8.5" font-family="Arial">(${rowSqft(row)} sq ft)</text>`;
     });
     rightC.forEach(({ sy, sh, row }) => {
       const cy = sy + sh/2;
-      svg += `<text x="${FX+FW+10}" y="${cy-7}" text-anchor="start" fill="#111" font-size="9.5" font-weight="bold" font-family="Arial">${faceDimLabel(row)}</text>`;
-      svg += `<text x="${FX+FW+10}" y="${cy+7}" text-anchor="start" fill="#555" font-size="8.5" font-family="Arial">(${rowSqft(row)} sq ft)</text>`;
+      svg += `<text x="${FX+FW+10}" y="${cy-12}" text-anchor="start" fill="#111" font-size="9.5" font-weight="bold" font-family="Arial">${row.len}' × ${row.hgt}' × ${faceMult(row)}</text>`;
+      svg += `<text x="${FX+FW+10}" y="${cy+1}" text-anchor="start" fill="#1565c0" font-size="10" font-weight="bold" font-family="Arial">${faceDimLabel(row)}</text>`;
+      svg += `<text x="${FX+FW+10}" y="${cy+14}" text-anchor="start" fill="#555" font-size="8.5" font-family="Arial">(${rowSqft(row)} sq ft)</text>`;
     });
     frontC.forEach(({ sx, sw, row }) => {
       const cx = sx + sw/2;
-      svg += `<text x="${cx}" y="${FY+FH+18}" text-anchor="middle" fill="#111" font-size="9.5" font-weight="bold" font-family="Arial">${faceDimLabel(row)}</text>`;
-      svg += `<text x="${cx}" y="${FY+FH+32}" text-anchor="middle" fill="#555" font-size="8.5" font-family="Arial">(${rowSqft(row)} sq ft)</text>`;
+      svg += `<text x="${cx}" y="${FY+FH+17}" text-anchor="middle" fill="#111" font-size="9.5" font-weight="bold" font-family="Arial">${row.len}' × ${row.hgt}' × ${faceMult(row)}</text>`;
+      svg += `<text x="${cx}" y="${FY+FH+30}" text-anchor="middle" fill="#1565c0" font-size="10" font-weight="bold" font-family="Arial">${faceDimLabel(row)}</text>`;
+      svg += `<text x="${cx}" y="${FY+FH+43}" text-anchor="middle" fill="#555" font-size="8.5" font-family="Arial">(${rowSqft(row)} sq ft)</text>`;
     });
 
     svg += `</svg>`;
