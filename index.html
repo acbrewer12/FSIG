@@ -354,7 +354,7 @@
           <span class="ch-hgt">Height</span>
           <span class="ch-pan">Panels</span>
           <span class="ch-type">Treatment</span>
-          <span class="ch-sqft">Sq Ft</span>
+          <span class="ch-sqft">Lin Ft</span>
         </div>
         <div id="rows-left"></div>
         <button class="add-btn" onclick="addRow('left')">+ Add Section</button>
@@ -376,7 +376,7 @@
           <span class="ch-hgt">Height</span>
           <span class="ch-pan">Panels</span>
           <span class="ch-type">Treatment</span>
-          <span class="ch-sqft">Sq Ft</span>
+          <span class="ch-sqft">Lin Ft</span>
         </div>
         <div id="rows-right"></div>
         <button class="add-btn" onclick="addRow('right')">+ Add Section</button>
@@ -398,7 +398,7 @@
           <span class="ch-hgt">Height</span>
           <span class="ch-pan">Panels</span>
           <span class="ch-type">Treatment</span>
-          <span class="ch-sqft">Sq Ft</span>
+          <span class="ch-sqft">Lin Ft</span>
         </div>
         <div id="rows-back"></div>
         <button class="add-btn" onclick="addRow('back')">+ Add Section</button>
@@ -420,7 +420,7 @@
           <span class="ch-hgt">Height</span>
           <span class="ch-pan">Panels</span>
           <span class="ch-type">Treatment</span>
-          <span class="ch-sqft">Sq Ft</span>
+          <span class="ch-sqft">Lin Ft</span>
         </div>
         <div id="rows-frontLeft"></div>
         <button class="add-btn" onclick="addRow('frontLeft')">+ Add Section</button>
@@ -442,7 +442,7 @@
           <span class="ch-hgt">Height</span>
           <span class="ch-pan">Panels</span>
           <span class="ch-type">Treatment</span>
-          <span class="ch-sqft">Sq Ft</span>
+          <span class="ch-sqft">Lin Ft</span>
         </div>
         <div id="rows-frontRight"></div>
         <button class="add-btn" onclick="addRow('frontRight')">+ Add Section</button>
@@ -493,10 +493,6 @@
     <div class="cost-section stain">
       <span class="section-label">STAIN</span>
       <table class="cost-tbl">
-        <tr>
-          <td>Total Square Footage</td>
-          <td><span id="s-sqft">0</span> sq ft</td>
-        </tr>
         <tr class="highlight">
           <td>Stain Linear Feet</td>
           <td><span id="s-stain-sqft">0</span> lin ft</td>
@@ -510,8 +506,8 @@
           <td>$<span id="s-charged">0.00</span></td>
         </tr>
         <tr>
-          <td>Coverage (sq ft/gal)</td>
-          <td><input type="number" id="s-cov" value="175" step="1" min="1" /></td>
+          <td>Coverage (lin ft/gal)</td>
+          <td><input type="number" id="s-cov" value="30" step="1" min="1" /></td>
         </tr>
         <tr>
           <td>Gallons Needed</td>
@@ -548,8 +544,8 @@
           <td>$<span id="b-charged">0.00</span></td>
         </tr>
         <tr>
-          <td>Coverage (sq ft/gal)</td>
-          <td><input type="number" id="b-cov" value="128" step="1" min="1" /></td>
+          <td>Coverage (lin ft/gal)</td>
+          <td><input type="number" id="b-cov" value="20" step="1" min="1" /></td>
         </tr>
         <tr>
           <td>Gallons Needed</td>
@@ -581,16 +577,12 @@
     <h2>Time &amp; Labor Estimate</h2>
     <table class="cost-tbl">
       <tr>
-        <td>Total Sq Ft (all treatments)</td>
-        <td><span id="tl-total-sqft">0</span> sq ft</td>
-      </tr>
-      <tr>
         <td>Total Linear Feet</td>
-        <td><span id="tl-lin-ft">0</span> ft</td>
+        <td><span id="tl-total-sqft">0</span> lin ft</td>
       </tr>
       <tr>
-        <td>Production Rate (sq ft / hr per person)</td>
-        <td><input type="number" id="tl-rate" value="150" step="10" min="1" /></td>
+        <td>Production Rate (lin ft / hr per person)</td>
+        <td><input type="number" id="tl-rate" value="40" step="5" min="1" /></td>
       </tr>
       <tr>
         <td>Crew Size</td>
@@ -656,7 +648,7 @@
           <option value="bleach" ${row.type==='bleach' ?'selected':''}>Bleach</option>
           <option value="both"   ${row.type==='both'   ?'selected':''}>Both</option>
         </select>
-        <span class="sq" id="sqft-${row.id}">${rowSqft(row)} sq ft</span>
+        <span class="sq" id="sqft-${row.id}">${rowLinFt(row)} lin ft</span>
         <button class="del-btn" onclick="removeRow('${side}',${row.id})" title="Remove">✕</button>
       `;
       container.appendChild(div);
@@ -668,15 +660,26 @@
     if (!row) return;
     row[field] = value;
     const el = document.getElementById('sqft-' + id);
-    if (el) el.textContent = rowSqft(row) + ' sq ft';
+    if (el) el.textContent = rowLinFt(row) + ' lin ft';
     recalc();
   }
 
+  function rowLinFt(row) {
+    const l = parseFloat(row.len) || 0;
+    const p = parseFloat(row.pan) || 1;
+    return (l * p).toFixed(1);
+  }
+
+  // kept for visual drawings that still need sqft
   function rowSqft(row) {
     const l = parseFloat(row.len) || 0;
     const h = parseFloat(row.hgt) || 0;
     const p = parseFloat(row.pan) || 1;
     return (l * h * p).toFixed(1);
+  }
+
+  function sideTotalLinFt(side) {
+    return sides[side].reduce((sum, r) => sum + (parseFloat(rowLinFt(r)) || 0), 0);
   }
 
   function sideTotalSqft(side) {
@@ -895,13 +898,10 @@
   // ── Gate helpers ──
   const ALL_SIDES = ['left','right','back','frontLeft','frontRight'];
 
-  function gateSqft(side) {
+  function gateLinFt(side) {
     const count = parseInt(document.getElementById('gate-count-' + side)?.value) || 0;
     const width = parseFloat(document.getElementById('gate-w-' + side)?.value) || 4;
-    const avgHgt = sides[side].length
-      ? sides[side].reduce((s,r) => s + (parseFloat(r.hgt)||6), 0) / sides[side].length
-      : 6;
-    return count * width * avgHgt;
+    return count * width;
   }
 
   function totalGateCount() {
@@ -910,8 +910,8 @@
     }, 0);
   }
 
-  function totalGateSqft() {
-    return ALL_SIDES.reduce((sum, s) => sum + gateSqft(s), 0);
+  function totalGateLinFt() {
+    return ALL_SIDES.reduce((sum, s) => sum + gateLinFt(s), 0);
   }
 
   function totalLinearFeet() {
@@ -925,17 +925,16 @@
   function updateGateDisplays() {
     ALL_SIDES.forEach(s => {
       const el = document.getElementById('gate-sqft-' + s);
-      if (el) el.textContent = gateSqft(s).toFixed(1) + ' sq ft';
+      if (el) el.textContent = gateLinFt(s).toFixed(1) + ' lin ft';
     });
   }
 
   // ── Recalculate everything ──
   function recalc() {
-    const totals = {};
     ALL_SIDES.forEach(s => {
-      totals[s] = sideTotalSqft(s);
+      const lf = sideTotalLinFt(s);
       document.getElementById('total-' + s).textContent =
-        'Total: ' + totals[s].toFixed(1) + ' sq ft';
+        'Total: ' + lf.toFixed(1) + ' lin ft';
     });
     updateGateDisplays();
 
@@ -1120,29 +1119,18 @@
 
   // ── Cost calculations ──
   function updateCosts() {
-    // Sqft — used for gallons/material only
-    let stainSqft = 0, bleachSqft = 0;
-    ALL_SIDES.forEach(s => {
-      stainSqft  += sideSqftByType(s, 'stain');
-      bleachSqft += sideSqftByType(s, 'bleach');
-    });
-    stainSqft += totalGateSqft();  // gates add to stain sqft for material calc
-    const totalSqft = stainSqft + bleachSqft;
-
-    // Linear feet — used for quoting
-    const stainLinFt  = totalLinFtByType('stain')  + totalGateCount() * 4;
+    // All calculations run on linear feet
+    const stainLinFt  = totalLinFtByType('stain')  + totalGateLinFt();
     const bleachLinFt = totalLinFtByType('bleach');
-    const linFt       = totalLinearFeet();
 
-    document.getElementById('s-sqft').textContent       = totalSqft.toFixed(0);
     document.getElementById('s-stain-sqft').textContent = stainLinFt.toFixed(0);
     document.getElementById('b-sqft').textContent       = bleachLinFt.toFixed(0);
 
     const sRate    = parseFloat(document.getElementById('s-rate').value) || 0;
     const sCov     = parseFloat(document.getElementById('s-cov').value) || 1;
     const sGalCost = parseFloat(document.getElementById('s-gal-cost').value) || 0;
-    const sCharged = stainLinFt * sRate;   // charge by linear ft
-    const sGal     = Math.ceil(stainSqft / sCov);
+    const sCharged = stainLinFt * sRate;
+    const sGal     = Math.ceil(stainLinFt / sCov);
     const sMat     = sGal * sGalCost;
     const sProfit  = sCharged - sMat;
 
@@ -1154,8 +1142,8 @@
     const bRate    = parseFloat(document.getElementById('b-rate').value) || 0;
     const bCov     = parseFloat(document.getElementById('b-cov').value) || 1;
     const bGalCost = parseFloat(document.getElementById('b-gal-cost').value) || 0;
-    const bCharged = bleachLinFt * bRate;  // charge by linear ft
-    const bGal     = Math.ceil(bleachSqft / bCov);
+    const bCharged = bleachLinFt * bRate;
+    const bGal     = Math.ceil(bleachLinFt / bCov);
     const bMat     = bGal * bGalCost;
     const bProfit  = bCharged - bMat;
 
@@ -1175,23 +1163,22 @@
     document.getElementById('sum-total-charge').textContent = '$' + totalCharge.toFixed(0);
     document.getElementById('sum-lin-ft').textContent       = linFt.toFixed(0);
 
-    updateTimeLabor(totalSqft, linFt, sProfit + bProfit);
+    updateTimeLabor(linFt, sProfit + bProfit);
   }
 
-  function updateTimeLabor(sqft, linFt, grossProfit) {
+  function updateTimeLabor(linFt, grossProfit) {
     const rate      = parseFloat(document.getElementById('tl-rate').value) || 1;
     const crew      = parseInt(document.getElementById('tl-crew').value) || 1;
     const laborRate = parseFloat(document.getElementById('tl-labor-rate').value) || 0;
 
-    const hours     = sqft / (rate * crew);
+    const hours     = linFt / (rate * crew);
     const laborCost = hours * laborRate * crew;
     const netProfit = grossProfit - laborCost;
 
-    document.getElementById('tl-total-sqft').textContent   = sqft.toFixed(0);
-    document.getElementById('tl-lin-ft').textContent       = linFt.toFixed(0);
-    document.getElementById('tl-hours').textContent        = hours.toFixed(1);
-    document.getElementById('tl-labor-cost').textContent   = laborCost.toFixed(2);
-    document.getElementById('tl-net-profit').textContent   = netProfit.toFixed(2);
+    document.getElementById('tl-total-sqft').textContent = linFt.toFixed(0);
+    document.getElementById('tl-hours').textContent      = hours.toFixed(1);
+    document.getElementById('tl-labor-cost').textContent = laborCost.toFixed(2);
+    document.getElementById('tl-net-profit').textContent = netProfit.toFixed(2);
   }
 
   // Wire cost inputs to recalc
