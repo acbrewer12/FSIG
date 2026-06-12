@@ -498,12 +498,12 @@
           <td><span id="s-sqft">0</span> sq ft</td>
         </tr>
         <tr class="highlight">
-          <td>Stain Sq Footage</td>
-          <td><span id="s-stain-sqft">0</span> sq ft</td>
+          <td>Stain Linear Feet</td>
+          <td><span id="s-stain-sqft">0</span> lin ft</td>
         </tr>
         <tr>
-          <td>Rate ($/sq ft)</td>
-          <td><input type="number" id="s-rate" value="0.70" step="0.01" min="0" /></td>
+          <td>Rate ($/linear ft)</td>
+          <td><input type="number" id="s-rate" value="3.50" step="0.25" min="0" /></td>
         </tr>
         <tr>
           <td>Customer Charged</td>
@@ -536,12 +536,12 @@
       <span class="section-label">BLEACH</span>
       <table class="cost-tbl">
         <tr class="highlight">
-          <td>Bleach Sq Footage</td>
-          <td><span id="b-sqft">0</span> sq ft</td>
+          <td>Bleach Linear Feet</td>
+          <td><span id="b-sqft">0</span> lin ft</td>
         </tr>
         <tr>
-          <td>Rate ($/sq ft)</td>
-          <td><input type="number" id="b-rate" value="0.30" step="0.01" min="0" /></td>
+          <td>Rate ($/linear ft)</td>
+          <td><input type="number" id="b-rate" value="1.50" step="0.25" min="0" /></td>
         </tr>
         <tr>
           <td>Customer Charged</td>
@@ -689,6 +689,18 @@
       if (r.type === type || r.type === 'both') return sum + sq;
       return sum;
     }, 0);
+  }
+
+  function sideLinFtByType(side, type) {
+    return sides[side].reduce((sum, r) => {
+      const lf = (parseFloat(r.len)||0) * (parseInt(r.pan)||1);
+      if (r.type === type || r.type === 'both') return sum + lf;
+      return sum;
+    }, 0);
+  }
+
+  function totalLinFtByType(type) {
+    return ALL_SIDES.reduce((sum, s) => sum + sideLinFtByType(s, type), 0);
   }
 
   // ── Perspective fence view for one side ──
@@ -1108,23 +1120,28 @@
 
   // ── Cost calculations ──
   function updateCosts() {
+    // Sqft — used for gallons/material only
     let stainSqft = 0, bleachSqft = 0;
     ALL_SIDES.forEach(s => {
       stainSqft  += sideSqftByType(s, 'stain');
       bleachSqft += sideSqftByType(s, 'bleach');
     });
-    // Gates count as stain sqft
-    stainSqft += totalGateSqft();
+    stainSqft += totalGateSqft();  // gates add to stain sqft for material calc
     const totalSqft = stainSqft + bleachSqft;
 
-    document.getElementById('s-sqft').textContent = totalSqft.toFixed(0);
-    document.getElementById('s-stain-sqft').textContent = stainSqft.toFixed(0);
-    document.getElementById('b-sqft').textContent = bleachSqft.toFixed(0);
+    // Linear feet — used for quoting
+    const stainLinFt  = totalLinFtByType('stain')  + totalGateCount() * 4;
+    const bleachLinFt = totalLinFtByType('bleach');
+    const linFt       = totalLinearFeet();
+
+    document.getElementById('s-sqft').textContent       = totalSqft.toFixed(0);
+    document.getElementById('s-stain-sqft').textContent = stainLinFt.toFixed(0);
+    document.getElementById('b-sqft').textContent       = bleachLinFt.toFixed(0);
 
     const sRate    = parseFloat(document.getElementById('s-rate').value) || 0;
     const sCov     = parseFloat(document.getElementById('s-cov').value) || 1;
     const sGalCost = parseFloat(document.getElementById('s-gal-cost').value) || 0;
-    const sCharged = stainSqft * sRate;
+    const sCharged = stainLinFt * sRate;   // charge by linear ft
     const sGal     = Math.ceil(stainSqft / sCov);
     const sMat     = sGal * sGalCost;
     const sProfit  = sCharged - sMat;
@@ -1137,7 +1154,7 @@
     const bRate    = parseFloat(document.getElementById('b-rate').value) || 0;
     const bCov     = parseFloat(document.getElementById('b-cov').value) || 1;
     const bGalCost = parseFloat(document.getElementById('b-gal-cost').value) || 0;
-    const bCharged = bleachSqft * bRate;
+    const bCharged = bleachLinFt * bRate;  // charge by linear ft
     const bGal     = Math.ceil(bleachSqft / bCov);
     const bMat     = bGal * bGalCost;
     const bProfit  = bCharged - bMat;
@@ -1151,13 +1168,12 @@
     document.getElementById('total-charged').textContent = totalCharge.toFixed(2);
     document.getElementById('total-profit').textContent  = (sProfit + bProfit).toFixed(2);
 
-    // Update summary chips
-    const linFt = totalLinearFeet();
-    document.getElementById('sum-stain-gal').textContent   = sGal;
-    document.getElementById('sum-bleach-gal').textContent  = bGal;
-    document.getElementById('sum-gates').textContent       = totalGateCount();
+    // Summary chips
+    document.getElementById('sum-stain-gal').textContent    = sGal;
+    document.getElementById('sum-bleach-gal').textContent   = bGal;
+    document.getElementById('sum-gates').textContent        = totalGateCount();
     document.getElementById('sum-total-charge').textContent = '$' + totalCharge.toFixed(0);
-    document.getElementById('sum-lin-ft').textContent      = linFt.toFixed(0);
+    document.getElementById('sum-lin-ft').textContent       = linFt.toFixed(0);
 
     updateTimeLabor(totalSqft, linFt, sProfit + bProfit);
   }
