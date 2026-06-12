@@ -262,20 +262,10 @@
     /* ── PRINT INVOICE ── */
     .print-only { display: none; }
     @media print {
-      .no-print, .add-btn, .del-btn, .print-btn, .mode-toggle { display: none !important; }
-      .print-only { display: block !important; }
-      body { background: white; font-size: 10pt; }
-      .container { padding: 0; max-width: 100%; }
-      .card { box-shadow: none; border: 1px solid #ccc; page-break-inside: avoid; margin-bottom: 10px; padding: 12px; }
-      .sides-grid { grid-template-columns: 1fr 1fr; }
-      .section-row input, .section-row select { border: none; background: transparent; font-size: .82rem; }
-      header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .summary-chip { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .face-badge { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .cost-tbl input { border: none; background: transparent; font-weight: 600; text-align: right; }
-      .views-grid { grid-template-columns: 1fr 1fr; }
-      #house-visual { width: 100%; max-height: 420px; }
-      .print-invoice-header { border-bottom: 3px solid #8B1A1A; margin-bottom: 16px; padding-bottom: 12px; }
+      header, .card { display: none !important; }
+      #print-invoice { display: block !important; }
+      body { background: white; margin: 0; padding: 12px; font-size: 10pt; font-family: Arial, sans-serif; }
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     }
 
     /* ── PERSPECTIVE VIEWS ── */
@@ -317,23 +307,13 @@
 
 <header>
   <h1>FSIG &nbsp;·&nbsp; Jobsite Analysis</h1>
-  <button class="print-btn" onclick="window.print()">Print / Save PDF</button>
+  <button class="print-btn" onclick="buildPrintInvoice();window.print()">Print / Save PDF</button>
 </header>
 
 <div class="container">
 
-  <!-- Print-only invoice header -->
-  <div class="print-only print-invoice-header" style="display:none">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-      <div>
-        <div style="font-size:1.6rem;font-weight:700;color:#8B1A1A;letter-spacing:1px">FSIG — Fence Service Job Sheet</div>
-        <div id="print-address-line" style="font-size:1rem;color:#333;margin-top:4px"></div>
-      </div>
-      <div style="text-align:right;font-size:.9rem;color:#555">
-        <div>Date: <strong id="print-date"></strong></div>
-      </div>
-    </div>
-  </div>
+  <!-- Print invoice — populated by buildPrintInvoice() before printing -->
+  <div id="print-invoice" class="print-only" style="display:none;font-family:Arial,sans-serif;color:#222;max-width:750px;margin:0 auto"></div>
 
   <!-- Address -->
   <div class="card">
@@ -1253,12 +1233,197 @@
     document.getElementById(id).addEventListener('input', updateCosts);
   });
 
-  // Populate print header before printing
-  window.addEventListener('beforeprint', () => {
-    const parts = ['addr','city','state','zip'].map(id => document.getElementById(id).value).filter(Boolean);
-    document.getElementById('print-address-line').textContent = parts.join(', ');
-    document.getElementById('print-date').textContent = new Date().toLocaleDateString();
-  });
+  // ── Print invoice generation ──
+
+  function buildPrintMapSVG() {
+    const VW = 650, VH = 345;
+    const FX = 135, FY = 72, FW = 380, FH = 200;
+    const BW = 18;
+    const C_STAIN = '#B8760E', C_BLEACH = '#1F7EC2', C_BOTH = '#7B3FA0', C_EMPTY = '#d5d2cd';
+    function tc(t) { return t==='stain'?C_STAIN:t==='bleach'?C_BLEACH:C_BOTH; }
+
+    let svg = `<svg viewBox="0 0 ${VW} ${VH}" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;margin:8px auto">`;
+    svg += `<rect width="${VW}" height="${VH}" fill="white"/>`;
+
+    // Yard interior fill
+    svg += `<rect x="${FX+BW}" y="${FY+BW}" width="${FW-BW*2}" height="${FH-BW*2}" fill="#f7f6f2"/>`;
+
+    // Corner posts
+    [[FX,FY],[FX+FW-BW,FY],[FX,FY+FH-BW],[FX+FW-BW,FY+FH-BW]].forEach(([px,py]) => {
+      svg += `<rect x="${px}" y="${py}" width="${BW}" height="${BW}" fill="#9a9590"/>`;
+    });
+
+    // House box inside
+    const hp = 28;
+    svg += `<rect x="${FX+BW+hp}" y="${FY+BW+hp}" width="${FW-BW*2-hp*2}" height="${FH-BW*2-hp*2}" fill="white" stroke="#bbb" stroke-width="1.5"/>`;
+    svg += `<text x="${FX+FW/2}" y="${FY+FH/2}" text-anchor="middle" dominant-baseline="middle" fill="#ddd" font-size="18" font-weight="bold" font-family="Arial">HOUSE</text>`;
+
+    function drawBand(rowList, bandX, bandY, bandW, bandH, isHoriz) {
+      const rows = rowList.filter(r => (parseFloat(r.len)||0) > 0);
+      const totalLen = rows.reduce((s,r) => s+(parseFloat(r.len)||0), 0);
+      if (!rows.length || !totalLen) {
+        svg += `<rect x="${bandX}" y="${bandY}" width="${bandW}" height="${bandH}" fill="${C_EMPTY}"/>`;
+        return [];
+      }
+      const result = [];
+      let cur = 0;
+      rows.forEach(row => {
+        const len = parseFloat(row.len) || 0;
+        const seg = (len / totalLen) * (isHoriz ? bandW : bandH);
+        const rx = bandX + (isHoriz ? cur : 0);
+        const ry = bandY + (isHoriz ? 0 : cur);
+        const rw = isHoriz ? seg : bandW;
+        const rh = isHoriz ? bandH : seg;
+        svg += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="${tc(row.type)}" stroke="rgba(255,255,255,.35)" stroke-width="0.5"/>`;
+        const cx = rx + rw/2, cy = ry + rh/2;
+        const fl = `${row.type.charAt(0).toUpperCase()+row.type.slice(1)} ×${faceMult(row)}`;
+        if ((isHoriz ? rw : rh) >= 45) {
+          if (isHoriz) {
+            svg += `<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="8" font-weight="bold" font-family="Arial">${fl}</text>`;
+          } else {
+            svg += `<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="7.5" font-weight="bold" font-family="Arial" transform="rotate(-90,${cx},${cy})">${fl}</text>`;
+          }
+        }
+        result.push({ sx: rx, sy: ry, sw: rw, sh: rh, row });
+        cur += seg;
+      });
+      return result;
+    }
+
+    const backC  = drawBand(sides['back'], FX+BW, FY, FW-BW*2, BW, true);
+    const leftC  = drawBand(sides['left'], FX, FY+BW, BW, FH-BW*2, false);
+    const rightC = drawBand(sides['right'], FX+FW-BW, FY+BW, BW, FH-BW*2, false);
+    const frontC = drawBand([...sides['frontLeft'],...sides['frontRight']], FX+BW, FY+FH-BW, FW-BW*2, BW, true);
+
+    // Outer perimeter border
+    svg += `<rect x="${FX}" y="${FY}" width="${FW}" height="${FH}" fill="none" stroke="#222" stroke-width="2"/>`;
+
+    // Dimension labels outside each band
+    backC.forEach(({ sx, sw, row }) => {
+      const cx = sx + sw/2;
+      svg += `<text x="${cx}" y="${FY-27}" text-anchor="middle" fill="#111" font-size="9.5" font-weight="bold" font-family="Arial">${row.len}' × ${row.hgt}' × ${faceMult(row)}</text>`;
+      svg += `<text x="${cx}" y="${FY-13}" text-anchor="middle" fill="#555" font-size="8.5" font-family="Arial">(${rowSqft(row)} sq ft)</text>`;
+    });
+    leftC.forEach(({ sy, sh, row }) => {
+      const cy = sy + sh/2;
+      svg += `<text x="${FX-10}" y="${cy-7}" text-anchor="end" fill="#111" font-size="9.5" font-weight="bold" font-family="Arial">${row.len}' × ${row.hgt}' × ${faceMult(row)}</text>`;
+      svg += `<text x="${FX-10}" y="${cy+7}" text-anchor="end" fill="#555" font-size="8.5" font-family="Arial">(${rowSqft(row)} sq ft)</text>`;
+    });
+    rightC.forEach(({ sy, sh, row }) => {
+      const cy = sy + sh/2;
+      svg += `<text x="${FX+FW+10}" y="${cy-7}" text-anchor="start" fill="#111" font-size="9.5" font-weight="bold" font-family="Arial">${row.len}' × ${row.hgt}' × ${faceMult(row)}</text>`;
+      svg += `<text x="${FX+FW+10}" y="${cy+7}" text-anchor="start" fill="#555" font-size="8.5" font-family="Arial">(${rowSqft(row)} sq ft)</text>`;
+    });
+    frontC.forEach(({ sx, sw, row }) => {
+      const cx = sx + sw/2;
+      svg += `<text x="${cx}" y="${FY+FH+18}" text-anchor="middle" fill="#111" font-size="9.5" font-weight="bold" font-family="Arial">${row.len}' × ${row.hgt}' × ${faceMult(row)}</text>`;
+      svg += `<text x="${cx}" y="${FY+FH+32}" text-anchor="middle" fill="#555" font-size="8.5" font-family="Arial">(${rowSqft(row)} sq ft)</text>`;
+    });
+
+    svg += `</svg>`;
+    return svg;
+  }
+
+  function buildPrintInvoice() {
+    const sqft = quoteMode === 'sqft';
+    const measureUnit  = sqft ? 'sq ft' : 'lin ft';
+    const measureLabel = sqft ? 'Square Footage' : 'Linear Footage';
+
+    const addrParts = ['addr','city','state','zip'].map(id => document.getElementById(id).value).filter(Boolean);
+    const addressHtml = addrParts.length
+      ? `<div style="margin:8px 0 16px;font-size:.9rem">${addrParts.join(', ')}</div>`
+      : '';
+
+    function getSectionsForType(type) {
+      const out = [];
+      ALL_SIDES.forEach(s => sides[s].forEach(r => {
+        if ((parseFloat(r.len)||0) > 0 && (r.type === type || r.type === 'both')) out.push(r);
+      }));
+      return out;
+    }
+
+    function buildTypeTable(type) {
+      const sections = getSectionsForType(type);
+      if (!sections.length) return '';
+      const cap  = type.charAt(0).toUpperCase() + type.slice(1);
+      const hdrC = type === 'stain' ? '#7a5000' : '#0d4f82';
+      const px   = type === 'stain' ? 's' : 'b';
+
+      const measure = sqft ? totalSqftByType(type) : totalLinFtByType(type);
+      const rate    = parseFloat(document.getElementById(sqft ? `${px}-rate-sqft` : `${px}-rate`).value) || 0;
+      const cov     = parseFloat(document.getElementById(sqft ? `${px}-cov-sqft`  : `${px}-cov`).value)  || 1;
+      const galCost = parseFloat(document.getElementById(`${px}-gal-cost`).value) || 0;
+      const charged = measure * rate;
+      const gal     = Math.ceil(measure / cov);
+      const mat     = gal * galCost;
+      const profit  = charged - mat;
+
+      const sRows = sections.map(r => {
+        const len = parseFloat(r.len)||0, hgt = parseFloat(r.hgt)||0, f = faceMult(r);
+        const m   = sqft ? (len*hgt*f).toFixed(0) : (len*f).toFixed(0);
+        const fml = sqft ? `${len}' × ${hgt}' × ${f}` : `${len}' × ${f}`;
+        return `<tr>
+          <td></td>
+          <td style="padding:2px 10px;color:#333">${fml}</td>
+          <td style="padding:2px 10px;text-align:right;color:#333">${Number(m).toLocaleString()} ${measureUnit}</td>
+        </tr>`;
+      }).join('');
+
+      return `
+      <table style="width:100%;border-collapse:collapse;margin-bottom:20px;font-size:.87rem;border:1px solid #bbb">
+        <tr><td colspan="3" style="background:${hdrC};color:white;font-weight:700;padding:5px 10px;font-size:.9rem;letter-spacing:.5px">${cap.toUpperCase()}:</td></tr>
+        <tr><td style="padding:4px 10px;font-weight:600">Total ${measureLabel}</td><td></td><td></td></tr>
+        ${sRows}
+        <tr>
+          <td></td><td></td>
+          <td style="padding:3px 10px;text-align:right;font-weight:700;background:#ffff00">${Math.round(measure).toLocaleString()} ${measureUnit}</td>
+        </tr>
+        <tr><td colspan="3" style="padding:3px 0;border-top:1px solid #ddd"></td></tr>
+        <tr>
+          <td style="padding:4px 10px">Customer Charged</td>
+          <td style="padding:4px 10px;color:#444">${Math.round(measure).toLocaleString()} × $${rate.toFixed(2)}</td>
+          <td style="padding:4px 10px;text-align:right;font-weight:700">$${charged.toFixed(2)}</td>
+        </tr>
+        <tr>
+          <td style="padding:4px 10px">Coverage</td>
+          <td style="padding:4px 10px;color:#444">${Math.round(measure).toLocaleString()} / ${Math.round(cov)}</td>
+          <td style="padding:4px 10px;text-align:right;font-weight:700">${gal} Gallons</td>
+        </tr>
+        <tr>
+          <td style="padding:4px 10px">Material Cost</td>
+          <td style="padding:4px 10px;color:#444">${gal} Gal × $${galCost.toFixed(2)}</td>
+          <td style="padding:4px 10px;text-align:right;font-weight:700">$${mat.toFixed(2)}</td>
+        </tr>
+        <tr>
+          <td style="padding:4px 10px">Gross Profit</td>
+          <td style="padding:4px 10px;color:#444">$${charged.toFixed(2)} - $${mat.toFixed(2)}</td>
+          <td style="padding:4px 10px;text-align:right;font-weight:700">$${profit.toFixed(2)}</td>
+        </tr>
+        <tr>
+          <td colspan="2" style="padding:4px 10px;text-align:right;border-top:1px solid #ddd">Gross Profit ${cap}:</td>
+          <td style="padding:4px 10px;text-align:right;font-weight:700;background:#ffff00;border-top:1px solid #ddd">$${profit.toFixed(2)}</td>
+        </tr>
+      </table>`;
+    }
+
+    const totalProfit = parseFloat(document.getElementById('total-profit').textContent) || 0;
+
+    document.getElementById('print-invoice').innerHTML = `
+      <div style="text-align:center;border-bottom:2px solid #222;margin-bottom:14px;padding-bottom:10px">
+        <div style="font-size:1.9rem;font-weight:700;letter-spacing:1px">Jobsite Analysis</div>
+        <div style="font-size:.8rem;color:#888;margin-top:2px">Date: ${new Date().toLocaleDateString()}</div>
+      </div>
+      ${buildPrintMapSVG()}
+      ${addressHtml}
+      ${buildTypeTable('stain')}
+      ${buildTypeTable('bleach')}
+      <div style="text-align:right;margin-top:12px;padding-top:12px;border-top:2px solid #222;font-size:1.1rem;font-weight:700">
+        Total Gross Profit: <span style="background:#ffff00;padding:3px 18px;margin-left:10px">$${totalProfit.toFixed(2)}</span>
+      </div>
+    `;
+  }
+
+  window.addEventListener('beforeprint', buildPrintInvoice);
 
   // Init — start with one blank row per side
   ALL_SIDES.forEach(s => addRow(s));
