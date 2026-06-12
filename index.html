@@ -479,6 +479,10 @@
         <span class="big" id="sum-total-charge">$0</span>
         <span class="lbl">Total Customer Charge</span>
       </div>
+      <div class="summary-chip" style="background:#546e7a">
+        <span class="big" id="sum-lin-ft">0</span>
+        <span class="lbl">Linear Feet (perimeter)</span>
+      </div>
     </div>
   </div>
 
@@ -570,6 +574,45 @@
       Total Customer Charge: &nbsp;$<span id="total-charged">0.00</span>
     </div>
     <div class="gross-total">Total Gross Profit: &nbsp;$<span id="total-profit">0.00</span></div>
+  </div>
+
+  <!-- Time & Labor -->
+  <div class="card">
+    <h2>Time &amp; Labor Estimate</h2>
+    <table class="cost-tbl">
+      <tr>
+        <td>Total Sq Ft (all treatments)</td>
+        <td><span id="tl-total-sqft">0</span> sq ft</td>
+      </tr>
+      <tr>
+        <td>Total Linear Feet</td>
+        <td><span id="tl-lin-ft">0</span> ft</td>
+      </tr>
+      <tr>
+        <td>Production Rate (sq ft / hr per person)</td>
+        <td><input type="number" id="tl-rate" value="150" step="10" min="1" /></td>
+      </tr>
+      <tr>
+        <td>Crew Size</td>
+        <td><input type="number" id="tl-crew" value="2" step="1" min="1" /></td>
+      </tr>
+      <tr class="highlight">
+        <td><strong>Estimated Job Hours</strong></td>
+        <td><strong><span id="tl-hours">0.0</span> hrs</strong></td>
+      </tr>
+      <tr>
+        <td>Labor Rate ($ / hr per person)</td>
+        <td><input type="number" id="tl-labor-rate" value="25" step="1" min="0" /></td>
+      </tr>
+      <tr class="highlight">
+        <td><strong>Estimated Labor Cost</strong></td>
+        <td><strong>$<span id="tl-labor-cost">0.00</span></strong></td>
+      </tr>
+      <tr class="highlight">
+        <td><strong>Net Profit (after labor)</strong></td>
+        <td><strong>$<span id="tl-net-profit">0.00</span></strong></td>
+      </tr>
+    </table>
   </div>
 
 </div><!-- /container -->
@@ -859,6 +902,14 @@
     return ALL_SIDES.reduce((sum, s) => sum + gateSqft(s), 0);
   }
 
+  function totalLinearFeet() {
+    return ALL_SIDES.reduce((sum, s) => {
+      return sum + sides[s].reduce((ss, r) => {
+        return ss + (parseFloat(r.len)||0) * (parseInt(r.pan)||1);
+      }, 0);
+    }, 0);
+  }
+
   function updateGateDisplays() {
     ALL_SIDES.forEach(s => {
       const el = document.getElementById('gate-sqft-' + s);
@@ -1101,14 +1152,38 @@
     document.getElementById('total-profit').textContent  = (sProfit + bProfit).toFixed(2);
 
     // Update summary chips
-    document.getElementById('sum-stain-gal').textContent  = sGal;
-    document.getElementById('sum-bleach-gal').textContent = bGal;
-    document.getElementById('sum-gates').textContent      = totalGateCount();
+    const linFt = totalLinearFeet();
+    document.getElementById('sum-stain-gal').textContent   = sGal;
+    document.getElementById('sum-bleach-gal').textContent  = bGal;
+    document.getElementById('sum-gates').textContent       = totalGateCount();
     document.getElementById('sum-total-charge').textContent = '$' + totalCharge.toFixed(0);
+    document.getElementById('sum-lin-ft').textContent      = linFt.toFixed(0);
+
+    updateTimeLabor(totalSqft, linFt, sProfit + bProfit);
+  }
+
+  function updateTimeLabor(sqft, linFt, grossProfit) {
+    const rate      = parseFloat(document.getElementById('tl-rate').value) || 1;
+    const crew      = parseInt(document.getElementById('tl-crew').value) || 1;
+    const laborRate = parseFloat(document.getElementById('tl-labor-rate').value) || 0;
+
+    const hours     = sqft / (rate * crew);
+    const laborCost = hours * laborRate * crew;
+    const netProfit = grossProfit - laborCost;
+
+    document.getElementById('tl-total-sqft').textContent   = sqft.toFixed(0);
+    document.getElementById('tl-lin-ft').textContent       = linFt.toFixed(0);
+    document.getElementById('tl-hours').textContent        = hours.toFixed(1);
+    document.getElementById('tl-labor-cost').textContent   = laborCost.toFixed(2);
+    document.getElementById('tl-net-profit').textContent   = netProfit.toFixed(2);
   }
 
   // Wire cost inputs to recalc
   ['s-rate','s-cov','s-gal-cost','b-rate','b-cov','b-gal-cost'].forEach(id => {
+    document.getElementById(id).addEventListener('input', updateCosts);
+  });
+  // Wire time/labor inputs to recalc
+  ['tl-rate','tl-crew','tl-labor-rate'].forEach(id => {
     document.getElementById(id).addEventListener('input', updateCosts);
   });
 
