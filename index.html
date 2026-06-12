@@ -552,10 +552,6 @@
     function fc(t) { return t==='stain'?C_STAIN  : t==='bleach'?C_BLEACH  : C_BOTH; }
     function dc(t) { return t==='stain'?C_DS     : t==='bleach'?C_DB      : C_DP; }
 
-    const lt = sideTotalSqft('left');
-    const rt = sideTotalSqft('right');
-    const thisBigger = (side==='left' && lt > rt && lt+rt > 0)
-                    || (side==='right' && rt > lt && lt+rt > 0);
 
     const rows = sides[side].filter(r => (parseFloat(r.len)||0) > 0);
     const totalLen = rows.reduce((s,r) => s + (parseFloat(r.len)||0), 0);
@@ -646,14 +642,6 @@
     // End posts
     h += `<rect x="-3" y="${FENCE_TOP-5}" width="6" height="${FENCE_H+10}" fill="${C_POST}" rx="1"/>`;
     h += `<rect x="${VW-3}" y="${FENCE_TOP-5}" width="6" height="${FENCE_H+10}" fill="${C_POST}" rx="1"/>`;
-
-    // "BIGGER SIDE" banner + orange outline for the asymmetric side
-    if (thisBigger) {
-      h += `<rect x="2" y="2" width="${VW-4}" height="${VH-4}" fill="none" stroke="#e67e22" stroke-width="5" rx="6"/>`;
-      h += `<rect x="${VW/2-58}" y="2" width="116" height="22" rx="4" fill="#e67e22"/>`;
-      h += `<text x="${VW/2}" y="13" text-anchor="middle" dominant-baseline="middle"
-             fill="white" font-size="11" font-weight="bold">⚠  BIGGER SIDE</text>`;
-    }
 
     // Total sq ft in corner
     const total = sideTotalSqft(side);
