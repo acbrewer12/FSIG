@@ -291,19 +291,19 @@
     <div class="views-grid">
       <div class="view-item">
         <div class="view-dir">▲ Front (street side)</div>
-        <svg id="view-front" class="view-svg" viewBox="0 0 500 195"></svg>
+        <svg id="view-front" class="view-svg" viewBox="0 0 500 250"></svg>
       </div>
       <div class="view-item">
         <div class="view-dir">◀ Left Side</div>
-        <svg id="view-left" class="view-svg" viewBox="0 0 500 195"></svg>
+        <svg id="view-left" class="view-svg" viewBox="0 0 500 210"></svg>
       </div>
       <div class="view-item">
         <div class="view-dir">▼ Back</div>
-        <svg id="view-back" class="view-svg" viewBox="0 0 500 195"></svg>
+        <svg id="view-back" class="view-svg" viewBox="0 0 500 210"></svg>
       </div>
       <div class="view-item">
         <div class="view-dir">Right Side ▶</div>
-        <svg id="view-right" class="view-svg" viewBox="0 0 500 195"></svg>
+        <svg id="view-right" class="view-svg" viewBox="0 0 500 210"></svg>
       </div>
     </div>
   </div>
@@ -538,10 +538,12 @@
     const svg = document.getElementById(svgId);
     if (!svg) return;
 
-    const VW = 500, VH = 195;
-    const GROUND_Y  = 125;   // where grass starts
-    const FENCE_TOP = 28;    // top of fence (pointed picket tips)
-    const RAIL_BOT  = GROUND_Y - 4;  // bottom of fence
+    const isFront   = side === 'front';
+    const VW        = 500;
+    const VH        = isFront ? 250 : 210;
+    const GROUND_Y  = isFront ? 195 : 165;
+    const FENCE_TOP = isFront ? 90  : 30;
+    const RAIL_BOT  = GROUND_Y - 4;
     const FENCE_H   = RAIL_BOT - FENCE_TOP;
 
     const C_STAIN  = '#B8760E', C_DS = '#7a4d08';
@@ -552,26 +554,64 @@
     function fc(t) { return t==='stain'?C_STAIN  : t==='bleach'?C_BLEACH  : C_BOTH; }
     function dc(t) { return t==='stain'?C_DS     : t==='bleach'?C_DB      : C_DP; }
 
-
     const rows = sides[side].filter(r => (parseFloat(r.len)||0) > 0);
     const totalLen = rows.reduce((s,r) => s + (parseFloat(r.len)||0), 0);
-    const uid = side; // unique id suffix for gradients
 
     let h = `<defs>
-      <linearGradient id="sky-${uid}" x1="0" y1="0" x2="0" y2="1">
+      <linearGradient id="sky-${side}" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stop-color="#4a90c4"/>
-        <stop offset="100%" stop-color="#c5e8f7"/>
+        <stop offset="100%" stop-color="#c8eaf8"/>
       </linearGradient>
-      <linearGradient id="gnd-${uid}" x1="0" y1="0" x2="0" y2="1">
+      <linearGradient id="gnd-${side}" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stop-color="#4e8c30"/>
         <stop offset="100%" stop-color="#3a6820"/>
       </linearGradient>
     </defs>`;
 
     // Sky
-    h += `<rect x="0" y="0" width="${VW}" height="${VH}" fill="url(#sky-${uid})"/>`;
-    // Ground
-    h += `<rect x="0" y="${GROUND_Y}" width="${VW}" height="${VH-GROUND_Y}" fill="url(#gnd-${uid})"/>`;
+    h += `<rect x="0" y="0" width="${VW}" height="${VH}" fill="url(#sky-${side})"/>`;
+
+    // ── House visible behind fence (front view only) ──
+    if (isFront) {
+      const HX1 = 105, HX2 = 395, HCX = 250;
+      const ROOF_PEAK = 8, ROOF_BASE = 62;
+
+      // House body (siding)
+      h += `<rect x="${HX1}" y="${ROOF_BASE}" width="${HX2-HX1}" height="${GROUND_Y-ROOF_BASE}" fill="#f5f0e8" stroke="#c0b8b0" stroke-width="1.5"/>`;
+      for (let sy = ROOF_BASE + 13; sy < GROUND_Y; sy += 13) {
+        h += `<line x1="${HX1}" y1="${sy}" x2="${HX2}" y2="${sy}" stroke="#e6ddd0" stroke-width=".8"/>`;
+      }
+      // Roof
+      h += `<polygon points="${HX1-14},${ROOF_BASE} ${HCX},${ROOF_PEAK} ${HX2+14},${ROOF_BASE}" fill="#8B1A1A"/>`;
+      h += `<line x1="${HX1-14}" y1="${ROOF_BASE}" x2="${HX2+14}" y2="${ROOF_BASE}" stroke="#5a1010" stroke-width="2.5"/>`;
+      // Chimney
+      h += `<rect x="163" y="${ROOF_PEAK+12}" width="20" height="38" fill="#795548"/>`;
+      h += `<rect x="161" y="${ROOF_PEAK+10}" width="24" height="6" fill="#5d4037"/>`;
+      // Left window (visible above FENCE_TOP)
+      const wly = ROOF_BASE + 6, wlx = HX1 + 44;
+      h += `<rect x="${wlx}" y="${wly}" width="44" height="26" fill="#b3e5fc" stroke="#90caf9" stroke-width="1" rx="1"/>`;
+      h += `<line x1="${wlx+22}" y1="${wly}" x2="${wlx+22}" y2="${wly+26}" stroke="#90caf9" stroke-width=".8"/>`;
+      h += `<line x1="${wlx}" y1="${wly+13}" x2="${wlx+44}" y2="${wly+13}" stroke="#90caf9" stroke-width=".8"/>`;
+      // Right window
+      const wrx = HX2 - 88;
+      h += `<rect x="${wrx}" y="${wly}" width="44" height="26" fill="#b3e5fc" stroke="#90caf9" stroke-width="1" rx="1"/>`;
+      h += `<line x1="${wrx+22}" y1="${wly}" x2="${wrx+22}" y2="${wly+26}" stroke="#90caf9" stroke-width=".8"/>`;
+      h += `<line x1="${wrx}" y1="${wly+13}" x2="${wrx+44}" y2="${wly+13}" stroke="#90caf9" stroke-width=".8"/>`;
+      // Garage door (center)
+      const gx = HCX - 40, gy = ROOF_BASE + 5, gw = 80, gh = 50;
+      h += `<rect x="${gx}" y="${gy}" width="${gw}" height="${gh}" fill="#dedad4" stroke="#bbb" stroke-width="1" rx="2"/>`;
+      for (let gl = gy + 12; gl < gy + gh; gl += 12) {
+        h += `<line x1="${gx}" y1="${gl}" x2="${gx+gw}" y2="${gl}" stroke="#ccc" stroke-width=".8"/>`;
+      }
+      h += `<line x1="${gx+gw/2}" y1="${gy}" x2="${gx+gw/2}" y2="${gy+gh}" stroke="#ccc" stroke-width=".8"/>`;
+      // Front door (partially behind fence)
+      const dx = HCX + 45, dy = ROOF_BASE + 5;
+      h += `<rect x="${dx}" y="${dy}" width="28" height="58" fill="#795548" rx="2"/>`;
+      h += `<circle cx="${dx+22}" cy="${dy+30}" r="3" fill="#ffd54f"/>`;
+    }
+
+    // Ground (drawn after house so it covers house base)
+    h += `<rect x="0" y="${GROUND_Y}" width="${VW}" height="${VH-GROUND_Y}" fill="url(#gnd-${side})"/>`;
     h += `<rect x="0" y="${GROUND_Y-3}" width="${VW}" height="6" fill="#3a6e22"/>`;
 
     if (!rows.length || !totalLen) {
@@ -592,44 +632,37 @@
       const sq   = rowSqft(row);
       const pan  = parseInt(row.pan) || 1;
 
-      // Section background
       h += `<rect x="${curX}" y="${FENCE_TOP}" width="${bw}" height="${FENCE_H}" fill="${col}"/>`;
 
-      // Pickets
       const pW = 9, pG = 3;
       for (let px = curX + 2; px + pW < curX + bw - 1; px += pW + pG) {
-        // body
         h += `<rect x="${px}" y="${FENCE_TOP+10}" width="${pW}" height="${FENCE_H-10}" fill="${dark}" rx="1"/>`;
-        // pointed tip
         h += `<polygon points="${px},${FENCE_TOP+10} ${px+pW/2},${FENCE_TOP} ${px+pW},${FENCE_TOP+10}" fill="${dark}"/>`;
       }
 
-      // Two horizontal rails
       const r1 = FENCE_TOP + 22, r2 = RAIL_BOT - 22;
       h += `<rect x="${curX}" y="${r1}" width="${bw}" height="6" fill="${dark}" opacity=".55"/>`;
       h += `<rect x="${curX}" y="${r2}" width="${bw}" height="6" fill="${dark}" opacity=".55"/>`;
 
-      // Post between sections
       if (idx > 0) {
         h += `<rect x="${curX-3}" y="${FENCE_TOP-5}" width="6" height="${FENCE_H+10}" fill="${C_POST}" rx="1"/>`;
       }
 
-      // Label pill above fence
-      const cx   = curX + bw / 2;
+      const cx  = curX + bw / 2;
       const pill = FENCE_TOP - 6;
-      const panTag = pan > 1 ? ` ×${pan}` : '';
+      const panTag  = pan > 1 ? ` ×${pan}` : '';
       const typeTxt = row.type.charAt(0).toUpperCase() + row.type.slice(1) + panTag;
 
       if (bw >= 110) {
         const lw = Math.min(bw - 6, 200);
-        h += `<rect x="${cx - lw/2}" y="${pill-26}" width="${lw}" height="24" rx="4" fill="rgba(0,0,0,.5)"/>`;
+        h += `<rect x="${cx-lw/2}" y="${pill-26}" width="${lw}" height="24" rx="4" fill="rgba(0,0,0,.5)"/>`;
         h += `<text x="${cx}" y="${pill-16}" text-anchor="middle" dominant-baseline="middle"
                fill="white" font-size="10" font-weight="bold">${row.len}' × ${row.hgt}' × ${row.pan}</text>`;
         h += `<text x="${cx}" y="${pill-4}" text-anchor="middle" dominant-baseline="middle"
                fill="rgba(255,255,255,.9)" font-size="9">${sq} sq ft  •  ${typeTxt}</text>`;
       } else if (bw >= 55) {
         const lw = Math.min(bw - 4, 130);
-        h += `<rect x="${cx - lw/2}" y="${pill-18}" width="${lw}" height="16" rx="3" fill="rgba(0,0,0,.5)"/>`;
+        h += `<rect x="${cx-lw/2}" y="${pill-18}" width="${lw}" height="16" rx="3" fill="rgba(0,0,0,.5)"/>`;
         h += `<text x="${cx}" y="${pill-9}" text-anchor="middle" dominant-baseline="middle"
                fill="white" font-size="9" font-weight="bold">${sq} sq ft</text>`;
       } else if (bw >= 28) {
@@ -639,11 +672,9 @@
       curX += bw;
     });
 
-    // End posts
     h += `<rect x="-3" y="${FENCE_TOP-5}" width="6" height="${FENCE_H+10}" fill="${C_POST}" rx="1"/>`;
     h += `<rect x="${VW-3}" y="${FENCE_TOP-5}" width="6" height="${FENCE_H+10}" fill="${C_POST}" rx="1"/>`;
 
-    // Total sq ft in corner
     const total = sideTotalSqft(side);
     if (total > 0) {
       h += `<text x="${VW-5}" y="${VH-5}" text-anchor="end"
