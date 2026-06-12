@@ -695,7 +695,7 @@
           <option value="bleach" ${row.type==='bleach' ?'selected':''}>Bleach</option>
           <option value="both"   ${row.type==='both'   ?'selected':''}>Both</option>
         </select>
-        <span class="sq" id="sqft-${row.id}">${rowLinFt(row)} lin ft</span>
+        <span class="sq" id="sqft-${row.id}">${quoteMode==='sqft' ? rowSqft(row)+' sq ft' : rowLinFt(row)+' lin ft'}</span>
         <button class="del-btn" onclick="removeRow('${side}',${row.id})" title="Remove">✕</button>
       `;
       container.appendChild(div);
@@ -707,7 +707,7 @@
     if (!row) return;
     row[field] = value;
     const el = document.getElementById('sqft-' + id);
-    if (el) el.textContent = rowLinFt(row) + ' lin ft';
+    if (el) el.textContent = quoteMode === 'sqft' ? rowSqft(row) + ' sq ft' : rowLinFt(row) + ' lin ft';
     recalc();
   }
 
@@ -777,7 +777,15 @@
     document.body.classList.toggle('sqft-mode', mode === 'sqft');
     document.getElementById('mode-linft').classList.toggle('active', mode === 'linft');
     document.getElementById('mode-sqft').classList.toggle('active', mode === 'sqft');
-    updateCosts();
+    // Refresh section row displays and column headers
+    const unit = mode === 'sqft' ? 'sq ft' : 'lin ft';
+    document.querySelectorAll('.ch-sqft').forEach(el => el.textContent = mode === 'sqft' ? 'Sq Ft' : 'Lin Ft');
+    ALL_SIDES.forEach(s => sides[s].forEach(row => {
+      const el = document.getElementById('sqft-' + row.id);
+      if (el) el.textContent = mode === 'sqft' ? rowSqft(row) + ' sq ft' : rowLinFt(row) + ' lin ft';
+    }));
+    updateGateDisplays();
+    recalc();
   }
 
   // ── Perspective fence view for one side ──
@@ -999,16 +1007,21 @@
   function updateGateDisplays() {
     ALL_SIDES.forEach(s => {
       const el = document.getElementById('gate-sqft-' + s);
-      if (el) el.textContent = gateLinFt(s).toFixed(1) + ' lin ft';
+      if (!el) return;
+      if (quoteMode === 'sqft') {
+        el.textContent = gateSqftForCalc(s).toFixed(1) + ' sq ft';
+      } else {
+        el.textContent = gateLinFt(s).toFixed(1) + ' lin ft';
+      }
     });
   }
 
   // ── Recalculate everything ──
   function recalc() {
     ALL_SIDES.forEach(s => {
-      const lf = sideTotalLinFt(s);
-      document.getElementById('total-' + s).textContent =
-        'Total: ' + lf.toFixed(1) + ' lin ft';
+      const val  = quoteMode === 'sqft' ? sideTotalSqft(s) : sideTotalLinFt(s);
+      const unit = quoteMode === 'sqft' ? 'sq ft' : 'lin ft';
+      document.getElementById('total-' + s).textContent = `Total: ${val.toFixed(1)} ${unit}`;
     });
     updateGateDisplays();
 
