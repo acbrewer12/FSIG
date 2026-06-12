@@ -204,8 +204,59 @@
     }
     .print-btn:hover { background: var(--brand-light); }
 
+    /* ── GATE ROW ── */
+    .gate-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px dashed var(--border);
+      font-size: .82rem;
+      color: var(--muted);
+      flex-wrap: wrap;
+    }
+    .gate-row input[type=number] {
+      width: 46px;
+      padding: 4px 5px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      text-align: center;
+      font-size: .82rem;
+    }
+
+    /* ── JOB SUMMARY CHIPS ── */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px,1fr));
+      gap: 12px;
+    }
+    .summary-chip {
+      background: var(--brand);
+      color: #fff;
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+    }
+    .summary-chip.blue  { background: #1a6fad; }
+    .summary-chip.brown { background: #795548; }
+    .summary-chip.green { background: #2e7d32; }
+    .summary-chip .big  { font-size: 2rem; font-weight: 700; display: block; line-height: 1.1; }
+    .summary-chip .lbl  { font-size: .78rem; opacity: .85; margin-top: 4px; display: block; }
+
+    /* ── PRINT ── */
     @media print {
-      header, .print-btn { -webkit-print-color-adjust: exact; }
+      .no-print, .add-btn, .del-btn, .print-btn { display: none !important; }
+      body { background: white; font-size: 10pt; }
+      .container { padding: 0; max-width: 100%; }
+      .card { box-shadow: none; border: 1px solid #ccc; page-break-inside: avoid; margin-bottom: 10px; padding: 12px; }
+      .sides-grid { grid-template-columns: 1fr 1fr; }
+      .section-row input, .section-row select { border: none; background: transparent; font-size: .82rem; }
+      .gate-row input { border: none; background: transparent; }
+      header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .summary-chip { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .cost-tbl input { border: none; background: transparent; font-weight: 600; text-align: right; }
+      .views-grid { grid-template-columns: 1fr 1fr; }
     }
 
     /* ── PERSPECTIVE VIEWS ── */
@@ -308,6 +359,14 @@
         <div id="rows-left"></div>
         <button class="add-btn" onclick="addRow('left')">+ Add Section</button>
         <div class="side-total" id="total-left">Total: 0 sq ft</div>
+        <div class="gate-row">
+          <span>Gates:</span>
+          <input type="number" id="gate-count-left" min="0" value="0" onchange="recalc()">
+          <span>×</span>
+          <input type="number" id="gate-w-left" min="0.5" step="0.5" value="4" onchange="recalc()">
+          <span>ft wide =</span>
+          <span id="gate-sqft-left">0 sq ft</span>
+        </div>
       </div>
 
       <div class="side-panel right" id="panel-right">
@@ -322,6 +381,14 @@
         <div id="rows-right"></div>
         <button class="add-btn" onclick="addRow('right')">+ Add Section</button>
         <div class="side-total" id="total-right">Total: 0 sq ft</div>
+        <div class="gate-row">
+          <span>Gates:</span>
+          <input type="number" id="gate-count-right" min="0" value="0" onchange="recalc()">
+          <span>×</span>
+          <input type="number" id="gate-w-right" min="0.5" step="0.5" value="4" onchange="recalc()">
+          <span>ft wide =</span>
+          <span id="gate-sqft-right">0 sq ft</span>
+        </div>
       </div>
 
       <div class="side-panel back">
@@ -336,6 +403,14 @@
         <div id="rows-back"></div>
         <button class="add-btn" onclick="addRow('back')">+ Add Section</button>
         <div class="side-total" id="total-back">Total: 0 sq ft</div>
+        <div class="gate-row">
+          <span>Gates:</span>
+          <input type="number" id="gate-count-back" min="0" value="0" onchange="recalc()">
+          <span>×</span>
+          <input type="number" id="gate-w-back" min="0.5" step="0.5" value="4" onchange="recalc()">
+          <span>ft wide =</span>
+          <span id="gate-sqft-back">0 sq ft</span>
+        </div>
       </div>
 
       <div class="side-panel frontleft">
@@ -350,6 +425,14 @@
         <div id="rows-frontLeft"></div>
         <button class="add-btn" onclick="addRow('frontLeft')">+ Add Section</button>
         <div class="side-total" id="total-frontLeft">Total: 0 sq ft</div>
+        <div class="gate-row">
+          <span>Gates:</span>
+          <input type="number" id="gate-count-frontLeft" min="0" value="0" onchange="recalc()">
+          <span>×</span>
+          <input type="number" id="gate-w-frontLeft" min="0.5" step="0.5" value="4" onchange="recalc()">
+          <span>ft wide =</span>
+          <span id="gate-sqft-frontLeft">0 sq ft</span>
+        </div>
       </div>
 
       <div class="side-panel frontright">
@@ -364,6 +447,37 @@
         <div id="rows-frontRight"></div>
         <button class="add-btn" onclick="addRow('frontRight')">+ Add Section</button>
         <div class="side-total" id="total-frontRight">Total: 0 sq ft</div>
+        <div class="gate-row">
+          <span>Gates:</span>
+          <input type="number" id="gate-count-frontRight" min="0" value="0" onchange="recalc()">
+          <span>×</span>
+          <input type="number" id="gate-w-frontRight" min="0.5" step="0.5" value="4" onchange="recalc()">
+          <span>ft wide =</span>
+          <span id="gate-sqft-frontRight">0 sq ft</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Job Summary -->
+  <div class="card">
+    <h2>Job Summary — What to Bring</h2>
+    <div class="summary-grid">
+      <div class="summary-chip">
+        <span class="big" id="sum-stain-gal">0</span>
+        <span class="lbl">Gallons Stain</span>
+      </div>
+      <div class="summary-chip blue">
+        <span class="big" id="sum-bleach-gal">0</span>
+        <span class="lbl">Gallons Bleach</span>
+      </div>
+      <div class="summary-chip brown">
+        <span class="big" id="sum-gates">0</span>
+        <span class="lbl">Total Gates</span>
+      </div>
+      <div class="summary-chip green">
+        <span class="big" id="sum-total-charge">$0</span>
+        <span class="lbl">Total Customer Charge</span>
       </div>
     </div>
   </div>
@@ -452,6 +566,9 @@
       </table>
     </div>
 
+    <div class="gross-total" style="background:#e8f5e9; color:#1b5e20; margin-top:6px;">
+      Total Customer Charge: &nbsp;$<span id="total-charged">0.00</span>
+    </div>
     <div class="gross-total">Total Gross Profit: &nbsp;$<span id="total-profit">0.00</span></div>
   </div>
 
@@ -720,14 +837,44 @@
     svg.innerHTML = h;
   }
 
+  // ── Gate helpers ──
+  const ALL_SIDES = ['left','right','back','frontLeft','frontRight'];
+
+  function gateSqft(side) {
+    const count = parseInt(document.getElementById('gate-count-' + side)?.value) || 0;
+    const width = parseFloat(document.getElementById('gate-w-' + side)?.value) || 4;
+    const avgHgt = sides[side].length
+      ? sides[side].reduce((s,r) => s + (parseFloat(r.hgt)||6), 0) / sides[side].length
+      : 6;
+    return count * width * avgHgt;
+  }
+
+  function totalGateCount() {
+    return ALL_SIDES.reduce((sum, s) => {
+      return sum + (parseInt(document.getElementById('gate-count-' + s)?.value) || 0);
+    }, 0);
+  }
+
+  function totalGateSqft() {
+    return ALL_SIDES.reduce((sum, s) => sum + gateSqft(s), 0);
+  }
+
+  function updateGateDisplays() {
+    ALL_SIDES.forEach(s => {
+      const el = document.getElementById('gate-sqft-' + s);
+      if (el) el.textContent = gateSqft(s).toFixed(1) + ' sq ft';
+    });
+  }
+
   // ── Recalculate everything ──
   function recalc() {
     const totals = {};
-    ['left','right','back','frontLeft','frontRight'].forEach(s => {
+    ALL_SIDES.forEach(s => {
       totals[s] = sideTotalSqft(s);
       document.getElementById('total-' + s).textContent =
         'Total: ' + totals[s].toFixed(1) + ' sq ft';
     });
+    updateGateDisplays();
 
     updateHouseVisual();
     drawSideView('front', 'view-front');
@@ -910,12 +1057,13 @@
 
   // ── Cost calculations ──
   function updateCosts() {
-    const allSides = ['left','right','back','frontLeft','frontRight'];
     let stainSqft = 0, bleachSqft = 0;
-    allSides.forEach(s => {
+    ALL_SIDES.forEach(s => {
       stainSqft  += sideSqftByType(s, 'stain');
       bleachSqft += sideSqftByType(s, 'bleach');
     });
+    // Gates count as stain sqft
+    stainSqft += totalGateSqft();
     const totalSqft = stainSqft + bleachSqft;
 
     document.getElementById('s-sqft').textContent = totalSqft.toFixed(0);
@@ -948,7 +1096,15 @@
     document.getElementById('b-mat').textContent     = bMat.toFixed(2);
     document.getElementById('b-profit').textContent  = bProfit.toFixed(2);
 
-    document.getElementById('total-profit').textContent = (sProfit + bProfit).toFixed(2);
+    const totalCharge = sCharged + bCharged;
+    document.getElementById('total-charged').textContent = totalCharge.toFixed(2);
+    document.getElementById('total-profit').textContent  = (sProfit + bProfit).toFixed(2);
+
+    // Update summary chips
+    document.getElementById('sum-stain-gal').textContent  = sGal;
+    document.getElementById('sum-bleach-gal').textContent = bGal;
+    document.getElementById('sum-gates').textContent      = totalGateCount();
+    document.getElementById('sum-total-charge').textContent = '$' + totalCharge.toFixed(0);
   }
 
   // Wire cost inputs to recalc
