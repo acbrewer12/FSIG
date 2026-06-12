@@ -1236,9 +1236,9 @@
   // ── Print invoice generation ──
 
   function buildPrintMapSVG() {
-    const VW = 650, VH = 345;
-    const FX = 135, FY = 72, FW = 380, FH = 200;
-    const BW = 18;
+    const VW = 580, VH = 255;
+    const FX = 118, FY = 55, FW = 344, FH = 158;
+    const BW = 15;
     const C_STAIN = '#B8760E', C_BLEACH = '#1F7EC2', C_BOTH = '#7B3FA0', C_EMPTY = '#d5d2cd';
     function tc(t) { return t==='stain'?C_STAIN:t==='bleach'?C_BLEACH:C_BOTH; }
 
@@ -1370,55 +1370,111 @@
       }).join('');
 
       return `
-      <table style="width:100%;border-collapse:collapse;margin-bottom:20px;font-size:.87rem;border:1px solid #bbb">
-        <tr><td colspan="3" style="background:${hdrC};color:white;font-weight:700;padding:5px 10px;font-size:.9rem;letter-spacing:.5px">${cap.toUpperCase()}:</td></tr>
-        <tr><td style="padding:4px 10px;font-weight:600">Total ${measureLabel}</td><td></td><td></td></tr>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:12px;font-size:.85rem;border:1px solid #bbb">
+        <tr><td colspan="3" style="background:${hdrC};color:white;font-weight:700;padding:4px 8px;font-size:.88rem;letter-spacing:.5px">${cap.toUpperCase()}:</td></tr>
+        <tr><td style="padding:3px 8px;font-weight:600">Total ${measureLabel}</td><td></td><td></td></tr>
         ${sRows}
         <tr>
           <td></td><td></td>
-          <td style="padding:3px 10px;text-align:right;font-weight:700;background:#ffff00">${Math.round(measure).toLocaleString()} ${measureUnit}</td>
+          <td style="padding:2px 8px;text-align:right;font-weight:700;background:#ffff00">${Math.round(measure).toLocaleString()} ${measureUnit}</td>
         </tr>
-        <tr><td colspan="3" style="padding:3px 0;border-top:1px solid #ddd"></td></tr>
+        <tr><td colspan="3" style="padding:2px 0;border-top:1px solid #ddd"></td></tr>
         <tr>
-          <td style="padding:4px 10px">Customer Charged</td>
-          <td style="padding:4px 10px;color:#444">${Math.round(measure).toLocaleString()} × $${rate.toFixed(2)}</td>
-          <td style="padding:4px 10px;text-align:right;font-weight:700">$${charged.toFixed(2)}</td>
-        </tr>
-        <tr>
-          <td style="padding:4px 10px">Coverage</td>
-          <td style="padding:4px 10px;color:#444">${Math.round(measure).toLocaleString()} / ${Math.round(cov)}</td>
-          <td style="padding:4px 10px;text-align:right;font-weight:700">${gal} Gallons</td>
+          <td style="padding:3px 8px">Customer Charged</td>
+          <td style="padding:3px 8px;color:#444">${Math.round(measure).toLocaleString()} × $${rate.toFixed(2)}</td>
+          <td style="padding:3px 8px;text-align:right;font-weight:700">$${charged.toFixed(2)}</td>
         </tr>
         <tr>
-          <td style="padding:4px 10px">Material Cost</td>
-          <td style="padding:4px 10px;color:#444">${gal} Gal × $${galCost.toFixed(2)}</td>
-          <td style="padding:4px 10px;text-align:right;font-weight:700">$${mat.toFixed(2)}</td>
+          <td style="padding:3px 8px">Coverage</td>
+          <td style="padding:3px 8px;color:#444">${Math.round(measure).toLocaleString()} / ${Math.round(cov)}</td>
+          <td style="padding:3px 8px;text-align:right;font-weight:700">${gal} Gallons</td>
         </tr>
         <tr>
-          <td style="padding:4px 10px">Gross Profit</td>
-          <td style="padding:4px 10px;color:#444">$${charged.toFixed(2)} - $${mat.toFixed(2)}</td>
-          <td style="padding:4px 10px;text-align:right;font-weight:700">$${profit.toFixed(2)}</td>
+          <td style="padding:3px 8px">Material Cost</td>
+          <td style="padding:3px 8px;color:#444">${gal} Gal × $${galCost.toFixed(2)}</td>
+          <td style="padding:3px 8px;text-align:right;font-weight:700">$${mat.toFixed(2)}</td>
         </tr>
         <tr>
-          <td colspan="2" style="padding:4px 10px;text-align:right;border-top:1px solid #ddd">Gross Profit ${cap}:</td>
-          <td style="padding:4px 10px;text-align:right;font-weight:700;background:#ffff00;border-top:1px solid #ddd">$${profit.toFixed(2)}</td>
+          <td style="padding:3px 8px">Gross Profit</td>
+          <td style="padding:3px 8px;color:#444">$${charged.toFixed(2)} - $${mat.toFixed(2)}</td>
+          <td style="padding:3px 8px;text-align:right;font-weight:700">$${profit.toFixed(2)}</td>
+        </tr>
+        <tr>
+          <td colspan="2" style="padding:3px 8px;text-align:right;border-top:1px solid #ddd">Gross Profit ${cap}:</td>
+          <td style="padding:3px 8px;text-align:right;font-weight:700;background:#ffff00;border-top:1px solid #ddd">$${profit.toFixed(2)}</td>
         </tr>
       </table>`;
     }
 
     const totalProfit = parseFloat(document.getElementById('total-profit').textContent) || 0;
+    const dateStr = new Date().toLocaleDateString();
+
+    // Material quantities for page 2
+    const sMeasure2 = sqft ? totalSqftByType('stain')  : totalLinFtByType('stain');
+    const bMeasure2 = sqft ? totalSqftByType('bleach') : totalLinFtByType('bleach');
+    const sCov2     = parseFloat(document.getElementById(sqft ? 's-cov-sqft' : 's-cov').value) || 1;
+    const bCov2     = parseFloat(document.getElementById(sqft ? 'b-cov-sqft' : 'b-cov').value) || 1;
+    const sGalCost2 = parseFloat(document.getElementById('s-gal-cost').value) || 0;
+    const bGalCost2 = parseFloat(document.getElementById('b-gal-cost').value) || 0;
+    const sGal2     = Math.ceil(sMeasure2 / sCov2);
+    const bGal2     = Math.ceil(bMeasure2 / bCov2);
+    const sMat2     = sGal2 * sGalCost2;
+    const bMat2     = bGal2 * bGalCost2;
+
+    const matRows = [
+      sGal2 > 0 ? `<tr style="border-bottom:1px solid #ddd">
+        <td style="padding:7px 10px">Stain</td>
+        <td style="padding:7px 10px;text-align:center">${sGal2}</td>
+        <td style="padding:7px 10px;text-align:right">$${sGalCost2.toFixed(2)}</td>
+        <td style="padding:7px 10px;text-align:right;font-weight:600">$${sMat2.toFixed(2)}</td>
+      </tr>` : '',
+      bGal2 > 0 ? `<tr style="border-bottom:1px solid #ddd">
+        <td style="padding:7px 10px">Bleach / Cleaner</td>
+        <td style="padding:7px 10px;text-align:center">${bGal2}</td>
+        <td style="padding:7px 10px;text-align:right">$${bGalCost2.toFixed(2)}</td>
+        <td style="padding:7px 10px;text-align:right;font-weight:600">$${bMat2.toFixed(2)}</td>
+      </tr>` : '',
+    ].join('');
 
     document.getElementById('print-invoice').innerHTML = `
-      <div style="text-align:center;border-bottom:2px solid #222;margin-bottom:14px;padding-bottom:10px">
-        <div style="font-size:1.9rem;font-weight:700;letter-spacing:1px">Jobsite Analysis</div>
-        <div style="font-size:.8rem;color:#888;margin-top:2px">Date: ${new Date().toLocaleDateString()}</div>
+      <!-- PAGE 1 -->
+      <div style="page-break-after:always">
+        <div style="text-align:center;border-bottom:2px solid #222;margin-bottom:8px;padding-bottom:7px">
+          <div style="font-size:1.7rem;font-weight:700;letter-spacing:1px">Jobsite Analysis</div>
+          <div style="font-size:.75rem;color:#888;margin-top:1px">Date: ${dateStr}</div>
+        </div>
+        ${buildPrintMapSVG()}
+        ${addressHtml}
+        ${buildTypeTable('stain')}
+        ${buildTypeTable('bleach')}
+        <div style="text-align:right;margin-top:8px;padding-top:8px;border-top:2px solid #222;font-size:1.05rem;font-weight:700">
+          Total Gross Profit: <span style="background:#ffff00;padding:3px 18px;margin-left:10px">$${totalProfit.toFixed(2)}</span>
+        </div>
       </div>
-      ${buildPrintMapSVG()}
-      ${addressHtml}
-      ${buildTypeTable('stain')}
-      ${buildTypeTable('bleach')}
-      <div style="text-align:right;margin-top:12px;padding-top:12px;border-top:2px solid #222;font-size:1.1rem;font-weight:700">
-        Total Gross Profit: <span style="background:#ffff00;padding:3px 18px;margin-left:10px">$${totalProfit.toFixed(2)}</span>
+
+      <!-- PAGE 2: Material List -->
+      <div>
+        <div style="text-align:center;border-bottom:2px solid #222;margin-bottom:14px;padding-bottom:8px">
+          <div style="font-size:1.7rem;font-weight:700;letter-spacing:1px">Material List</div>
+          <div style="font-size:.75rem;color:#888;margin-top:1px">Date: ${dateStr}</div>
+        </div>
+        ${addressHtml}
+        <table style="width:100%;border-collapse:collapse;font-size:.9rem;margin-bottom:24px;border:1px solid #bbb">
+          <tr style="background:#333;color:white">
+            <th style="padding:6px 10px;text-align:left">Product</th>
+            <th style="padding:6px 10px;text-align:center">Gallons Needed</th>
+            <th style="padding:6px 10px;text-align:right">Cost / Gallon</th>
+            <th style="padding:6px 10px;text-align:right">Total Cost</th>
+          </tr>
+          ${matRows}
+          <tr style="background:#f0f0f0;font-weight:700;border-top:2px solid #555">
+            <td style="padding:7px 10px" colspan="3">Total Material Cost</td>
+            <td style="padding:7px 10px;text-align:right">$${(sMat2+bMat2).toFixed(2)}</td>
+          </tr>
+        </table>
+
+        <div style="font-weight:700;font-size:.9rem;margin-bottom:10px">Additional Supplies / Notes:</div>
+        ${['','','','',''].map(() => `<div style="border-bottom:1px solid #ccc;margin-bottom:14px;height:18px"></div>`).join('')}
       </div>
     `;
   }
