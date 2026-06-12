@@ -90,8 +90,7 @@
     }
     .side-panel.left  h3 { background: #fff3e0; color: var(--warn); }
     .side-panel.right h3 { background: #e8f5e9; color: var(--ok);   }
-    .side-panel.front h3,
-    .side-panel.back  h3 { background: #e3f2fd; color: #1565c0; }
+    .side-panel.back h3 { background: #e3f2fd; color: #1565c0; }
     .side-panel.frontleft h3,
     .side-panel.frontright h3 { background: #f3e5f5; color: #6a1b9a; }
 
@@ -325,20 +324,6 @@
         <div class="side-total" id="total-right">Total: 0 sq ft</div>
       </div>
 
-      <div class="side-panel front">
-        <h3>Front</h3>
-        <div class="col-headers">
-          <span class="ch-len">Length</span>
-          <span class="ch-hgt">Height</span>
-          <span class="ch-pan">Panels</span>
-          <span class="ch-type">Treatment</span>
-          <span class="ch-sqft">Sq Ft</span>
-        </div>
-        <div id="rows-front"></div>
-        <button class="add-btn" onclick="addRow('front')">+ Add Section</button>
-        <div class="side-total" id="total-front">Total: 0 sq ft</div>
-      </div>
-
       <div class="side-panel back">
         <h3>Back</h3>
         <div class="col-headers">
@@ -474,7 +459,7 @@
 
 <script>
   // ── Data model ──
-  const sides = { left: [], right: [], front: [], back: [], frontLeft: [], frontRight: [] };
+  const sides = { left: [], right: [], back: [], frontLeft: [], frontRight: [] };
   let rowCounter = 0;
 
   // ── Add a fence section row ──
@@ -741,7 +726,7 @@
   // ── Recalculate everything ──
   function recalc() {
     const totals = {};
-    ['left','right','front','back','frontLeft','frontRight'].forEach(s => {
+    ['left','right','back','frontLeft','frontRight'].forEach(s => {
       totals[s] = sideTotalSqft(s);
       document.getElementById('total-' + s).textContent =
         'Total: ' + totals[s].toFixed(1) + ' sq ft';
@@ -884,7 +869,8 @@
     }
 
     // Draw all four sides
-    drawFB('front', FF);
+    drawFB('frontLeft',  { x: FF.x,            y: FF.y, w: FF.w / 2, h: FF.h });
+    drawFB('frontRight', { x: FF.x + FF.w / 2, y: FF.y, w: FF.w / 2, h: FF.h });
     drawFB('back',  BF);
     drawLR('left',  LF);
     drawLR('right', RF);
@@ -927,7 +913,7 @@
 
   // ── Cost calculations ──
   function updateCosts() {
-    const allSides = ['left','right','front','back','frontLeft','frontRight'];
+    const allSides = ['left','right','back','frontLeft','frontRight'];
     let stainSqft = 0, bleachSqft = 0;
     allSides.forEach(s => {
       stainSqft  += sideSqftByType(s, 'stain');
@@ -975,7 +961,8 @@
 
   // ── Seed with sample data matching the form in the image ──
   function seedSampleData() {
-    addRow('front', '68', '6', '1', 'stain');
+    addRow('frontLeft',  '34', '6', '1', 'stain');
+    addRow('frontRight', '34', '6', '1', 'stain');
     addRow('left',  '72', '6', '2', 'stain');
     addRow('right', '59', '6', '1', 'stain');
     addRow('right', '11', '6', '2', 'bleach');
