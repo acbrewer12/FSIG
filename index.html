@@ -246,9 +246,24 @@
     .summary-chip .big  { font-size: 2rem; font-weight: 700; display: block; line-height: 1.1; }
     .summary-chip .lbl  { font-size: .78rem; opacity: .85; margin-top: 4px; display: block; }
 
-    /* ── PRINT ── */
+    /* ── FACE BADGE ── */
+    .face-badge {
+      font-size: .72rem;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-weight: 700;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .face-badge.inside  { background: #e8f5e9; color: #2e7d32; }
+    .face-badge.outside { background: #fff3e0; color: #bf360c; }
+    .face-badge.both    { background: #e3f2fd; color: #1565c0; }
+
+    /* ── PRINT INVOICE ── */
+    .print-only { display: none; }
     @media print {
-      .no-print, .add-btn, .del-btn, .print-btn { display: none !important; }
+      .no-print, .add-btn, .del-btn, .print-btn, .mode-toggle { display: none !important; }
+      .print-only { display: block !important; }
       body { background: white; font-size: 10pt; }
       .container { padding: 0; max-width: 100%; }
       .card { box-shadow: none; border: 1px solid #ccc; page-break-inside: avoid; margin-bottom: 10px; padding: 12px; }
@@ -256,8 +271,11 @@
       .section-row input, .section-row select { border: none; background: transparent; font-size: .82rem; }
       header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .summary-chip { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .face-badge { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .cost-tbl input { border: none; background: transparent; font-weight: 600; text-align: right; }
       .views-grid { grid-template-columns: 1fr 1fr; }
+      #house-visual { width: 100%; max-height: 420px; }
+      .print-invoice-header { border-bottom: 3px solid #8B1A1A; margin-bottom: 16px; padding-bottom: 12px; }
     }
 
     /* ── PERSPECTIVE VIEWS ── */
@@ -303,6 +321,19 @@
 </header>
 
 <div class="container">
+
+  <!-- Print-only invoice header -->
+  <div class="print-only print-invoice-header" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+      <div>
+        <div style="font-size:1.6rem;font-weight:700;color:#8B1A1A;letter-spacing:1px">FSIG — Fence Service Job Sheet</div>
+        <div id="print-address-line" style="font-size:1rem;color:#333;margin-top:4px"></div>
+      </div>
+      <div style="text-align:right;font-size:.9rem;color:#555">
+        <div>Date: <strong id="print-date"></strong></div>
+      </div>
+    </div>
+  </div>
 
   <!-- Address -->
   <div class="card">
@@ -638,6 +669,7 @@
           <option value="bleach" ${row.type==='bleach' ?'selected':''}>Bleach</option>
           <option value="both"   ${row.type==='both'   ?'selected':''}>Both</option>
         </select>
+        <span class="face-badge ${row.face||'outside'}" id="fb-${row.id}">${faceBadgeText(row.face)}</span>
         <span class="sq" id="sqft-${row.id}">${quoteMode==='sqft' ? rowSqft(row)+' sq ft' : rowLinFt(row)+' lin ft'}</span>
         <button class="del-btn" onclick="removeRow('${side}',${row.id})" title="Remove">✕</button>
       `;
@@ -651,10 +683,20 @@
     row[field] = value;
     const el = document.getElementById('sqft-' + id);
     if (el) el.textContent = quoteMode === 'sqft' ? rowSqft(row) + ' sq ft' : rowLinFt(row) + ' lin ft';
+    if (field === 'face') {
+      const fb = document.getElementById('fb-' + id);
+      if (fb) { fb.textContent = faceBadgeText(value); fb.className = `face-badge ${value}`; }
+    }
     recalc();
   }
 
   function faceMult(row) { return row.face === 'both' ? 2 : 1; }
+
+  function faceBadgeText(face) {
+    if (face === 'inside')  return '← 1 inside';
+    if (face === 'both')    return '← 2 both →';
+    return '1 outside →';
+  }
 
   function rowLinFt(row) {
     const l = parseFloat(row.len) || 0;
@@ -1177,6 +1219,13 @@
   // Wire time/labor inputs to recalc
   ['tl-rate','tl-crew','tl-labor-rate'].forEach(id => {
     document.getElementById(id).addEventListener('input', updateCosts);
+  });
+
+  // Populate print header before printing
+  window.addEventListener('beforeprint', () => {
+    const parts = ['addr','city','state','zip'].map(id => document.getElementById(id).value).filter(Boolean);
+    document.getElementById('print-address-line').textContent = parts.join(', ');
+    document.getElementById('print-date').textContent = new Date().toLocaleDateString();
   });
 
   // Init — start with one blank row per side
