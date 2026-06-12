@@ -745,12 +745,44 @@
   // ── Quote mode ──
   let quoteMode = 'linft';
   function setMode(mode) {
+    if (mode === quoteMode) return;
+
+    // Convert rates so total charge stays the same when switching units.
+    // avgH = totalSqft / totalLinFt (the average fence height across all sections).
+    const totalLF = totalLinearFeet();
+    const totalSF = ALL_SIDES.reduce((acc, s) =>
+      acc + sides[s].reduce((a, r) =>
+        a + (parseFloat(r.len)||0) * (parseFloat(r.hgt)||0) * faceMult(r), 0), 0);
+
+    if (totalLF > 0 && totalSF > 0) {
+      const avgH = totalSF / totalLF;
+      if (quoteMode === 'linft') {
+        // linft → sqft: divide rate by avgH, multiply coverage by avgH
+        const sr = parseFloat(document.getElementById('s-rate').value) || 0;
+        const sc = parseFloat(document.getElementById('s-cov').value)  || 1;
+        document.getElementById('s-rate-sqft').value = (sr / avgH).toFixed(3);
+        document.getElementById('s-cov-sqft').value  = Math.round(sc * avgH);
+        const br = parseFloat(document.getElementById('b-rate').value) || 0;
+        const bc = parseFloat(document.getElementById('b-cov').value)  || 1;
+        document.getElementById('b-rate-sqft').value = (br / avgH).toFixed(3);
+        document.getElementById('b-cov-sqft').value  = Math.round(bc * avgH);
+      } else {
+        // sqft → linft: multiply rate by avgH, divide coverage by avgH
+        const sr = parseFloat(document.getElementById('s-rate-sqft').value) || 0;
+        const sc = parseFloat(document.getElementById('s-cov-sqft').value)  || 1;
+        document.getElementById('s-rate').value = (sr * avgH).toFixed(3);
+        document.getElementById('s-cov').value  = Math.round(sc / avgH);
+        const br = parseFloat(document.getElementById('b-rate-sqft').value) || 0;
+        const bc = parseFloat(document.getElementById('b-cov-sqft').value)  || 1;
+        document.getElementById('b-rate').value = (br * avgH).toFixed(3);
+        document.getElementById('b-cov').value  = Math.round(bc / avgH);
+      }
+    }
+
     quoteMode = mode;
     document.body.classList.toggle('sqft-mode', mode === 'sqft');
     document.getElementById('mode-linft').classList.toggle('active', mode === 'linft');
     document.getElementById('mode-sqft').classList.toggle('active', mode === 'sqft');
-    // Refresh section row displays and column headers
-    const unit = mode === 'sqft' ? 'sq ft' : 'lin ft';
     document.querySelectorAll('.ch-sqft').forEach(el => el.textContent = mode === 'sqft' ? 'Sq Ft' : 'Lin Ft');
     ALL_SIDES.forEach(s => sides[s].forEach(row => {
       const el = document.getElementById('sqft-' + row.id);
