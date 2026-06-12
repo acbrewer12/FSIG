@@ -547,8 +547,8 @@
     // ── FRONT VIEW: house centered between left / right fence strips ──
     if (side === 'front') {
       const VH = 260, GROUND = 205;
-      const SW  = 52;   // left/right side-strip width
-      const FSW = 52;   // front-left/right strip width
+      const SW  = 0;    // no left/right side strips in front view
+      const FSW = 80;   // front-left/right strip width
       const CX1 = SW + FSW, CX2 = VW - SW - FSW, HCX = VW / 2;
       const ROOF_PEAK = 12, ROOF_BASE = 70;
 
@@ -564,7 +564,7 @@
       </defs>`;
       h += `<rect x="0" y="0" width="${VW}" height="${VH}" fill="url(#sky-front)"/>`;
 
-      // ── Left fence strip (end-on view of the left side fence) ──
+      // ── Front-left / front-right fence strips flanking the house ──
       function drawStrip(x, sideKey, label) {
         const srows = sides[sideKey].filter(r => (parseFloat(r.len)||0) > 0);
         const slen  = srows.reduce((s,r) => s + (parseFloat(r.len)||0), 0);
@@ -575,26 +575,23 @@
             const bh = (parseFloat(row.len)||0) / slen * STRIP_H;
             const color = fc(row.type);
             const dark  = dc(row.type);
-            h += `<rect x="${x}" y="${cy}" width="${SW}" height="${bh}" fill="${color}" rx="1"/>`;
-            // Horizontal board lines (fence going away from viewer)
+            h += `<rect x="${x}" y="${cy}" width="${FSW}" height="${bh}" fill="${color}" rx="1"/>`;
             for (let by = cy + 8; by < cy + bh - 4; by += 12) {
-              h += `<line x1="${x+2}" y1="${by}" x2="${x+SW-2}" y2="${by}" stroke="${dark}" stroke-width="1.5" opacity=".5"/>`;
+              h += `<line x1="${x+2}" y1="${by}" x2="${x+FSW-2}" y2="${by}" stroke="${dark}" stroke-width="1.5" opacity=".5"/>`;
             }
-            if (idx > 0) h += `<line x1="${x}" y1="${cy}" x2="${x+SW}" y2="${cy}" stroke="rgba(255,255,255,.5)" stroke-width="1.5"/>`;
+            if (idx > 0) h += `<line x1="${x}" y1="${cy}" x2="${x+FSW}" y2="${cy}" stroke="rgba(255,255,255,.5)" stroke-width="1.5"/>`;
             cy += bh;
           });
           const tot = sideTotalSqft(sideKey);
-          h += `<text x="${x+SW/2}" y="${STRIP_Y-8}" text-anchor="middle" fill="#444" font-size="9" font-weight="bold">${label}</text>`;
-          h += `<text x="${x+SW/2}" y="${STRIP_Y-0}" text-anchor="middle" fill="#666" font-size="8">${tot.toFixed(0)} sqft</text>`;
+          h += `<text x="${x+FSW/2}" y="${STRIP_Y-8}" text-anchor="middle" fill="#444" font-size="9" font-weight="bold">${label}</text>`;
+          h += `<text x="${x+FSW/2}" y="${STRIP_Y-0}" text-anchor="middle" fill="#666" font-size="8">${tot.toFixed(0)} sqft</text>`;
         } else {
-          h += `<rect x="${x}" y="55" width="${SW}" height="${GROUND-60}" fill="#ddd" stroke="#ccc" stroke-dasharray="4,3" stroke-width="1" rx="2"/>`;
-          h += `<text x="${x+SW/2}" y="${55+(GROUND-60)/2}" text-anchor="middle" dominant-baseline="middle" fill="#bbb" font-size="9">${label}</text>`;
+          h += `<rect x="${x}" y="55" width="${FSW}" height="${GROUND-60}" fill="#ddd" stroke="#ccc" stroke-dasharray="4,3" stroke-width="1" rx="2"/>`;
+          h += `<text x="${x+FSW/2}" y="${55+(GROUND-60)/2}" text-anchor="middle" dominant-baseline="middle" fill="#bbb" font-size="9">${label}</text>`;
         }
       }
-      drawStrip(0,        'left',  'LEFT');
-      drawStrip(VW - SW,  'right', 'RIGHT');
-      drawStrip(SW,       'frontLeft',  'FRONT L');
-      drawStrip(VW-SW-FSW,'frontRight', 'FRONT R');
+      drawStrip(0,         'frontLeft',  'FRONT L');
+      drawStrip(VW - FSW,  'frontRight', 'FRONT R');
 
       // ── House body (behind the front fence) ──
       h += `<rect x="${CX1}" y="${ROOF_BASE}" width="${CX2-CX1}" height="${GROUND-ROOF_BASE}" fill="#f5f0e8" stroke="#c0b8b0" stroke-width="1.5"/>`;
