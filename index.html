@@ -69,6 +69,7 @@
     #house-visual {
       width: 100%;
       overflow: visible;
+      border-radius: 6px;
     }
 
     /* asymmetry badge */
@@ -262,8 +263,8 @@
 
   <!-- House Visual -->
   <div class="card">
-    <h2>Front-View Asymmetry Display</h2>
-    <svg id="house-visual" viewBox="0 0 700 260" xmlns="http://www.w3.org/2000/svg"></svg>
+    <h2>Property Map — Top-Down View</h2>
+    <svg id="house-visual" viewBox="0 0 800 530" xmlns="http://www.w3.org/2000/svg"></svg>
     <div id="asym-badge" class="asym-badge balanced">✓ Left &amp; Right Are Balanced</div>
   </div>
 
@@ -501,7 +502,7 @@
         'Total: ' + totals[s].toFixed(1) + ' sq ft';
     });
 
-    updateHouseVisual(totals.left, totals.right, totals.front, totals.back);
+    updateHouseVisual();
     updateAsymBadge(totals.left, totals.right);
     updateCosts();
   }
@@ -522,123 +523,192 @@
     }
   }
 
-  // ── SVG House Visual ──
-  function updateHouseVisual(leftSqft, rightSqft, frontSqft, backSqft) {
+  // ── SVG Top-Down Property Map ──
+  function updateHouseVisual() {
     const svg = document.getElementById('house-visual');
 
-    // Base dimensions
-    const VW = 700, VH = 260;
-    const houseX = 240, houseW = 220, houseY = 60, houseH = 150;
-    const roofPeakX = houseX + houseW / 2, roofPeakY = 15;
-    const maxFenceH = 140;
-    const fenceBaseY = houseY + houseH; // bottom of fence = bottom of house
+    // ── Layout constants ──
+    // SVG: 800 × 530
+    // Left band: x=75, w=90
+    // House: x=170, w=455, y=98, h=320
+    // Right band: x=630, w=90
+    // Front band: x=170, y=28, h=65
+    // Back band: x=170, y=423, h=65
+    const VW = 800, VH = 530;
+    const LF = { x: 75,  y: 98,  w: 90,  h: 320 };  // left fence band
+    const RF = { x: 635, y: 98,  w: 90,  h: 320 };  // right fence band
+    const FF = { x: 170, y: 28,  w: 455, h: 65  };  // front fence band
+    const BF = { x: 170, y: 423, w: 455, h: 65  };  // back fence band
+    const HX = 170, HY = 98, HW = 455, HH = 320;     // house box
 
-    // Scale fence heights proportionally
-    const maxSq = Math.max(leftSqft, rightSqft, frontSqft, backSqft, 1);
-    const lH = Math.max(10, (leftSqft / maxSq) * maxFenceH);
-    const rH = Math.max(10, (rightSqft / maxSq) * maxFenceH);
+    const C_STAIN  = '#B8760E';
+    const C_BLEACH = '#1F7EC2';
+    const C_BOTH   = '#7B3FA0';
+    const C_EMPTY  = '#d4cfc7';
 
-    // Colors
-    const leftColor  = leftSqft > rightSqft  ? '#e67e22' : (leftSqft === rightSqft ? '#95a5a6' : '#27ae60');
-    const rightColor = rightSqft > leftSqft  ? '#e67e22' : (leftSqft === rightSqft ? '#95a5a6' : '#27ae60');
-
-    // Left fence panel
-    const lX = houseX - 120;
-    const lY = fenceBaseY - lH;
-    const lW = 100;
-
-    // Right fence panel
-    const rX = houseX + houseW + 20;
-    const rY = fenceBaseY - rH;
-    const rW = 100;
-
-    // Build SVG
-    let html = '';
-
-    // Sky/ground
-    html += `<rect x="0" y="0" width="${VW}" height="${VH}" fill="#e8f4f8" rx="6"/>`;
-    html += `<rect x="0" y="${fenceBaseY}" width="${VW}" height="${VH - fenceBaseY}" fill="#c8e6c9"/>`;
-
-    // Ground line
-    html += `<line x1="0" y1="${fenceBaseY}" x2="${VW}" y2="${fenceBaseY}" stroke="#a5d6a7" stroke-width="2"/>`;
-
-    // ── Left fence ──
-    // Picket fence effect
-    const picketW = 10, picketGap = 4, totalPicketW = picketW + picketGap;
-    const numPickets = Math.floor(lW / totalPicketW);
-    for (let i = 0; i < numPickets; i++) {
-      const px = lX + i * totalPicketW;
-      html += `<rect x="${px}" y="${lY + 10}" width="${picketW}" height="${lH - 10}" fill="${leftColor}" rx="1"/>`;
-      html += `<polygon points="${px},${lY + 10} ${px + picketW/2},${lY} ${px + picketW},${lY + 10}" fill="${leftColor}"/>`;
+    function typeColor(t) {
+      return t === 'stain' ? C_STAIN : t === 'bleach' ? C_BLEACH : C_BOTH;
     }
-    // Top rail
-    html += `<rect x="${lX}" y="${lY + 10}" width="${lW}" height="5" fill="${leftColor}" opacity=".6"/>`;
-    // Bottom rail
-    html += `<rect x="${lX}" y="${fenceBaseY - 20}" width="${lW}" height="5" fill="${leftColor}" opacity=".6"/>`;
-    // Label
-    html += `<rect x="${lX}" y="${lY - 36}" width="${lW}" height="28" rx="4" fill="${leftColor}"/>`;
-    html += `<text x="${lX + lW/2}" y="${lY - 24}" text-anchor="middle" fill="white" font-size="11" font-weight="bold">LEFT</text>`;
-    html += `<text x="${lX + lW/2}" y="${lY - 12}" text-anchor="middle" fill="white" font-size="10">${leftSqft.toFixed(0)} sq ft</text>`;
-
-    // ── Right fence ──
-    const numPicketsR = Math.floor(rW / totalPicketW);
-    for (let i = 0; i < numPicketsR; i++) {
-      const px = rX + i * totalPicketW;
-      html += `<rect x="${px}" y="${rY + 10}" width="${picketW}" height="${rH - 10}" fill="${rightColor}" rx="1"/>`;
-      html += `<polygon points="${px},${rY + 10} ${px + picketW/2},${rY} ${px + picketW},${rY + 10}" fill="${rightColor}"/>`;
+    function typeLabel(row) {
+      const p = parseInt(row.pan) || 1;
+      const t = row.type.charAt(0).toUpperCase() + row.type.slice(1);
+      return p > 1 ? `${t} ×${p}` : t;
     }
-    html += `<rect x="${rX}" y="${rY + 10}" width="${rW}" height="5" fill="${rightColor}" opacity=".6"/>`;
-    html += `<rect x="${rX}" y="${fenceBaseY - 20}" width="${rW}" height="5" fill="${rightColor}" opacity=".6"/>`;
-    html += `<rect x="${rX}" y="${rY - 36}" width="${rW}" height="28" rx="4" fill="${rightColor}"/>`;
-    html += `<text x="${rX + rW/2}" y="${rY - 24}" text-anchor="middle" fill="white" font-size="11" font-weight="bold">RIGHT</text>`;
-    html += `<text x="${rX + rW/2}" y="${rY - 12}" text-anchor="middle" fill="white" font-size="10">${rightSqft.toFixed(0)} sq ft</text>`;
 
-    // ── House ──
-    // Body
-    html += `<rect x="${houseX}" y="${houseY}" width="${houseW}" height="${houseH}" fill="#fff9f0" stroke="#aaa" stroke-width="1.5"/>`;
-    // Roof
-    html += `<polygon points="${houseX - 10},${houseY} ${roofPeakX},${roofPeakY} ${houseX + houseW + 10},${houseY}" fill="#8B1A1A" stroke="#6b1414" stroke-width="1"/>`;
-    // Siding lines
-    for (let sy = houseY + 20; sy < houseY + houseH; sy += 18) {
-      html += `<line x1="${houseX}" y1="${sy}" x2="${houseX + houseW}" y2="${sy}" stroke="#e0d5c8" stroke-width=".8"/>`;
-    }
-    // Door
-    const doorX = houseX + houseW/2 - 16, doorY = houseY + houseH - 55;
-    html += `<rect x="${doorX}" y="${doorY}" width="32" height="55" fill="#795548" rx="2"/>`;
-    html += `<rect x="${doorX}" y="${doorY}" width="32" height="55" fill="none" stroke="#5d4037" stroke-width="1"/>`;
-    html += `<circle cx="${doorX + 25}" cy="${doorY + 28}" r="3" fill="#ffd54f"/>`;
-    // Window left
-    const wlX = houseX + 20, wlY = houseY + 30;
-    html += `<rect x="${wlX}" y="${wlY}" width="40" height="32" fill="#b3e5fc" stroke="#90caf9" stroke-width="1" rx="1"/>`;
-    html += `<line x1="${wlX + 20}" y1="${wlY}" x2="${wlX + 20}" y2="${wlY + 32}" stroke="#90caf9" stroke-width=".8"/>`;
-    html += `<line x1="${wlX}" y1="${wlY + 16}" x2="${wlX + 40}" y2="${wlY + 16}" stroke="#90caf9" stroke-width=".8"/>`;
-    // Window right
-    const wrX = houseX + houseW - 60, wrY = houseY + 30;
-    html += `<rect x="${wrX}" y="${wrY}" width="40" height="32" fill="#b3e5fc" stroke="#90caf9" stroke-width="1" rx="1"/>`;
-    html += `<line x1="${wrX + 20}" y1="${wrY}" x2="${wrX + 20}" y2="${wrY + 32}" stroke="#90caf9" stroke-width=".8"/>`;
-    html += `<line x1="${wrX}" y1="${wrY + 16}" x2="${wrX + 40}" y2="${wrY + 16}" stroke="#90caf9" stroke-width=".8"/>`;
+    const lt = sideTotalSqft('left');
+    const rt = sideTotalSqft('right');
+    const leftBigger  = lt > rt && (lt + rt > 0);
+    const rightBigger = rt > lt && (lt + rt > 0);
 
-    // ── Connecting lines from house to fences ──
-    html += `<line x1="${lX + lW}" y1="${fenceBaseY}" x2="${houseX}" y2="${fenceBaseY}" stroke="#aaa" stroke-width="1" stroke-dasharray="4,4"/>`;
-    html += `<line x1="${houseX + houseW}" y1="${fenceBaseY}" x2="${rX}" y2="${fenceBaseY}" stroke="#aaa" stroke-width="1" stroke-dasharray="4,4"/>`;
+    let h = '';
+    // Background
+    h += `<rect x="0" y="0" width="${VW}" height="${VH}" fill="#eceae3" rx="8"/>`;
 
-    // ── Asymmetry arrow indicator ──
-    if (leftSqft !== rightSqft && (leftSqft > 0 || rightSqft > 0)) {
-      const arrowY = 18;
-      if (leftSqft > rightSqft) {
-        // Arrow pointing left
-        const ax = houseX - 130;
-        html += `<text x="${ax}" y="${arrowY}" text-anchor="middle" fill="#e67e22" font-size="22">◀</text>`;
-        html += `<text x="${ax}" y="${arrowY + 14}" text-anchor="middle" fill="#e67e22" font-size="9" font-weight="bold">BIGGER</text>`;
-      } else {
-        // Arrow pointing right
-        const ax = houseX + houseW + 130;
-        html += `<text x="${ax}" y="${arrowY}" text-anchor="middle" fill="#e67e22" font-size="22">▶</text>`;
-        html += `<text x="${ax}" y="${arrowY + 14}" text-anchor="middle" fill="#e67e22" font-size="9" font-weight="bold">BIGGER</text>`;
+    // ── Corner patches (where L/R bands meet F/B bands) ──
+    [[LF.x, FF.y], [RF.x, FF.y], [LF.x, BF.y], [RF.x, BF.y]].forEach(([cx,cy]) => {
+      h += `<rect x="${cx}" y="${cy}" width="${LF.w}" height="${FF.h}" fill="#c4bfb5" rx="3"/>`;
+    });
+
+    // ── Draw a left/right fence side ──
+    function drawLR(side, band) {
+      const rows = sides[side].filter(r => (parseFloat(r.len)||0) > 0);
+      const totalLen = rows.reduce((s,r) => s + (parseFloat(r.len)||0), 0);
+      const isBig = side === 'left' ? leftBigger : rightBigger;
+
+      if (!rows.length || !totalLen) {
+        h += `<rect x="${band.x}" y="${band.y}" width="${band.w}" height="${band.h}" fill="${C_EMPTY}" stroke="#bbb" stroke-dasharray="6,4" stroke-width="1.5" rx="3"/>`;
+        h += `<text x="${band.x+band.w/2}" y="${band.y+band.h/2}" text-anchor="middle" dominant-baseline="middle" fill="#aaa" font-size="12" font-style="italic">no fence</text>`;
+        return;
+      }
+
+      let curY = band.y;
+      rows.forEach((row, idx) => {
+        const len = parseFloat(row.len) || 0;
+        const bh = (len / totalLen) * band.h;
+        const color = typeColor(row.type);
+        const sq = rowSqft(row);
+
+        h += `<rect x="${band.x}" y="${curY}" width="${band.w}" height="${bh}" fill="${color}" rx="2"/>`;
+
+        // Divider between sections
+        if (idx > 0) {
+          h += `<line x1="${band.x}" y1="${curY}" x2="${band.x+band.w}" y2="${curY}" stroke="rgba(255,255,255,0.55)" stroke-width="2"/>`;
+        }
+
+        // Labels (horizontal text stacked inside each section)
+        const cx = band.x + band.w / 2;
+        const cy = curY + bh / 2;
+        if (bh >= 60) {
+          h += `<text x="${cx}" y="${cy - 18}" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="10" font-weight="bold">${row.len}' × ${row.hgt}' × ${row.pan}</text>`;
+          h += `<text x="${cx}" y="${cy - 2}"  text-anchor="middle" dominant-baseline="middle" fill="white" font-size="11" font-weight="bold">${sq} sq ft</text>`;
+          h += `<text x="${cx}" y="${cy + 15}" text-anchor="middle" dominant-baseline="middle" fill="rgba(255,255,255,.85)" font-size="9">${typeLabel(row)}</text>`;
+        } else if (bh >= 36) {
+          h += `<text x="${cx}" y="${cy - 8}" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="9" font-weight="bold">${row.len}' × ${row.hgt}' × ${row.pan}</text>`;
+          h += `<text x="${cx}" y="${cy + 5}" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="10" font-weight="bold">${sq} sq ft</text>`;
+        } else if (bh >= 18) {
+          h += `<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="9" font-weight="bold">${sq} sq ft</text>`;
+        }
+
+        curY += bh;
+      });
+
+      // Orange highlight border when this side is the bigger one
+      if (isBig) {
+        h += `<rect x="${band.x - 2}" y="${band.y - 2}" width="${band.w + 4}" height="${band.h + 4}" fill="none" stroke="#e67e22" stroke-width="4" rx="4"/>`;
       }
     }
 
-    svg.innerHTML = html;
+    // ── Draw a front/back fence side ──
+    function drawFB(side, band) {
+      const rows = sides[side].filter(r => (parseFloat(r.len)||0) > 0);
+      const totalLen = rows.reduce((s,r) => s + (parseFloat(r.len)||0), 0);
+
+      if (!rows.length || !totalLen) {
+        h += `<rect x="${band.x}" y="${band.y}" width="${band.w}" height="${band.h}" fill="${C_EMPTY}" stroke="#bbb" stroke-dasharray="6,4" stroke-width="1.5" rx="3"/>`;
+        h += `<text x="${band.x+band.w/2}" y="${band.y+band.h/2}" text-anchor="middle" dominant-baseline="middle" fill="#aaa" font-size="12" font-style="italic">no fence</text>`;
+        return;
+      }
+
+      let curX = band.x;
+      rows.forEach((row, idx) => {
+        const len = parseFloat(row.len) || 0;
+        const bw = (len / totalLen) * band.w;
+        const color = typeColor(row.type);
+        const sq = rowSqft(row);
+
+        h += `<rect x="${curX}" y="${band.y}" width="${bw}" height="${band.h}" fill="${color}" rx="2"/>`;
+
+        if (idx > 0) {
+          h += `<line x1="${curX}" y1="${band.y}" x2="${curX}" y2="${band.y+band.h}" stroke="rgba(255,255,255,0.55)" stroke-width="2"/>`;
+        }
+
+        const cx = curX + bw / 2;
+        const cy = band.y + band.h / 2;
+        if (bw >= 90) {
+          h += `<text x="${cx}" y="${cy - 16}" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="10" font-weight="bold">${row.len}' × ${row.hgt}' × ${row.pan}</text>`;
+          h += `<text x="${cx}" y="${cy - 1}"  text-anchor="middle" dominant-baseline="middle" fill="white" font-size="11" font-weight="bold">${sq} sq ft</text>`;
+          h += `<text x="${cx}" y="${cy + 14}" text-anchor="middle" dominant-baseline="middle" fill="rgba(255,255,255,.85)" font-size="9">${typeLabel(row)}</text>`;
+        } else if (bw >= 55) {
+          h += `<text x="${cx}" y="${cy - 8}" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="9" font-weight="bold">${row.len}' × ${row.hgt}'</text>`;
+          h += `<text x="${cx}" y="${cy + 5}" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="10" font-weight="bold">${sq} sq ft</text>`;
+        } else if (bw >= 30) {
+          h += `<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="9" font-weight="bold">${sq} sqft</text>`;
+        }
+
+        curX += bw;
+      });
+    }
+
+    // Draw all four sides
+    drawFB('front', FF);
+    drawFB('back',  BF);
+    drawLR('left',  LF);
+    drawLR('right', RF);
+
+    // ── House interior ──
+    h += `<rect x="${HX}" y="${HY}" width="${HW}" height="${HH}" fill="white" stroke="#aaa" stroke-width="2"/>`;
+    // Light grid
+    for (let gx = HX + 55; gx < HX + HW; gx += 55) {
+      h += `<line x1="${gx}" y1="${HY}" x2="${gx}" y2="${HY+HH}" stroke="#f0ede5" stroke-width="1"/>`;
+    }
+    for (let gy = HY + 55; gy < HY + HH; gy += 55) {
+      h += `<line x1="${HX}" y1="${gy}" x2="${HX+HW}" y2="${gy}" stroke="#f0ede5" stroke-width="1"/>`;
+    }
+    h += `<text x="${HX+HW/2}" y="${HY+HH/2 - 14}" text-anchor="middle" dominant-baseline="middle" fill="#d8d3cc" font-size="30" font-weight="bold">PROPERTY</text>`;
+    h += `<text x="${HX+HW/2}" y="${HY+HH/2 + 20}" text-anchor="middle" dominant-baseline="middle" fill="#dedbd4" font-size="14">(looking down from above)</text>`;
+
+    // ── Direction labels ──
+    h += `<text x="${HX+HW/2}" y="18" text-anchor="middle" fill="#555" font-size="12" font-weight="700">▲  FRONT  (street side)</text>`;
+    h += `<text x="${HX+HW/2}" y="${VH - 8}" text-anchor="middle" fill="#555" font-size="12" font-weight="700">▼  BACK</text>`;
+
+    // LEFT label with total + bigger indicator
+    const lc = leftBigger ? '#e67e22' : '#444';
+    h += `<text x="${LF.x - 8}" y="${HY + HH/2 - 14}" text-anchor="end" fill="${lc}" font-size="15" font-weight="bold">◀ LEFT</text>`;
+    h += `<text x="${LF.x - 8}" y="${HY + HH/2 + 6}"  text-anchor="end" fill="${lc}" font-size="12">${lt.toFixed(0)} sq ft</text>`;
+    if (leftBigger) {
+      h += `<rect x="${LF.x - 70}" y="${HY + HH/2 + 18}" width="62" height="18" rx="3" fill="#e67e22"/>`;
+      h += `<text x="${LF.x - 39}" y="${HY + HH/2 + 31}" text-anchor="middle" fill="white" font-size="10" font-weight="bold">⚠ BIGGER</text>`;
+    }
+
+    // RIGHT label with total + bigger indicator
+    const rc = rightBigger ? '#e67e22' : '#444';
+    h += `<text x="${RF.x + RF.w + 8}" y="${HY + HH/2 - 14}" text-anchor="start" fill="${rc}" font-size="15" font-weight="bold">RIGHT ▶</text>`;
+    h += `<text x="${RF.x + RF.w + 8}" y="${HY + HH/2 + 6}"  text-anchor="start" fill="${rc}" font-size="12">${rt.toFixed(0)} sq ft</text>`;
+    if (rightBigger) {
+      h += `<rect x="${RF.x + RF.w + 8}" y="${HY + HH/2 + 18}" width="62" height="18" rx="3" fill="#e67e22"/>`;
+      h += `<text x="${RF.x + RF.w + 39}" y="${HY + HH/2 + 31}" text-anchor="middle" fill="white" font-size="10" font-weight="bold">⚠ BIGGER</text>`;
+    }
+
+    // ── Legend ──
+    const legX = HX, legY = BF.y + BF.h + 22;
+    h += `<rect x="${legX}"      y="${legY-11}" width="14" height="12" fill="${C_STAIN}"  rx="2"/>`;
+    h += `<text x="${legX+18}"   y="${legY}"   fill="#555" font-size="11">Stain</text>`;
+    h += `<rect x="${legX+68}"   y="${legY-11}" width="14" height="12" fill="${C_BLEACH}" rx="2"/>`;
+    h += `<text x="${legX+86}"   y="${legY}"   fill="#555" font-size="11">Bleach</text>`;
+    h += `<rect x="${legX+148}"  y="${legY-11}" width="14" height="12" fill="${C_BOTH}"   rx="2"/>`;
+    h += `<text x="${legX+166}"  y="${legY}"   fill="#555" font-size="11">Both</text>`;
+
+    svg.innerHTML = h;
   }
 
   // ── Cost calculations ──
@@ -705,7 +775,6 @@
 
   // Init
   seedSampleData();
-  updateHouseVisual(0, 0, 0, 0);
 </script>
 </body>
 </html>
