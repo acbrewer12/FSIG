@@ -1263,9 +1263,21 @@
       <div>
         <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:4px">Fence Type</label>
         <select id="parts-type" onchange="partsTypeChange()" style="padding:7px 12px;border:1px solid var(--border);border-radius:4px;font-size:.9rem;background:#fafaf8">
-          <option value="chainlink">Chain Link</option>
-          <option value="wood">Wood Privacy</option>
-          <option value="vinyl">Vinyl Privacy</option>
+          <optgroup label="Chain Link">
+            <option value="chainlink">Residential — Galvanized</option>
+            <option value="cl-res-black">Residential — Black Vinyl</option>
+            <option value="cl-com-galv">Commercial — Galvanized</option>
+            <option value="cl-com-black">Commercial — Black Vinyl</option>
+          </optgroup>
+          <optgroup label="Privacy">
+            <option value="priv-metal">Privacy — Metal Posts (2-3/8")</option>
+            <option value="wood">Privacy — Wood Posts (4×4)</option>
+          </optgroup>
+          <optgroup label="Ag / Farm">
+            <option value="ag-barb">Barb Wire</option>
+            <option value="ag-woven">Woven Wire (Field Fence)</option>
+            <option value="ag-pipe">Pipe Fence</option>
+          </optgroup>
           <option value="splitrail">Split Rail</option>
         </select>
       </div>
@@ -1381,12 +1393,117 @@
       </div>
     </div>
 
+    <!-- Ag / Farm Fence Options -->
+    <div id="parts-ag-opts" style="display:none;margin-bottom:14px;padding:12px 14px;background:#F1F8E9;border-radius:4px;border:1px solid #AED581">
+      <div style="font-family:'Oswald',Arial,sans-serif;font-size:.82rem;text-transform:uppercase;letter-spacing:.5px;color:#33691E;margin-bottom:8px;border-bottom:1px solid #AED581;padding-bottom:4px">
+        Ag / Farm Fence Options
+      </div>
+      <div style="margin-bottom:10px">
+        <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:4px">Post Spacing</label>
+        <select id="ag-post-spacing" style="padding:6px 10px;border:1px solid var(--border);border-radius:4px;font-size:.88rem;background:white">
+          <option value="8">8 ft</option>
+          <option value="10">10 ft</option>
+          <option value="12" selected>12 ft (standard ag)</option>
+          <option value="14">14 ft</option>
+          <option value="16">16 ft</option>
+          <option value="20">20 ft</option>
+        </select>
+      </div>
+      <!-- Barb Wire options -->
+      <div id="ag-barb-opts" style="display:flex;gap:14px;flex-wrap:wrap">
+        <div>
+          <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:4px">Strands</label>
+          <select id="ag-barb-strands" style="padding:6px 10px;border:1px solid var(--border);border-radius:4px;font-size:.88rem;background:white">
+            <option value="3">3 strands</option>
+            <option value="4">4 strands</option>
+            <option value="5" selected>5 strands (standard)</option>
+            <option value="6">6 strands</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:4px">Corner/End Brace Assemblies</label>
+          <input id="ag-brace-count" type="number" min="0" value="4" style="width:60px;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:.88rem;background:white" />
+        </div>
+        <div style="display:flex;align-items:flex-end;padding-bottom:2px">
+          <label style="font-size:.78rem;color:var(--muted)">
+            <input type="checkbox" id="ag-barb-concrete" style="margin-right:4px" />Concrete on brace posts
+          </label>
+        </div>
+      </div>
+      <!-- Woven Wire options -->
+      <div id="ag-woven-opts" style="display:none;gap:14px;flex-wrap:wrap">
+        <div>
+          <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:4px">Wire Height</label>
+          <select id="ag-woven-height" style="padding:6px 10px;border:1px solid var(--border);border-radius:4px;font-size:.88rem;background:white">
+            <option value="32">32" (light field fence)</option>
+            <option value="39" selected>39" (standard field fence)</option>
+            <option value="47">47" (cattle / horse)</option>
+            <option value="60">60" (deer / high)</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:4px">Roll Size</label>
+          <select id="ag-woven-roll" style="padding:6px 10px;border:1px solid var(--border);border-radius:4px;font-size:.88rem;background:white">
+            <option value="165" selected>165 ft rolls</option>
+            <option value="330">330 ft rolls</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:4px">Corner/End Braces</label>
+          <input id="ag-woven-brace-count" type="number" min="0" value="4" style="width:60px;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:.88rem;background:white" />
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;justify-content:flex-end;padding-bottom:2px">
+          <label style="font-size:.78rem;color:var(--muted)"><input type="checkbox" id="ag-woven-topbarb" checked style="margin-right:4px" />Top barb wire strand</label>
+          <label style="font-size:.78rem;color:var(--muted)"><input type="checkbox" id="ag-woven-botbarb" style="margin-right:4px" />Bottom barb wire strand</label>
+        </div>
+      </div>
+      <!-- Pipe Fence options -->
+      <div id="ag-pipe-opts" style="display:none;gap:14px;flex-wrap:wrap">
+        <div>
+          <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:4px">Pipe Size</label>
+          <select id="ag-pipe-size" style="padding:6px 10px;border:1px solid var(--border);border-radius:4px;font-size:.88rem;background:white">
+            <option value="2.875" selected>2-7/8" OD (standard)</option>
+            <option value="4">4" OD (heavy)</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:4px">Rails per Section</label>
+          <select id="ag-pipe-rails" style="padding:6px 10px;border:1px solid var(--border);border-radius:4px;font-size:.88rem;background:white">
+            <option value="3">3 rails</option>
+            <option value="4" selected>4 rails</option>
+            <option value="5">5 rails</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:4px">End/Corner Posts</label>
+          <input id="ag-pipe-terminals" type="number" min="0" value="4" style="width:60px;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:.88rem;background:white" />
+        </div>
+        <div style="display:flex;align-items:flex-end;padding-bottom:2px">
+          <label style="font-size:.78rem;color:var(--muted)"><input type="checkbox" id="ag-pipe-concrete" checked style="margin-right:4px" />Concrete (end/corner posts)</label>
+        </div>
+      </div>
+    </div>
+
     <button class="print-btn" onclick="calcParts()" style="margin-bottom:16px">Calculate Parts List</button>
 
     <div id="parts-results" style="display:none">
       <div style="font-family:'Oswald',Arial,sans-serif;font-size:.9rem;text-transform:uppercase;letter-spacing:1px;color:var(--brand);border-bottom:2px solid var(--accent);padding-bottom:5px;margin-bottom:10px">Parts List</div>
       <div id="parts-table"></div>
     </div>
+  </div>
+
+  <!-- On-Hand Materials -->
+  <div class="card">
+    <h2>On-Hand Materials</h2>
+    <div style="font-size:.84rem;color:var(--muted);margin-bottom:10px">
+      Enter materials you already have on hand. These are tracked for inventory reference and saved with the job.
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 70px 70px 90px auto;gap:6px;font-size:.72rem;color:var(--muted);margin-bottom:5px;padding-bottom:3px;border-bottom:1px solid var(--border)">
+      <span>Material</span><span>Qty</span><span>Unit</span><span>$/Unit</span><span></span>
+    </div>
+    <div id="onhand-rows"></div>
+    <button class="add-btn" onclick="addOnHand()" style="margin-top:6px">+ Add Material</button>
+    <div id="onhand-total" style="margin-top:8px;font-size:.88rem;font-weight:600;color:var(--accent)"></div>
   </div>
 
   <!-- Invoice Simple Paste-to-Parse -->
@@ -2556,82 +2673,11 @@
     const height  = parseFloat(document.getElementById('parts-height')?.value) || 6;
     const spacing = parseFloat(document.getElementById('parts-spacing')?.value) || 8;
     const gatesNum= parseInt(document.getElementById('parts-gates')?.value) || 0;
+    const terminals = parseInt(document.getElementById('parts-terminals')?.value) || 0;
 
     if (!lf || !type) return '<p style="color:#888;font-size:.9rem">No parts list calculated yet. Open the Fence Parts Calculator and click Calculate first.</p>';
 
-    let items = [];
-    let methodNote = '';
-
-    if (type === 'chainlink') {
-      const rollSize    = parseFloat(document.getElementById('parts-roll')?.value) || 50;
-      const railLen     = parseFloat(document.getElementById('parts-rail-len')?.value) || 21;
-      const concrete    = document.getElementById('parts-concrete')?.checked;
-      const useStretches= document.getElementById('parts-use-stretches')?.checked;
-
-      let linePosts, terminalPosts, totalGates;
-      if (useStretches && stretches.length > 0) {
-        const sc = recalcStretches();
-        linePosts = sc.linePosts; terminalPosts = sc.terminals; totalGates = sc.totalGates;
-        methodNote = `Hoover Stretches method (${stretches.length} run${stretches.length!==1?'s':''}): ` +
-          stretches.map((s,i)=>`Run ${i+1}: ${s.length||0} ft${s.gatesInRun>0?` (+${s.gatesInRun} gate${s.gatesInRun>1?'s':''})`:''}` ).join(', ');
-      } else {
-        const terminals = parseInt(document.getElementById('parts-terminals')?.value) || 0;
-        linePosts = Math.max(0, Math.ceil(lf / spacing) - terminals + 1);
-        terminalPosts = terminals; totalGates = gatesNum;
-        methodNote = 'Simple method';
-      }
-
-      const totalPosts  = linePosts + terminalPosts;
-      const fabricRolls = Math.ceil(lf / rollSize);
-      const railSticks  = Math.ceil(lf / railLen);
-      const fenceTies   = linePosts * Math.ceil(height * 12 / 24) + Math.ceil(lf);
-
-      items = [
-        { cat:'Posts',    name:`Line Posts  (${height+2}' posts @ ${spacing}' spacing)`, qty:linePosts,     unit:'posts' },
-        { cat:'Posts',    name:'Terminal Posts (ends + corners)',                          qty:terminalPosts, unit:'posts' },
-        { cat:'Posts',    name:'Gate Posts',                                               qty:totalGates*2,  unit:'posts' },
-        { cat:'Fabric',   name:`Chain Link Fabric — ${height}' × ${rollSize}' rolls`,     qty:fabricRolls,   unit:'rolls' },
-        { cat:'Rail',     name:`Top Rail — ${railLen}' sticks`,                           qty:railSticks,    unit:'sticks' },
-        { cat:'Hardware', name:'Tension Bands (3 per terminal/gate post)',                 qty:terminalPosts*3,unit:'ea' },
-        { cat:'Hardware', name:'Tension Bars',                                             qty:terminalPosts, unit:'ea' },
-        { cat:'Hardware', name:'Brace Bands (2 per terminal/gate post)',                   qty:terminalPosts*2,unit:'ea' },
-        { cat:'Hardware', name:'Rail Ends',                                                qty:terminalPosts, unit:'ea' },
-        { cat:'Hardware', name:'Post Caps — terminal',                                     qty:terminalPosts, unit:'ea' },
-        { cat:'Hardware', name:'Loop Caps — line posts',                                   qty:linePosts,     unit:'ea' },
-        { cat:'Hardware', name:'Fence Ties',                                               qty:fenceTies,     unit:'ea' },
-        { cat:'Gate',     name:'Gate Hardware Sets',                                       qty:totalGates,    unit:'sets' },
-      ];
-      if (concrete) items.push({ cat:'Concrete', name:'Concrete (80 lb bags, 1/post)', qty:totalPosts, unit:'bags' });
-
-    } else if (type === 'wood' || type === 'vinyl') {
-      const boardW   = parseFloat(document.getElementById('parts-board-w')?.value) || 5.5;
-      const railsPer = parseInt(document.getElementById('parts-rails-per')?.value) || 2;
-      const concrete = document.getElementById('parts-wood-concrete')?.checked;
-      const label    = type === 'vinyl' ? 'Vinyl' : 'Wood';
-      const linePosts     = Math.ceil(lf / spacing) + 1;
-      const totalBoards   = Math.ceil((spacing * 12 / boardW)) * Math.ceil(lf / spacing);
-      const rails8ft      = Math.ceil((lf * railsPer) / 8);
-      methodNote = `${label} privacy · ${boardW}" boards · ${railsPer} rails/bay`;
-      items = [
-        { cat:'Posts',   name:`4×4 ${label} Posts (${height+2}')`,  qty:linePosts,      unit:'posts' },
-        { cat:'Posts',   name:'Gate Posts (6×6)',                     qty:gatesNum*2,     unit:'posts' },
-        { cat:'Boards',  name:`${label} Pickets (${height}')`,        qty:totalBoards,    unit:'boards' },
-        { cat:'Rails',   name:`2×4×8 ${label} Rails`,                 qty:rails8ft,       unit:'rails' },
-        { cat:'Hardware',name:'Deck Screws (lbs)',                     qty:Math.ceil(totalBoards*3/200),unit:'lbs' },
-        { cat:'Gate',    name:'Gate Hardware Sets',                    qty:gatesNum,       unit:'sets' },
-      ];
-      if (concrete) items.push({ cat:'Concrete', name:'Concrete (80 lb bags)', qty:linePosts+gatesNum*2, unit:'bags' });
-
-    } else if (type === 'splitrail') {
-      const posts  = Math.ceil(lf / 8) + 1;
-      methodNote = 'Split Rail';
-      items = [
-        { cat:'Posts',  name:"Split Rail Line Posts (8')",  qty:posts,                       unit:'posts' },
-        { cat:'Rails',  name:"2-Rail (10' rails)",          qty:Math.ceil(lf/8)*2,           unit:'rails' },
-        { cat:'Rails',  name:"3-Rail estimate (10' rails)", qty:Math.ceil(lf/8)*3,           unit:'rails' },
-        { cat:'Hardware',name:'Post Caps',                   qty:posts,                       unit:'ea' },
-      ];
-    }
+    const { items, methodNote } = _calcPartsItems(type, lf, height, spacing, terminals, gatesNum);
 
     if (!items.length) return '<p style="color:#888">No parts data.</p>';
 
@@ -2911,6 +2957,7 @@
       planPoints: planPoints.map(p => ({ lat: p.lat, lng: p.lng })),
       planSegments: _planSegments.slice(),
       plannerSvg: document.getElementById('plan-svg-preview-inner')?.innerHTML || '',
+      onHandItems: JSON.parse(JSON.stringify(onHandItems)),
     };
   }
 
@@ -2979,6 +3026,10 @@
     renderGates();
     setMode(s.quoteMode || 'linft');
     recalc();
+    // Restore on-hand materials
+    onHandItems = JSON.parse(JSON.stringify(s.onHandItems || []));
+    onHandCounter = Math.max(0, ...onHandItems.map(i => i.id || 0));
+    renderOnHand();
     // Restore site planner
     clearPlanSnapshot();
     if (s.planPoints && s.planPoints.length >= 2) {
@@ -3386,13 +3437,23 @@
 
   function partsTypeChange() {
     const t = document.getElementById('parts-type').value;
-    document.getElementById('parts-chainlink-opts').style.display = (t === 'chainlink') ? 'flex' : 'none';
-    document.getElementById('parts-wood-opts').style.display      = (t === 'wood' || t === 'vinyl') ? 'flex' : 'none';
+    const isChainlink = t === 'chainlink' || t.startsWith('cl-');
+    const isPrivacy   = t === 'wood' || t === 'vinyl' || t.startsWith('priv-');
+    const isAg        = t.startsWith('ag-');
+    document.getElementById('parts-chainlink-opts').style.display = isChainlink ? 'flex' : 'none';
+    document.getElementById('parts-wood-opts').style.display      = isPrivacy ? 'flex' : 'none';
+    document.getElementById('parts-ag-opts').style.display        = isAg ? 'block' : 'none';
+    if (isAg) {
+      document.getElementById('ag-barb-opts').style.display   = (t === 'ag-barb')  ? 'flex' : 'none';
+      document.getElementById('ag-woven-opts').style.display  = (t === 'ag-woven') ? 'flex' : 'none';
+      document.getElementById('ag-pipe-opts').style.display   = (t === 'ag-pipe')  ? 'flex' : 'none';
+    }
     toggleStretchesUI();
   }
 
   function toggleStretchesUI() {
-    const isChainlink = document.getElementById('parts-type').value === 'chainlink';
+    const t = document.getElementById('parts-type').value;
+    const isChainlink = t === 'chainlink' || t.startsWith('cl-');
     const useStretches = document.getElementById('parts-use-stretches')?.checked;
     const wrap = document.getElementById('parts-stretches-wrap');
     if (wrap) wrap.style.display = (isChainlink && useStretches) ? 'block' : 'none';
@@ -3470,6 +3531,52 @@
     return { linePosts, terminals: terminalTotal, totalGates };
   }
 
+  // ── ON-HAND MATERIALS ────────────────────────────────────────────────────
+  let onHandItems = [];
+  let onHandCounter = 0;
+
+  function addOnHand(name='', qty=1, unit='ea', unitCost=0) {
+    const id = ++onHandCounter;
+    onHandItems.push({ id, name, qty, unit, unitCost });
+    renderOnHand();
+  }
+
+  function updateOnHand(id, field, value) {
+    const item = onHandItems.find(i => i.id === id);
+    if (!item) return;
+    if (field === 'name' || field === 'unit') item[field] = value;
+    else item[field] = parseFloat(value) || 0;
+    renderOnHand();
+  }
+
+  function removeOnHand(id) {
+    onHandItems = onHandItems.filter(i => i.id !== id);
+    renderOnHand();
+  }
+
+  function renderOnHand() {
+    const container = document.getElementById('onhand-rows');
+    if (!container) return;
+    const inp = 'padding:5px 7px;border:1px solid var(--border);border-radius:3px;font-size:.82rem;background:#fafaf8;width:100%';
+    container.innerHTML = onHandItems.map(item => `
+      <div style="display:grid;grid-template-columns:1fr 60px 60px 80px auto;gap:5px;margin-bottom:5px;align-items:center">
+        <input type="text" placeholder="Material name" value="${item.name.replace(/"/g,'&quot;')}"
+          oninput="updateOnHand(${item.id},'name',this.value)" style="${inp}" />
+        <input type="number" placeholder="Qty" min="0" value="${item.qty}"
+          oninput="updateOnHand(${item.id},'qty',this.value)" style="${inp};text-align:right" />
+        <input type="text" placeholder="Unit" value="${item.unit}"
+          oninput="updateOnHand(${item.id},'unit',this.value)" style="${inp}" />
+        <input type="number" placeholder="$/unit" min="0" step="0.01" value="${item.unitCost}"
+          oninput="updateOnHand(${item.id},'unitCost',this.value)" style="${inp};text-align:right" />
+        <button class="del-btn" onclick="removeOnHand(${item.id})" title="Remove">✕</button>
+      </div>`).join('');
+    const total = onHandItems.reduce((s, i) => s + (i.qty * i.unitCost), 0);
+    const el = document.getElementById('onhand-total');
+    if (el) el.textContent = onHandItems.length
+      ? `Total on-hand value: $${total.toFixed(2)}`
+      : '';
+  }
+
   function pullPartsFromSections() {
     const lf = totalLinearFeet();
     document.getElementById('parts-lf').value = Math.round(lf);
@@ -3488,6 +3595,159 @@
     }
   }
 
+  function _calcPartsItems(type, lf, height, spacing, terminals, gatesNum) {
+    const isChainlink = type === 'chainlink' || type.startsWith('cl-');
+    const isPrivacy   = type === 'wood' || type === 'vinyl' || type.startsWith('priv-');
+    const isAg        = type.startsWith('ag-');
+    let items = [];
+    let methodNote = '';
+
+    if (isChainlink) {
+      const rollSize    = parseFloat(document.getElementById('parts-roll')?.value) || 50;
+      const railLen     = parseFloat(document.getElementById('parts-rail-len')?.value) || 21;
+      const concrete    = document.getElementById('parts-concrete')?.checked;
+      const useStretches= document.getElementById('parts-use-stretches')?.checked;
+      const clLabel     = type === 'cl-res-black' ? 'Residential — Black Vinyl' :
+                          type === 'cl-com-galv'  ? 'Commercial — Galvanized' :
+                          type === 'cl-com-black' ? 'Commercial — Black Vinyl' : 'Residential — Galvanized';
+      const postSpec    = (type === 'cl-com-galv' || type === 'cl-com-black')
+                          ? '2" line / 2½" terminal' : '1-5/8" line / 2" terminal';
+      let linePosts, terminalPosts, totalGates;
+      if (useStretches && stretches.length > 0) {
+        const sc = recalcStretches();
+        linePosts = sc.linePosts; terminalPosts = sc.terminals; totalGates = sc.totalGates;
+        methodNote = `Hoover Stretches (${stretches.length} run${stretches.length!==1?'s':''})`;
+      } else {
+        linePosts = Math.max(0, Math.ceil(lf / spacing) - terminals + 1);
+        terminalPosts = terminals; totalGates = gatesNum;
+        methodNote = `${clLabel} · Simple method`;
+      }
+      const totalPosts  = linePosts + terminalPosts;
+      const fabricRolls = Math.ceil(lf / rollSize);
+      const railSticks  = Math.ceil(lf / railLen);
+      const fenceTies   = linePosts * Math.ceil(height * 12 / 24) + Math.ceil(lf);
+      items = [
+        { cat:'Posts',    name:`Line Posts — ${postSpec} (${height+2}' total, ${spacing}' spacing)`, qty:linePosts,      unit:'posts' },
+        { cat:'Posts',    name:`Terminal Posts (ends + corners)`,                                      qty:terminalPosts,  unit:'posts' },
+        { cat:'Posts',    name:`Gate Posts (included in terminals above)`,                             qty:totalGates*2,   unit:'posts' },
+        { cat:'Fabric',   name:`Chain Link Fabric ${height}' × ${rollSize}' rolls`,                   qty:fabricRolls,    unit:'rolls' },
+        { cat:'Rail',     name:`Top Rail — ${railLen}' sticks`,                                        qty:railSticks,     unit:'sticks' },
+        { cat:'Hardware', name:`Tension Bands (3 per terminal post)`,                                  qty:terminalPosts*3,unit:'ea' },
+        { cat:'Hardware', name:`Tension Bars`,                                                         qty:terminalPosts,  unit:'ea' },
+        { cat:'Hardware', name:`Brace Bands (2 per terminal post)`,                                    qty:terminalPosts*2,unit:'ea' },
+        { cat:'Hardware', name:`Rail Ends`,                                                            qty:terminalPosts,  unit:'ea' },
+        { cat:'Hardware', name:`Terminal Post Caps`,                                                   qty:terminalPosts,  unit:'ea' },
+        { cat:'Hardware', name:`Line Post Loop Caps`,                                                  qty:linePosts,      unit:'ea' },
+        { cat:'Hardware', name:`Fence Ties`,                                                           qty:fenceTies,      unit:'ea' },
+        { cat:'Gate',     name:`Gate Hardware Sets`,                                                   qty:totalGates,     unit:'sets' },
+      ];
+      if (concrete) items.push({ cat:'Concrete', name:'Concrete (80 lb bags, 1/post)', qty:totalPosts, unit:'bags' });
+
+    } else if (isPrivacy) {
+      const boardW    = parseFloat(document.getElementById('parts-board-w')?.value) || 5.5;
+      const railsPer  = parseInt(document.getElementById('parts-rails-per')?.value) || 2;
+      const concrete  = document.getElementById('parts-wood-concrete')?.checked;
+      const isMetalPost = type === 'priv-metal';
+      const postLabel = isMetalPost ? 'Metal Postmaster (2-3/8")' : 'Wood 4×4';
+      methodNote = `Privacy — ${postLabel} posts · ${boardW}" boards · ${railsPer} rails/bay`;
+      const sections      = Math.ceil(lf / spacing);
+      const linePosts     = sections + 1;
+      const totalPosts    = linePosts + gatesNum * 2;
+      const boardsPerBay  = Math.ceil((spacing * 12) / boardW);
+      const totalBoards   = boardsPerBay * sections;
+      const rails8ft      = Math.ceil((lf * railsPer) / 8);
+      items = [
+        { cat:'Posts',   name:`${postLabel} Posts (${height+2}')`,  qty:linePosts,             unit:'posts' },
+        { cat:'Posts',   name:`Gate Posts (heavier gauge)`,          qty:gatesNum*2,            unit:'posts' },
+        { cat:'Boards',  name:`Privacy Pickets (${height}')`,        qty:totalBoards,           unit:'boards' },
+        { cat:'Rails',   name:`2×4×8 Rails (${railsPer} per bay)`,   qty:rails8ft,              unit:'rails' },
+        { cat:'Hardware',name:`Deck Screws (lbs)`,                   qty:Math.ceil(totalBoards*3/200), unit:'lbs' },
+        { cat:'Hardware',name:`Post Caps`,                            qty:totalPosts,            unit:'ea' },
+        { cat:'Gate',    name:`Gate Hardware Sets`,                   qty:gatesNum,              unit:'sets' },
+      ];
+      if (concrete) items.push({ cat:'Concrete', name:'Concrete (80 lb bags)', qty:totalPosts, unit:'bags' });
+
+    } else if (isAg) {
+      const agSpacing   = parseFloat(document.getElementById('ag-post-spacing')?.value) || 12;
+
+      if (type === 'ag-barb') {
+        const strands   = parseInt(document.getElementById('ag-barb-strands')?.value) || 5;
+        const braces    = parseInt(document.getElementById('ag-brace-count')?.value) || 4;
+        const concrete  = document.getElementById('ag-barb-concrete')?.checked;
+        methodNote = `Barb Wire · ${strands} strands · ${agSpacing}' post spacing`;
+        const spoolFt   = 1320; // 1/4-mile spool
+        const totalWireFt = lf * strands * 1.05;
+        const wireSpools  = Math.ceil(totalWireFt / spoolFt);
+        const linePosts   = Math.max(0, Math.ceil(lf / agSpacing) + 1 - braces * 2);
+        const bracePosts  = braces * 2;
+        const stapleLbs   = Math.ceil((linePosts + bracePosts) * 0.3);
+        const staySets    = Math.ceil(linePosts / 4);
+        items = [
+          { cat:'Posts',   name:`Round/Wood Line Posts (${agSpacing}' spacing)`, qty:linePosts,  unit:'posts' },
+          { cat:'Posts',   name:`Brace Assembly Posts (2 per corner/end)`,        qty:bracePosts, unit:'posts' },
+          { cat:'Wire',    name:`Barb Wire — ${strands} strands (${spoolFt}' spools)`, qty:wireSpools, unit:'spools' },
+          { cat:'Hardware',name:`Brace Wire / Diagonal (per brace assembly)`,     qty:braces,     unit:'assemblies' },
+          { cat:'Hardware',name:`Staples (lbs)`,                                  qty:stapleLbs,  unit:'lbs' },
+          { cat:'Hardware',name:`Wire Stays (every 4 line posts)`,                qty:staySets,   unit:'stays' },
+          { cat:'Gate',    name:`Gate Hardware Sets`,                              qty:gatesNum,   unit:'sets' },
+        ];
+        if (concrete) items.push({ cat:'Concrete', name:'Concrete (brace posts only)', qty:bracePosts, unit:'bags' });
+
+      } else if (type === 'ag-woven') {
+        const wHeight   = document.getElementById('ag-woven-height')?.value || '39';
+        const rollSize  = parseInt(document.getElementById('ag-woven-roll')?.value) || 165;
+        const topBarb   = document.getElementById('ag-woven-topbarb')?.checked;
+        const botBarb   = document.getElementById('ag-woven-botbarb')?.checked;
+        const braces    = parseInt(document.getElementById('ag-woven-brace-count')?.value) || 4;
+        methodNote = `Woven Wire ${wHeight}" · ${agSpacing}' spacing`;
+        const wRolls    = Math.ceil(lf / rollSize);
+        const linePosts = Math.max(0, Math.ceil(lf / agSpacing) + 1 - braces * 2);
+        const bracePosts= braces * 2;
+        const stapleLbs = Math.ceil((linePosts + bracePosts) * 0.5);
+        const barbSpools= Math.ceil(lf / 1320);
+        items = [
+          { cat:'Posts',   name:`Line Posts (${agSpacing}' spacing)`,            qty:linePosts,  unit:'posts' },
+          { cat:'Posts',   name:`Brace Posts (2 per corner/end)`,                qty:bracePosts, unit:'posts' },
+          { cat:'Wire',    name:`Woven Wire ${wHeight}" (${rollSize}' rolls)`,   qty:wRolls,     unit:'rolls' },
+          { cat:'Hardware',name:`Staples (lbs)`,                                  qty:stapleLbs,  unit:'lbs' },
+          { cat:'Hardware',name:`Brace Assemblies (corner/end)`,                  qty:braces,     unit:'assemblies' },
+          { cat:'Gate',    name:`Gate Hardware Sets`,                              qty:gatesNum,   unit:'sets' },
+        ];
+        if (topBarb) items.push({ cat:'Wire', name:`Top Barb Wire Strand (1/4-mile spools)`, qty:barbSpools, unit:'spools' });
+        if (botBarb) items.push({ cat:'Wire', name:`Bottom Barb Wire Strand (1/4-mile spools)`, qty:barbSpools, unit:'spools' });
+
+      } else if (type === 'ag-pipe') {
+        const pipeSize  = document.getElementById('ag-pipe-size')?.value || '2.875';
+        const railsPer  = parseInt(document.getElementById('ag-pipe-rails')?.value) || 4;
+        const terminals2= parseInt(document.getElementById('ag-pipe-terminals')?.value) || 4;
+        const concrete  = document.getElementById('ag-pipe-concrete')?.checked;
+        const pipeSzLabel = pipeSize === '4' ? '4" OD' : '2-7/8" OD';
+        methodNote = `Pipe Fence · ${pipeSzLabel} · ${railsPer} rails · ${agSpacing}' spacing`;
+        const linePosts = Math.max(0, Math.ceil(lf / agSpacing) + 1 - terminals2);
+        const totalPipeFt = lf * railsPer;
+        const pipe21    = Math.ceil(totalPipeFt / 21);
+        const totalPosts= linePosts + terminals2 + gatesNum * 2;
+        items = [
+          { cat:'Posts',   name:`${pipeSzLabel} Line Posts (${agSpacing}' spacing)`, qty:linePosts,   unit:'posts' },
+          { cat:'Posts',   name:`End/Corner Posts (heavier)`,                         qty:terminals2,  unit:'posts' },
+          { cat:'Posts',   name:`Gate Posts`,                                          qty:gatesNum*2,  unit:'posts' },
+          { cat:'Rail',    name:`${pipeSzLabel} Rail Pipe — 21' joints`,              qty:pipe21,      unit:'joints' },
+          { cat:'Gate',    name:`Gate Hardware Sets`,                                  qty:gatesNum,    unit:'sets' },
+        ];
+        if (concrete) items.push({ cat:'Concrete', name:'Concrete (end/corner/gate posts)', qty:terminals2+gatesNum*2, unit:'bags' });
+      }
+    } else if (type === 'splitrail') {
+      const posts  = Math.ceil(lf / 8) + 1;
+      methodNote = 'Split Rail';
+      items = [
+        { cat:'Posts',  name:"Split Rail Line Posts (8')",  qty:posts,             unit:'posts' },
+        { cat:'Rails',  name:"2-Rail (10' rails)",          qty:Math.ceil(lf/8)*2, unit:'rails' },
+        { cat:'Rails',  name:"3-Rail estimate (10' rails)", qty:Math.ceil(lf/8)*3, unit:'rails' },
+      ];
+    }
+    return { items, methodNote };
+  }
+
   function calcParts() {
     const type     = document.getElementById('parts-type').value;
     const lf       = parseFloat(document.getElementById('parts-lf').value) || 0;
@@ -3498,106 +3758,7 @@
 
     if (!lf) { alert('Enter a linear footage or click "Pull from Sections".'); return; }
 
-    let items = [];
-
-    if (type === 'chainlink') {
-      const rollSize    = parseFloat(document.getElementById('parts-roll').value) || 50;
-      const railLen     = parseFloat(document.getElementById('parts-rail-len').value) || 21;
-      const concrete    = document.getElementById('parts-concrete').checked;
-      const useStretches= document.getElementById('parts-use-stretches')?.checked;
-
-      let linePosts, terminalPosts, totalGates;
-
-      if (useStretches && stretches.length > 0) {
-        // ── Hoover Stretches Method ──
-        // For each stretch: line posts = max(0, ceil(L/spacing) - 1 - gatesInRun)
-        // Terminal posts = one at each end of each stretch, de-duped at shared corners
-        //   = stretches.length + 1 (for a single run) + gates*2 already counted
-        const sc = recalcStretches();
-        linePosts    = sc.linePosts;
-        terminalPosts= sc.terminals;
-        totalGates   = sc.totalGates;
-        // Update terminals input to reflect calculation
-        terminals = terminalPosts;
-      } else {
-        // ── Simple Method ──
-        linePosts     = Math.max(0, Math.ceil(lf / spacing) - terminals + 1);
-        terminalPosts = terminals;
-        totalGates    = gatesNum;
-      }
-
-      const totalPosts  = linePosts + terminalPosts;
-      const fabricRolls = Math.ceil(lf / rollSize);
-      const railSticks  = Math.ceil(lf / railLen);
-      const tensionBands= terminalPosts * 3;
-      const tensionBars = terminalPosts;
-      const braceBands  = terminalPosts * 2;
-      const railEnds    = terminalPosts;
-      const postCaps    = terminalPosts;
-      const loopCaps    = linePosts;
-      const tiesPerPost = Math.ceil((height * 12) / 24);
-      const fenceTies   = linePosts * tiesPerPost + Math.ceil(lf);
-      const concreteBags= concrete ? totalPosts : 0;
-      const methodNote  = (useStretches && stretches.length > 0)
-        ? ` (Hoover stretches: ${stretches.length} run${stretches.length!==1?'s':''})`
-        : ' (simple method)';
-
-      items = [
-        { cat: 'Posts',    name: `Line Posts (${height + 2}' burial + ${height}' above)${methodNote}`, qty: linePosts,    unit: 'posts' },
-        { cat: 'Posts',    name: `Terminal Posts (ends + corners)`,                                     qty: terminalPosts,unit: 'posts' },
-        { cat: 'Posts',    name: `Gate Posts (2 per gate, already in terminals above)`,                 qty: totalGates * 2,unit: 'posts (see note)' },
-        { cat: 'Fabric',   name: `Chain Link Fabric ${height}' × ${rollSize}' rolls`,                  qty: fabricRolls,  unit: 'rolls' },
-        { cat: 'Rail',     name: `Top Rail — ${railLen}' sticks`,                                       qty: railSticks,   unit: 'sticks' },
-        { cat: 'Hardware', name: `Tension Bands (3 per terminal/gate post)`,                            qty: tensionBands, unit: 'ea' },
-        { cat: 'Hardware', name: `Tension Bars (1 per terminal/gate post)`,                             qty: tensionBars,  unit: 'ea' },
-        { cat: 'Hardware', name: `Brace Bands (2 per terminal/gate post)`,                              qty: braceBands,   unit: 'ea' },
-        { cat: 'Hardware', name: `Rail Ends (1 per terminal/gate post)`,                                qty: railEnds,     unit: 'ea' },
-        { cat: 'Hardware', name: `Post Caps — terminal`,                                                qty: postCaps,     unit: 'ea' },
-        { cat: 'Hardware', name: `Loop Caps — line posts`,                                              qty: loopCaps,     unit: 'ea' },
-        { cat: 'Hardware', name: `Fence Ties`,                                                          qty: fenceTies,    unit: 'ea' },
-        { cat: 'Gate',     name: `Gate Hardware Sets`,                                                  qty: totalGates,   unit: 'sets' },
-      ];
-      if (concrete) items.push({ cat: 'Concrete', name: `Concrete (80 lb bags)`, qty: concreteBags, unit: 'bags' });
-
-    } else if (type === 'wood' || type === 'vinyl') {
-      const boardW    = parseFloat(document.getElementById('parts-board-w').value) || 5.5;
-      const railsPer  = parseInt(document.getElementById('parts-rails-per').value) || 2;
-      const concrete  = document.getElementById('parts-wood-concrete').checked;
-      const label     = type === 'vinyl' ? 'Vinyl' : 'Wood';
-
-      const sections  = Math.ceil(lf / spacing);
-      const linePosts = sections - 1 + 2; // posts = sections + 1
-      const totalPosts= linePosts + (gates * 2);
-      // Boards: (spacing × 12 inches) / boardWidth per section, × sections, ÷ board length (8 ft)
-      const boardsPerSection = Math.ceil((spacing * 12) / boardW);
-      const totalBoards = boardsPerSection * sections;
-      const rails8ft  = Math.ceil((lf * railsPer) / 8); // 8 ft rails
-      const screws5lb = Math.ceil(totalBoards * 3 / 200); // ~3 screws/board, ~200/lb
-      const concreteBags = concrete ? totalPosts : 0;
-
-      items = [
-        { cat: 'Posts',   name: `4×4 ${label} Posts (${height + 2}' length)`, qty: linePosts,    unit: 'posts' },
-        { cat: 'Posts',   name: `Gate Posts (6×6)`,                            qty: gates * 2,    unit: 'posts' },
-        { cat: 'Boards',  name: `${label} Pickets / Boards (${height}')`,      qty: totalBoards,  unit: 'boards' },
-        { cat: 'Rails',   name: `2×4×8 ${label} Rails (${railsPer} per bay)`,  qty: rails8ft,     unit: 'rails' },
-        { cat: 'Hardware',name: `Deck Screws / Nails (lbs)`,                   qty: screws5lb,    unit: 'lbs' },
-        { cat: 'Hardware',name: `Post Caps`,                                    qty: linePosts + gates*2, unit: 'ea' },
-        { cat: 'Gate',    name: `Gate Hardware Sets`,                           qty: gates,        unit: 'sets' },
-      ];
-      if (concrete) items.push({ cat: 'Concrete', name: 'Concrete (80 lb bags)', qty: concreteBags, unit: 'bags' });
-
-    } else if (type === 'splitrail') {
-      const rails2 = Math.ceil(lf / 8) * 2;  // 2-rail: 2 rails per 8 ft span
-      const rails3 = Math.ceil(lf / 8) * 3;
-      const posts  = Math.ceil(lf / 8) + 1;
-
-      items = [
-        { cat: 'Posts',  name: 'Split Rail Line Posts (8\')',  qty: posts,  unit: 'posts' },
-        { cat: 'Rails',  name: '2-Rail Estimate (10\' rails)', qty: rails2, unit: 'rails' },
-        { cat: 'Rails',  name: '3-Rail Estimate (10\' rails)', qty: rails3, unit: 'rails' },
-        { cat: 'Hardware', name: 'Post Caps', qty: posts, unit: 'ea' },
-      ];
-    }
+    const { items, methodNote } = _calcPartsItems(type, lf, height, spacing, terminals, gatesNum);
 
     // Render results grouped by category
     const cats = [...new Set(items.map(i => i.cat))];
@@ -3621,7 +3782,7 @@
 
     html += '</table>';
     html += `<div style="margin-top:10px;font-size:.78rem;color:var(--muted)">
-      Based on ${lf} lin ft · ${height}' height · ${spacing}' post spacing · ${terminals} terminal posts · ${gates} gate(s)
+      ${methodNote || type} · ${lf} lin ft · ${height}' height · ${terminals} terminal posts · ${gatesNum} gate(s)
     </div>`;
 
     const results = document.getElementById('parts-results');
@@ -3639,6 +3800,7 @@
   renderCalendar();
   updateStorageMeter();
   toggleStretchesUI();
+  partsTypeChange(); // ensure correct panels visible on load
 </script>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
