@@ -2562,21 +2562,44 @@
       <strong style="color:var(--accent);font-size:1.05rem">${total.toFixed(1)} ft</strong>
     </div>`);
 
-    rows.push(`<button class="print-btn" onclick="applyToFenceSections()"
-      style="width:100%;margin-top:8px;font-size:.78rem;padding:8px">
+    // Height input — required for sqft mode, useful for linft too (drives the visual map)
+    const isSqft = (typeof quoteMode !== 'undefined') && quoteMode === 'sqft';
+    const hgtBorder = isSqft ? 'border:2px solid var(--accent)' : 'border:1px solid var(--border)';
+    const hgtNote   = isSqft
+      ? '<div style="font-size:.7rem;color:var(--accent);margin-top:2px">Required — sqft mode needs height</div>'
+      : '<div style="font-size:.7rem;color:var(--muted);margin-top:2px">Used for sq ft calc &amp; fence map</div>';
+    rows.push(`<div style="margin-top:10px">
+      <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:3px">Fence Height (ft)</label>
+      <input id="plan-default-hgt" type="number" min="1" step="0.5" value="6"
+        style="width:100%;padding:5px 8px;border-radius:3px;font-size:.88rem;${hgtBorder};background:#fafaf8" />
+      ${hgtNote}
+    </div>`);
+
+    rows.push(`<button class="print-btn" onclick="applyToFenceSections(event)"
+      style="width:100%;margin-top:10px;font-size:.78rem;padding:9px">
       &#8595;&nbsp;Add to Fence Sections
     </button>`);
 
     document.getElementById('planning-measurements').innerHTML = rows.join('');
   }
 
-  function applyToFenceSections() {
+  function applyToFenceSections(evt) {
     if (!_planSegments.length) return;
     const toApply = _planSegments.filter(s => s.side);
     if (!toApply.length) { alert('Assign at least one segment to a side first.'); return; }
 
+    const hgt = parseFloat(document.getElementById('plan-default-hgt')?.value) || '';
+    const isSqft = (typeof quoteMode !== 'undefined') && quoteMode === 'sqft';
+
+    if (isSqft && !hgt) {
+      alert('Enter a fence height — it\'s needed to calculate square footage.');
+      document.getElementById('plan-default-hgt')?.focus();
+      return;
+    }
+
     toApply.forEach(seg => {
-      addRow(seg.side, seg.dist.toFixed(1), '');
+      // Always store raw linear feet in len; height drives the sqft calculation
+      addRow(seg.side, seg.dist.toFixed(1), hgt ? String(hgt) : '');
     });
 
     // Scroll to fence sections
@@ -2584,11 +2607,13 @@
     if (fenceCard) fenceCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
     // Flash confirmation
-    const btn = event.target;
-    const orig = btn.textContent;
-    btn.textContent = '✓ Applied! Set heights below.';
-    btn.style.background = '#27ae60';
-    setTimeout(() => { btn.textContent = orig; btn.style.background = ''; }, 3000);
+    const btn = evt && evt.target ? evt.target : document.querySelector('[onclick^="applyToFenceSections"]');
+    if (btn) {
+      const orig = btn.textContent;
+      btn.textContent = '✓ Applied!';
+      btn.style.background = '#27ae60';
+      setTimeout(() => { btn.textContent = orig; btn.style.background = ''; }, 2500);
+    }
   }
 
   // Initialize map lazily when the card scrolls into view
