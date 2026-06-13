@@ -1568,7 +1568,7 @@
 
     const matRows = [
       sGal2 > 0 ? `<tr style="border-bottom:1px solid #ddd">
-        <td style="padding:7px 10px">Stain</td>
+        <td style="padding:7px 10px">Stain${document.getElementById('stain-product').value ? ' — ' + document.getElementById('stain-product').value : ''}</td>
         <td style="padding:7px 10px;text-align:center">${sGal2}</td>
         <td style="padding:7px 10px;text-align:right">$${sGalCost2.toFixed(2)}</td>
         <td style="padding:7px 10px;text-align:right;font-weight:600">$${sMat2.toFixed(2)}</td>
