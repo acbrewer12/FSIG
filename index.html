@@ -3,54 +3,99 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FSIG · Jobsite Analysis</title>
+  <title>FSIG · Holliday Welding &amp; Fence</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Open+Sans:wght@400;600&display=swap');
     :root {
-      --brand: #8B1A1A;
-      --brand-light: #c0392b;
-      --warn: #e67e22;
-      --ok: #27ae60;
-      --bg: #f4f4f2;
-      --card: #ffffff;
-      --border: #ddd;
-      --text: #222;
-      --muted: #666;
-      --highlight: #fff176;
+      --brand:        #1B2937;   /* dark steel navy */
+      --brand-light:  #253647;
+      --accent:       #C8530A;   /* burnt orange */
+      --accent-light: #E06420;
+      --warn:         #E8820C;
+      --ok:           #2E7D32;
+      --bg:           #ECEAE5;
+      --card:         #FFFFFF;
+      --border:       #D0CCC5;
+      --text:         #1A1A1A;
+      --muted:        #5A5857;
+      --highlight:    #FFF176;
+      --header-h:     72px;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); }
+    body { font-family: 'Open Sans', 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); }
 
     /* ── HEADER ── */
     header {
       background: var(--brand);
       color: #fff;
-      padding: 16px 24px;
+      padding: 0 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
+      gap: 16px;
+      min-height: var(--header-h);
+      border-bottom: 3px solid var(--accent);
     }
-    header h1 { font-size: 1.4rem; letter-spacing: 1px; }
-    header span { font-size: .85rem; opacity: .8; }
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .header-logo {
+      width: 48px;
+      height: 48px;
+      background: var(--accent);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Oswald', Arial, sans-serif;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: white;
+      letter-spacing: 1px;
+      flex-shrink: 0;
+    }
+    .header-text {}
+    .header-company {
+      font-family: 'Oswald', Arial, sans-serif;
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      line-height: 1.1;
+    }
+    .header-subtitle {
+      font-size: .72rem;
+      color: var(--accent);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+    .header-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 
     /* ── LAYOUT ── */
-    .container { max-width: 1100px; margin: 0 auto; padding: 20px 16px; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 22px 16px; }
 
     /* ── CARD ── */
     .card {
       background: var(--card);
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+      border-radius: 6px;
+      box-shadow: 0 2px 10px rgba(0,0,0,.09);
       padding: 20px;
       margin-bottom: 20px;
+      border-top: 3px solid var(--brand);
     }
     .card h2 {
-      font-size: 1rem;
+      font-family: 'Oswald', Arial, sans-serif;
+      font-size: .95rem;
+      font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: .5px;
+      letter-spacing: 1.5px;
       color: var(--brand);
-      border-bottom: 2px solid var(--brand);
-      padding-bottom: 8px;
+      border-bottom: 2px solid var(--accent);
+      padding-bottom: 7px;
       margin-bottom: 16px;
     }
 
@@ -61,15 +106,18 @@
       min-width: 200px;
       padding: 8px 10px;
       border: 1px solid var(--border);
-      border-radius: 5px;
-      font-size: .95rem;
+      border-radius: 4px;
+      font-size: .9rem;
+      font-family: inherit;
+      background: #FAFAF8;
     }
+    .addr-row input:focus { outline: none; border-color: var(--accent); background: white; }
 
     /* ── HOUSE VISUAL ── */
     #house-visual {
       width: 100%;
       overflow: visible;
-      border-radius: 6px;
+      border-radius: 4px;
     }
 
     /* ── SIDES GRID ── */
@@ -81,18 +129,19 @@
     @media(max-width:600px){ .sides-grid { grid-template-columns: 1fr; } }
 
     .side-panel h3 {
-      font-size: .9rem;
+      font-family: 'Oswald', Arial, sans-serif;
+      font-size: .85rem;
       text-transform: uppercase;
-      letter-spacing: .4px;
+      letter-spacing: .8px;
       margin-bottom: 10px;
       padding: 6px 10px;
-      border-radius: 4px;
+      border-radius: 3px;
     }
-    .side-panel.left  h3 { background: #fff3e0; color: var(--warn); }
-    .side-panel.right h3 { background: #e8f5e9; color: var(--ok);   }
-    .side-panel.back h3 { background: #e3f2fd; color: #1565c0; }
+    .side-panel.left  h3 { background: #FFF3E0; color: #BF360C; }
+    .side-panel.right h3 { background: #E8F5E9; color: #1B5E20; }
+    .side-panel.back  h3 { background: #E3F2FD; color: #0D47A1; }
     .side-panel.frontleft h3,
-    .side-panel.frontright h3 { background: #f3e5f5; color: #6a1b9a; }
+    .side-panel.frontright h3 { background: #F3E5F5; color: #4A148C; }
 
     /* section row */
     .section-row {
@@ -107,15 +156,18 @@
       width: 64px;
       padding: 5px 6px;
       border: 1px solid var(--border);
-      border-radius: 4px;
+      border-radius: 3px;
       font-size: .88rem;
       text-align: center;
+      background: #FAFAF8;
     }
+    .section-row input[type=number]:focus { outline: none; border-color: var(--accent); }
     .section-row select {
       padding: 5px 6px;
       border: 1px solid var(--border);
-      border-radius: 4px;
+      border-radius: 3px;
       font-size: .82rem;
+      background: #FAFAF8;
     }
     .section-row .sq { font-size: .82rem; color: var(--muted); min-width: 70px; }
     .section-row .del-btn {
@@ -133,11 +185,12 @@
       cursor: pointer;
       font-size: .82rem;
       padding: 5px 10px;
-      border-radius: 4px;
+      border-radius: 3px;
       margin-top: 4px;
       width: 100%;
+      font-family: inherit;
     }
-    .add-btn:hover { border-color: var(--brand); color: var(--brand); }
+    .add-btn:hover { border-color: var(--accent); color: var(--accent); }
 
     .side-total {
       margin-top: 8px;
@@ -151,14 +204,16 @@
     .cost-section { margin-bottom: 16px; }
     .cost-section .section-label {
       display: inline-block;
-      padding: 4px 12px;
+      padding: 4px 14px;
       border-radius: 3px;
       font-weight: 700;
-      font-size: .85rem;
+      font-size: .82rem;
       margin-bottom: 10px;
+      font-family: 'Oswald', Arial, sans-serif;
+      letter-spacing: 1px;
     }
-    .cost-section.stain .section-label { background: var(--brand); color: #fff; }
-    .cost-section.bleach .section-label { background: #2980b9; color: #fff; }
+    .cost-section.stain  .section-label { background: var(--accent); color: #fff; }
+    .cost-section.bleach .section-label { background: #1565C0; color: #fff; }
 
     table.cost-tbl {
       width: 100%;
@@ -167,7 +222,7 @@
     }
     .cost-tbl td {
       padding: 6px 10px;
-      border-bottom: 1px solid #f0f0f0;
+      border-bottom: 1px solid #F0EDE8;
     }
     .cost-tbl td:first-child { color: var(--muted); }
     .cost-tbl td:last-child { text-align: right; font-weight: 600; }
@@ -179,30 +234,36 @@
       border-radius: 3px;
       font-size: .88rem;
       text-align: right;
+      background: #FAFAF8;
     }
 
     .gross-total {
       background: var(--highlight);
-      font-size: 1.2rem;
+      font-size: 1.15rem;
       font-weight: 700;
       text-align: right;
-      padding: 14px 16px;
-      border-radius: 5px;
+      padding: 12px 16px;
+      border-radius: 4px;
       margin-top: 10px;
+      font-family: 'Oswald', Arial, sans-serif;
     }
 
-    /* print */
+    /* ── BUTTONS ── */
     .print-btn {
-      background: var(--brand);
+      background: var(--accent);
       color: #fff;
       border: none;
-      padding: 10px 22px;
-      border-radius: 5px;
+      padding: 10px 18px;
+      border-radius: 4px;
       cursor: pointer;
-      font-size: .9rem;
-      font-weight: 600;
+      font-size: .82rem;
+      font-weight: 700;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+      font-family: 'Oswald', Arial, sans-serif;
+      white-space: nowrap;
     }
-    .print-btn:hover { background: var(--brand-light); }
+    .print-btn:hover { background: var(--accent-light); }
 
     /* ── QUOTE MODE TOGGLE ── */
     .mode-toggle { display: flex; margin-bottom: 18px; }
@@ -213,11 +274,14 @@
       background: white;
       color: var(--brand);
       cursor: pointer;
-      font-size: .88rem;
-      font-weight: 600;
+      font-size: .82rem;
+      font-weight: 700;
+      font-family: 'Oswald', Arial, sans-serif;
+      letter-spacing: .5px;
+      text-transform: uppercase;
     }
-    .mode-btn:first-child { border-radius: 5px 0 0 5px; }
-    .mode-btn:last-child  { border-radius: 0 5px 5px 0; border-left: none; }
+    .mode-btn:first-child { border-radius: 4px 0 0 4px; }
+    .mode-btn:last-child  { border-radius: 0 4px 4px 0; border-left: none; }
     .mode-btn.active      { background: var(--brand); color: #fff; }
 
     /* rows that show only in one mode */
@@ -225,7 +289,6 @@
     .sqft-row  { display: none; }
     body.sqft-mode .linft-row { display: none; }
     body.sqft-mode .sqft-row  { display: table-row; }
-
 
     /* ── JOB SUMMARY CHIPS ── */
     .summary-grid {
@@ -236,15 +299,15 @@
     .summary-chip {
       background: var(--brand);
       color: #fff;
-      border-radius: 8px;
+      border-radius: 5px;
       padding: 16px;
       text-align: center;
     }
-    .summary-chip.blue  { background: #1a6fad; }
-    .summary-chip.brown { background: #795548; }
-    .summary-chip.green { background: #2e7d32; }
-    .summary-chip .big  { font-size: 2rem; font-weight: 700; display: block; line-height: 1.1; }
-    .summary-chip .lbl  { font-size: .78rem; opacity: .85; margin-top: 4px; display: block; }
+    .summary-chip.blue  { background: #1565C0; }
+    .summary-chip.brown { background: #5D4037; }
+    .summary-chip.green { background: var(--ok); }
+    .summary-chip .big  { font-size: 2rem; font-weight: 700; display: block; line-height: 1.1; font-family: 'Oswald', Arial, sans-serif; }
+    .summary-chip .lbl  { font-size: .72rem; opacity: .85; margin-top: 4px; display: block; letter-spacing: .5px; text-transform: uppercase; }
 
     /* ── FACE BADGE ── */
     .face-badge {
@@ -255,9 +318,9 @@
       white-space: nowrap;
       flex-shrink: 0;
     }
-    .face-badge.inside  { background: #e8f5e9; color: #2e7d32; }
-    .face-badge.outside { background: #fff3e0; color: #bf360c; }
-    .face-badge.both    { background: #e3f2fd; color: #1565c0; }
+    .face-badge.inside  { background: #E8F5E9; color: #2E7D32; }
+    .face-badge.outside { background: #FFF3E0; color: #BF360C; }
+    .face-badge.both    { background: #E3F2FD; color: #0D47A1; }
 
     /* ── JOB LOG ── */
     .stats-bar {
@@ -271,15 +334,20 @@
       min-width: 70px;
       text-align: center;
       padding: 8px 6px;
-      border-radius: 6px;
-      background: #f0f0f0;
+      border-radius: 5px;
+      background: #F0EDE8;
+      border: 1px solid var(--border);
     }
-    .stat-chip .sc-num { font-size: 1.5rem; font-weight: 700; display: block; line-height: 1.1; }
-    .stat-chip .sc-lbl { font-size: .7rem; color: var(--muted); margin-top: 2px; display: block; }
-    .stat-chip.s-pending    { background: #fff3e0; }
-    .stat-chip.s-scheduled  { background: #e8eaf6; }
-    .stat-chip.s-inprogress { background: #e3f2fd; }
-    .stat-chip.s-complete   { background: #e8f5e9; }
+    .stat-chip .sc-num { font-size: 1.5rem; font-weight: 700; display: block; line-height: 1.1; font-family: 'Oswald', Arial, sans-serif; color: var(--brand); }
+    .stat-chip .sc-lbl { font-size: .68rem; color: var(--muted); margin-top: 2px; display: block; text-transform: uppercase; letter-spacing: .5px; }
+    .stat-chip.s-pending    { background: #FFF3E0; border-color: #FFCC80; }
+    .stat-chip.s-pending .sc-num { color: #E65100; }
+    .stat-chip.s-scheduled  { background: #E8EAF6; border-color: #9FA8DA; }
+    .stat-chip.s-scheduled .sc-num { color: #3949AB; }
+    .stat-chip.s-inprogress { background: #E3F2FD; border-color: #90CAF9; }
+    .stat-chip.s-inprogress .sc-num { color: #0277BD; }
+    .stat-chip.s-complete   { background: #E8F5E9; border-color: #A5D6A7; }
+    .stat-chip.s-complete .sc-num { color: #2E7D32; }
 
     .log-filter-row {
       display: flex;
@@ -288,13 +356,15 @@
       flex-wrap: wrap;
     }
     .log-filter-btn {
-      padding: 5px 12px;
+      padding: 5px 14px;
       border: 1px solid var(--border);
       border-radius: 20px;
       background: white;
       cursor: pointer;
-      font-size: .8rem;
+      font-size: .78rem;
       color: var(--muted);
+      font-family: 'Oswald', Arial, sans-serif;
+      letter-spacing: .5px;
     }
     .log-filter-btn.active { background: var(--brand); color: white; border-color: var(--brand); }
 
@@ -302,29 +372,36 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 9px 12px;
+      padding: 10px 14px;
       border: 1px solid var(--border);
-      border-radius: 6px;
+      border-radius: 5px;
       margin-bottom: 8px;
-      background: #fafafa;
+      background: #FAFAF8;
+      transition: border-color .15s;
     }
+    .job-log-item:hover { border-color: var(--accent); }
     .job-log-item .job-label { flex: 1; font-size: .88rem; color: var(--text); }
     .job-status-badge {
-      font-size: .72rem;
+      font-size: .7rem;
       padding: 2px 8px;
       border-radius: 10px;
-      font-weight: 600;
+      font-weight: 700;
       white-space: nowrap;
+      font-family: 'Oswald', Arial, sans-serif;
+      letter-spacing: .5px;
     }
     .jl-btn {
       background: var(--brand);
       color: white;
       border: none;
-      padding: 5px 12px;
+      padding: 6px 14px;
       border-radius: 4px;
       cursor: pointer;
-      font-size: .8rem;
+      font-size: .78rem;
+      font-family: 'Oswald', Arial, sans-serif;
+      letter-spacing: .5px;
     }
+    .jl-btn:hover { background: var(--brand-light); }
     .jl-del {
       background: none;
       border: 1px solid #c0392b;
@@ -382,12 +459,18 @@
 <body>
 
 <header>
-  <h1>FSIG &nbsp;·&nbsp; Jobsite Analysis</h1>
-  <div style="display:flex;gap:8px;flex-wrap:wrap">
-    <button class="print-btn" onclick="newJob()" style="background:#555">New Job</button>
+  <div class="header-brand">
+    <div class="header-logo">HWF</div>
+    <div class="header-text">
+      <div class="header-company">Holliday Welding &amp; Fence</div>
+      <div class="header-subtitle">FSIG &nbsp;·&nbsp; Jobsite Analysis</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="print-btn" onclick="newJob()" style="background:#374a5a">New Job</button>
     <button class="print-btn" onclick="saveJob()" id="save-job-btn">Save Job</button>
-    <button class="print-btn" onclick="textCustomer()" style="background:#27ae60">Text Customer</button>
-    <button class="print-btn" onclick="textCrew()" style="background:#1a6fad">Text Crew</button>
+    <button class="print-btn" onclick="textCustomer()" style="background:#2E7D32">Text Customer</button>
+    <button class="print-btn" onclick="textCrew()" style="background:#1565C0">Text Crew</button>
     <button class="print-btn" onclick="buildPrintInvoice();window.print()">Print / Save PDF</button>
   </div>
 </header>
@@ -1770,9 +1853,15 @@
     document.getElementById('print-invoice').innerHTML = `
       <!-- PAGE 1 -->
       <div style="page-break-after:always">
-        <div style="text-align:center;border-bottom:2px solid #222;margin-bottom:6px;padding-bottom:5px">
-          <div style="font-size:1.5rem;font-weight:700;letter-spacing:1px">Jobsite Analysis</div>
-          <div style="font-size:.72rem;color:#888;margin-top:1px">Date: ${dateStr}</div>
+        <div style="border-bottom:3px solid #1B2937;margin-bottom:6px;padding-bottom:8px;display:flex;justify-content:space-between;align-items:flex-end">
+          <div>
+            <div style="font-size:1.4rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#1B2937">Holliday Welding &amp; Fence</div>
+            <div style="font-size:.75rem;color:#C8530A;letter-spacing:2px;text-transform:uppercase;font-weight:700;margin-top:1px">Jobsite Analysis</div>
+          </div>
+          <div style="text-align:right;font-size:.75rem;color:#666">
+            <div>Salem, MO</div>
+            <div>Date: ${dateStr}</div>
+          </div>
         </div>
         ${buildPrintMapSVG()}
         ${addressHtml}
@@ -1785,9 +1874,15 @@
 
       <!-- PAGE 2: Material List -->
       <div>
-        <div style="text-align:center;border-bottom:2px solid #222;margin-bottom:14px;padding-bottom:8px">
-          <div style="font-size:1.7rem;font-weight:700;letter-spacing:1px">Material List</div>
-          <div style="font-size:.75rem;color:#888;margin-top:1px">Date: ${dateStr}</div>
+        <div style="border-bottom:3px solid #1B2937;margin-bottom:14px;padding-bottom:8px;display:flex;justify-content:space-between;align-items:flex-end">
+          <div>
+            <div style="font-size:1.4rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#1B2937">Holliday Welding &amp; Fence</div>
+            <div style="font-size:.75rem;color:#C8530A;letter-spacing:2px;text-transform:uppercase;font-weight:700;margin-top:1px">Material List</div>
+          </div>
+          <div style="text-align:right;font-size:.75rem;color:#666">
+            <div>Salem, MO</div>
+            <div>Date: ${dateStr}</div>
+          </div>
         </div>
         ${addressHtml}
         <table style="width:100%;border-collapse:collapse;font-size:.9rem;margin-bottom:24px;border:1px solid #bbb">
