@@ -4089,16 +4089,34 @@
     return { minLat: minLat - pLat, maxLat: maxLat + pLat, minLng: minLng - pLng, maxLng: maxLng + pLng };
   }
 
+  // Compute zoom level that fits a given bbox into width×height pixels (Mercator)
+  function bboxToZoom(bbox, width, height) {
+    function latRad(lat) {
+      const s = Math.sin(lat * Math.PI / 180);
+      return Math.log((1 + s) / (1 - s)) / 2;
+    }
+    const latFrac = Math.abs(latRad(bbox.maxLat) - latRad(bbox.minLat)) / Math.PI / 2;
+    const lngFrac = Math.abs(bbox.maxLng - bbox.minLng) / 360;
+    const zLat = Math.floor(Math.log2(height / 256 / latFrac));
+    const zLng = Math.floor(Math.log2(width / 256 / lngFrac));
+    return Math.min(zLat, zLng, 21);
+  }
+
   // Generate satellite snapshot URL — Google Static Maps when key set (path baked in), else ESRI export
+  // Both providers use the same bbox so the framing matches
   function buildMapSnapshotUrl(pts) {
     if (!pts || pts.length < 2) return '';
+    const b = getPlanBbox(pts);
     const key = getGmapsKey();
     if (key) {
       const pathStr = pts.map(p => `${(+p.lat).toFixed(6)},${(+p.lng).toFixed(6)}`).join('|');
+      const centerLat = ((b.minLat + b.maxLat) / 2).toFixed(6);
+      const centerLng = ((b.minLng + b.maxLng) / 2).toFixed(6);
+      const zoom = bboxToZoom(b, 580, 280);
       return `https://maps.googleapis.com/maps/api/staticmap?size=580x280&maptype=satellite`
+        + `&center=${centerLat},${centerLng}&zoom=${zoom}`
         + `&path=color:0xC8530Aff|weight:3|${pathStr}&key=${encodeURIComponent(key)}`;
     }
-    const b = getPlanBbox(pts);
     return `https://server.arcgisonline.com/arcgis/rest/services/World_Imagery/MapServer/export`
       + `?bbox=${b.minLng.toFixed(6)},${b.minLat.toFixed(6)},${b.maxLng.toFixed(6)},${b.maxLat.toFixed(6)}`
       + `&bboxSR=4326&size=580,280&format=png32&transparent=false&f=image`;
