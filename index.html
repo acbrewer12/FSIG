@@ -2572,8 +2572,11 @@
 
     const partsListHtml  = buildPartsListHtml();
     const custInvoiceHtml = buildCustomerInvoiceHtml(addressHtml, dateStr);
-    const _planSvgContent = buildPlannerSvg(planPoints, _planSegments);
-    const plannerSvgPage = _planSvgContent
+    const _printPts = planPoints.map(p => ({lat: p.lat, lng: p.lng}));
+    const _printPlanUrl = _printPts.length >= 2 ? buildMapSnapshotUrl(_printPts) : '';
+    const _printOverlay = _printPts.length >= 2 ? buildPlannerSvgOverlay(_printPts, _planSegments, getPlanBbox(_printPts), 580, 280) : '';
+    const _standalonesvg = buildPlannerSvg(_printPts, _planSegments);
+    const plannerSvgPage = (_printPlanUrl || _standalonesvg)
       ? `<div class="print-page-plan">
           <div style="border-bottom:3px solid #1B2937;margin-bottom:10px;padding-bottom:8px;display:flex;justify-content:space-between;align-items:flex-end">
             <div>
@@ -2583,7 +2586,11 @@
             <div style="text-align:right;font-size:.72rem;color:#666"><div>Salem, MO</div><div>Date: ${dateStr}</div></div>
           </div>
           ${addressHtml}
-          <div style="margin-top:10px">${_planSvgContent}</div>
+          <div style="margin-top:10px;position:relative;line-height:0">
+            ${_printPlanUrl
+              ? `<img src="${_printPlanUrl}" style="width:100%;display:block" />${_printOverlay}`
+              : _standalonesvg}
+          </div>
         </div>`
       : '';
     const hdr = (subtitle) => `
@@ -2956,7 +2963,13 @@
       fenceMapSvg: buildPrintMapSVG(),
       planPoints: planPoints.map(p => ({ lat: p.lat, lng: p.lng })),
       planSegments: _planSegments.slice(),
-      plannerSvg: document.getElementById('plan-svg-preview-inner')?.innerHTML || '',
+      plannerSvg: buildPlannerSvg(planPoints.map(p => ({lat: p.lat, lng: p.lng})), _planSegments),
+      mapSnapshotUrl: (planPoints.length >= 2) ? buildMapSnapshotUrl(planPoints.map(p => ({lat: p.lat, lng: p.lng}))) : '',
+      plannerSvgOverlay: (() => {
+        if (planPoints.length < 2) return '';
+        const pts = planPoints.map(p => ({lat: p.lat, lng: p.lng}));
+        return buildPlannerSvgOverlay(pts, _planSegments, getPlanBbox(pts), 580, 280);
+      })(),
       onHandItems: JSON.parse(JSON.stringify(onHandItems)),
     };
   }
@@ -3044,7 +3057,9 @@
       _planSegments = [];
       _savedPlanPoints = null;
     }
-    if (s.plannerSvg) showPlannerPreview(s.plannerSvg);
+    if (s.mapSnapshotUrl || s.plannerSvgOverlay || s.plannerSvg) {
+      showPlannerPreview(s.mapSnapshotUrl || '', s.plannerSvgOverlay || s.plannerSvg || '');
+    }
     window.scrollTo(0, 0);
   }
 
@@ -3526,8 +3541,11 @@
     document.getElementById('stretch-terminal-count').textContent = terminalTotal;
     const noteEl = document.getElementById('stretch-terminal-note');
     if (noteEl) noteEl.textContent = noteText;
+    // Only sync terminal posts input when the stretches method is active and has real data
+    const useStretches = document.getElementById('parts-use-stretches')?.checked;
+    const hasData = stretches.some(s => parseFloat(s.length) > 0);
     const termEl = document.getElementById('parts-terminals');
-    if (termEl) termEl.value = terminalTotal;
+    if (termEl && useStretches && hasData) termEl.value = terminalTotal;
     return { linePosts, terminals: terminalTotal, totalGates };
   }
 
@@ -3900,7 +3918,7 @@
   let _savedPlanPoints = null; // deferred restore when map not yet initialized
   const ORANGE = '#C8530A';
 
-  // Build a normalized SVG diagram from GPS lat/lng points + segment data
+  // Build a standalone SVG diagram (for thumbnails / offline fallback)
   function buildPlannerSvg(points, segments) {
     if (!points || points.length < 2) return '';
     const VW = 580, VH = 300, PAD = 55;
@@ -3927,17 +3945,13 @@
     const pathD = coords.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
     let svg = `<svg viewBox="0 0 ${VW} ${VH}" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block">`;
     svg += `<rect width="${VW}" height="${VH}" fill="#f0ede8"/>`;
-    // North arrow
     svg += `<text x="${VW - 18}" y="22" text-anchor="middle" fill="#666" font-size="9" font-family="Arial">N</text>`;
     svg += `<line x1="${VW-18}" y1="26" x2="${VW-18}" y2="38" stroke="#666" stroke-width="1.5"/>`;
     svg += `<polygon points="${VW-18},24 ${VW-21},30 ${VW-18},28 ${VW-15},30" fill="#666"/>`;
-    // Fence path
     svg += `<path d="${pathD}" fill="none" stroke="${ORANGE}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>`;
-    // Corner dots
     coords.forEach(p => {
       svg += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4.5" fill="${ORANGE}" stroke="white" stroke-width="1.5"/>`;
     });
-    // Segment labels
     if (segments && segments.length) {
       segments.forEach((seg, i) => {
         if (i + 1 >= coords.length) return;
@@ -3946,30 +3960,88 @@
         const dx = b.x - a.x, dy = b.y - a.y;
         const angle = Math.atan2(dy, dx) * 180 / Math.PI;
         const normAngle = angle > 90 ? angle - 180 : angle < -90 ? angle + 180 : angle;
-        const labelDist = seg.dist.toFixed(0) + ' ft';
-        const bear = seg.bearing !== undefined ? ' · ' + seg.bearing.toFixed(0) + '°' : '';
         svg += `<text x="${mx.toFixed(1)}" y="${my.toFixed(1)}" text-anchor="middle" dominant-baseline="central"
           fill="#1B2937" font-size="9" font-weight="bold" font-family="Arial"
-          transform="rotate(${normAngle.toFixed(1)},${mx.toFixed(1)},${my.toFixed(1)})"
-          dy="-6">${labelDist}${bear}</text>`;
+          transform="rotate(${normAngle.toFixed(1)},${mx.toFixed(1)},${my.toFixed(1)})" dy="-6">${seg.dist.toFixed(0)} ft</text>`;
       });
     }
-    // Total perimeter
     const total = (segments || []).reduce((s, seg) => s + (seg.dist || 0), 0);
-    if (total > 0) {
-      svg += `<text x="${(VW / 2).toFixed(0)}" y="${VH - 8}" text-anchor="middle" fill="#1B2937" font-size="10" font-weight="700" font-family="Arial">Total Perimeter: ${total.toFixed(0)} ft</text>`;
-    }
-    svg += `<text x="${(VW / 2).toFixed(0)}" y="16" text-anchor="middle" fill="${ORANGE}" font-size="10" font-weight="700" font-family="Arial" letter-spacing="1">SITE PLAN — FENCE LAYOUT</text>`;
+    if (total > 0) svg += `<text x="${(VW/2).toFixed(0)}" y="${VH-8}" text-anchor="middle" fill="#1B2937" font-size="10" font-weight="700" font-family="Arial">Total: ${total.toFixed(0)} ft</text>`;
+    svg += `<text x="${(VW/2).toFixed(0)}" y="16" text-anchor="middle" fill="${ORANGE}" font-size="10" font-weight="700" font-family="Arial" letter-spacing="1">SITE PLAN — FENCE LAYOUT</text>`;
     svg += '</svg>';
     return svg;
   }
 
-  function showPlannerPreview(svgHtml) {
+  // Compute padded bounding box from plan points
+  function getPlanBbox(pts, pad = 0.3) {
+    const lats = pts.map(p => p.lat), lngs = pts.map(p => p.lng);
+    const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+    const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+    const pLat = ((maxLat - minLat) * pad) || 0.0005;
+    const pLng = ((maxLng - minLng) * pad) || 0.0005;
+    return { minLat: minLat - pLat, maxLat: maxLat + pLat, minLng: minLng - pLng, maxLng: maxLng + pLng };
+  }
+
+  // Generate ESRI satellite export URL (returns PNG, works as <img> src)
+  function buildMapSnapshotUrl(pts) {
+    if (!pts || pts.length < 2) return '';
+    const b = getPlanBbox(pts);
+    return `https://server.arcgisonline.com/arcgis/rest/services/World_Imagery/MapServer/export`
+      + `?bbox=${b.minLng.toFixed(6)},${b.minLat.toFixed(6)},${b.maxLng.toFixed(6)},${b.maxLat.toFixed(6)}`
+      + `&bboxSR=4326&size=580,280&format=png32&transparent=false&f=image`;
+  }
+
+  // Build a transparent SVG overlay aligned exactly to the satellite bbox
+  function buildPlannerSvgOverlay(points, segments, bbox, VW, VH) {
+    if (!points || points.length < 2 || !bbox) return '';
+    function toXY(p) {
+      return {
+        x: (p.lng - bbox.minLng) / (bbox.maxLng - bbox.minLng) * VW,
+        y: (bbox.maxLat - p.lat) / (bbox.maxLat - bbox.minLat) * VH
+      };
+    }
+    const coords = points.map(toXY);
+    const pathD = coords.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+    let svg = `<svg viewBox="0 0 ${VW} ${VH}" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none">`;
+    // White halo then orange path for satellite contrast
+    svg += `<path d="${pathD}" fill="none" stroke="white" stroke-width="6" stroke-linejoin="round" stroke-linecap="round" opacity="0.5"/>`;
+    svg += `<path d="${pathD}" fill="none" stroke="${ORANGE}" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+    coords.forEach(p => {
+      svg += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="5" fill="${ORANGE}" stroke="white" stroke-width="2"/>`;
+    });
+    if (segments && segments.length) {
+      segments.forEach((seg, i) => {
+        if (i + 1 >= coords.length) return;
+        const a = coords[i], b = coords[i + 1];
+        const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+        svg += `<text x="${mx.toFixed(1)}" y="${my.toFixed(1)}" text-anchor="middle" dominant-baseline="central"
+          fill="white" font-size="11" font-weight="bold" font-family="Arial"
+          stroke="black" stroke-width="3" paint-order="stroke" dy="-9">${seg.dist.toFixed(0)} ft</text>`;
+      });
+    }
+    const total = (segments || []).reduce((s, seg) => s + (seg.dist || 0), 0);
+    if (total > 0) {
+      svg += `<text x="6" y="${VH - 7}" text-anchor="start" fill="white" font-size="11" font-weight="700" font-family="Arial" stroke="black" stroke-width="3" paint-order="stroke">Total: ${total.toFixed(0)} ft</text>`;
+    }
+    svg += `<text x="${VW - 14}" y="16" text-anchor="middle" fill="white" font-size="11" font-weight="bold" font-family="Arial" stroke="black" stroke-width="3" paint-order="stroke">N</text>`;
+    svg += '</svg>';
+    return svg;
+  }
+
+  function showPlannerPreview(mapUrl, overlayHtml) {
     const wrap = document.getElementById('plan-svg-preview');
     const inner = document.getElementById('plan-svg-preview-inner');
     if (!wrap || !inner) return;
-    if (svgHtml) {
-      inner.innerHTML = svgHtml;
+    if (mapUrl || overlayHtml) {
+      if (mapUrl) {
+        inner.innerHTML = `<div style="position:relative;width:100%;line-height:0">
+          <img src="${mapUrl}" style="width:100%;display:block;border-radius:0 0 3px 3px"
+            onerror="this.parentElement.style.background='#1B2937'" />
+          ${overlayHtml || ''}
+        </div>`;
+      } else {
+        inner.innerHTML = overlayHtml || '';
+      }
       wrap.style.display = 'block';
     } else {
       wrap.style.display = 'none';
@@ -3979,8 +4051,11 @@
 
   function savePlanSnapshot() {
     if (planPoints.length < 2) { alert('Trace at least 2 points on the map first.'); return; }
-    const svg = buildPlannerSvg(planPoints, _planSegments);
-    showPlannerPreview(svg);
+    const pts = planPoints.map(p => ({ lat: p.lat, lng: p.lng }));
+    const bbox = getPlanBbox(pts);
+    const mapUrl = buildMapSnapshotUrl(pts);
+    const overlay = buildPlannerSvgOverlay(pts, _planSegments, bbox, 580, 280);
+    showPlannerPreview(mapUrl, overlay);
     const btn = document.getElementById('save-plan-btn');
     if (btn) { const o = btn.textContent; btn.textContent = '✓ Plan Saved!'; setTimeout(() => { btn.textContent = o; }, 2000); }
   }
