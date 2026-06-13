@@ -522,6 +522,139 @@
     .ch-pan  { width: 64px; }
     .ch-type { width: 80px; }
     .ch-sqft { min-width: 70px; }
+
+    /* ── GATES TABLE ── */
+    .gates-row {
+      display: grid;
+      grid-template-columns: 120px 72px 72px 1fr auto;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    @media(max-width:620px) {
+      .gates-row { grid-template-columns: 1fr 1fr; }
+      .gates-row .gate-notes { grid-column: 1/-1; }
+    }
+    .gates-row input, .gates-row select {
+      padding: 5px 8px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: .85rem;
+      background: #fafaf8;
+      font-family: inherit;
+      width: 100%;
+    }
+    .gates-row input:focus, .gates-row select:focus { outline:none; border-color:var(--accent); }
+    .gates-col-headers {
+      display: grid;
+      grid-template-columns: 120px 72px 72px 1fr auto;
+      gap: 8px;
+      font-size: .72rem;
+      color: var(--muted);
+      margin-bottom: 5px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--border);
+    }
+    @media(max-width:620px) { .gates-col-headers { display:none; } }
+
+    /* ── SCOPE CHECKBOXES ── */
+    .scope-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 20px;
+      padding: 12px 14px;
+      background: #F8F7F4;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+    }
+    .scope-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: .85rem;
+      cursor: pointer;
+      user-select: none;
+    }
+    .scope-item input[type=checkbox] {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+      accent-color: var(--accent);
+      flex-shrink: 0;
+    }
+
+    /* ── CONTACTS AUTOCOMPLETE ── */
+    .customer-name-wrap { position: relative; flex: 2; min-width: 180px; }
+    .contacts-dropdown {
+      position: absolute;
+      top: calc(100% + 2px);
+      left: 0;
+      z-index: 9000;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      box-shadow: 0 6px 18px rgba(0,0,0,.15);
+      max-height: 220px;
+      overflow-y: auto;
+      min-width: 280px;
+      display: none;
+    }
+    .contacts-dropdown.open { display: block; }
+    .contacts-item {
+      padding: 9px 14px;
+      cursor: pointer;
+      font-size: .85rem;
+      border-bottom: 1px solid #F0EDE8;
+    }
+    .contacts-item:last-child { border-bottom: none; }
+    .contacts-item:hover { background: #FFF8F4; color: var(--accent); }
+    .contacts-item .ci-sub { font-size: .75rem; color: var(--muted); margin-top: 1px; }
+
+    /* ── STORAGE METER ── */
+    .storage-bar-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      background: #F0EDE8;
+      border-radius: 5px;
+      font-size: .78rem;
+      color: var(--muted);
+    }
+    .storage-bar {
+      flex: 1;
+      height: 8px;
+      background: #ddd;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .storage-bar-fill {
+      height: 100%;
+      background: var(--ok);
+      border-radius: 4px;
+      transition: width .3s;
+    }
+    .storage-bar-fill.warn   { background: var(--warn); }
+    .storage-bar-fill.danger { background: #c0392b; }
+
+    /* ── STRETCHES (chain link) ── */
+    .stretch-row {
+      display: grid;
+      grid-template-columns: 80px 70px 1fr auto;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .stretch-row input, .stretch-row select {
+      padding: 5px 8px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: .85rem;
+      background: #fafaf8;
+      width: 100%;
+      font-family: inherit;
+    }
+    .stretch-row input:focus { outline:none; border-color:var(--accent); }
   </style>
 </head>
 <body>
@@ -570,17 +703,62 @@
         <input id="job-start-date" type="date" style="padding:5px 8px;border:1px solid var(--border);border-radius:5px;font-size:.85rem" />
       </div>
       <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:.78rem;color:var(--muted)">Complete:</span>
+        <input id="job-end-date" type="date" style="padding:5px 8px;border:1px solid var(--border);border-radius:5px;font-size:.85rem" />
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:.78rem;color:var(--muted)">Est. Days:</span>
+        <input id="job-est-days" type="number" min="1" step="1" value="" placeholder="1"
+          style="padding:5px 8px;border:1px solid var(--border);border-radius:5px;font-size:.85rem;width:58px" />
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
         <span style="font-size:.78rem;color:var(--muted)">Crew Lead:</span>
         <input id="crew-lead" type="text" placeholder="Name" style="padding:5px 8px;border:1px solid var(--border);border-radius:5px;font-size:.85rem;width:120px" />
       </div>
     </div>
 
+    <!-- Terrain + scope row -->
+    <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;margin-bottom:12px">
+      <div>
+        <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Terrain / Site</div>
+        <select id="job-terrain" style="padding:6px 10px;border:1px solid var(--border);border-radius:5px;font-size:.85rem;background:white">
+          <option value="normal">Normal</option>
+          <option value="rocky">Rocky</option>
+          <option value="clay">Heavy Clay</option>
+          <option value="hillside">Hillside / Slope</option>
+          <option value="wooded">Wooded</option>
+        </select>
+      </div>
+      <div style="flex:1;min-width:280px">
+        <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Job Scope</div>
+        <div class="scope-grid">
+          <label class="scope-item"><input type="checkbox" id="scope-demo" /> Demo / Remove Existing</label>
+          <label class="scope-item"><input type="checkbox" id="scope-haul" /> Haul-Away</label>
+          <label class="scope-item"><input type="checkbox" id="scope-811" /> 811 Call Made</label>
+          <label class="scope-item"><input type="checkbox" id="scope-permit" /> Dig Permit Required</label>
+          <label class="scope-item"><input type="checkbox" id="scope-cusmat" /> Customer-Supplied Materials</label>
+        </div>
+      </div>
+    </div>
+
     <!-- Customer name / phones / email -->
     <div class="addr-row" style="margin-bottom:10px">
-      <input id="customer-name" type="text" placeholder="Customer Name" style="flex:2;min-width:180px" />
+      <div class="customer-name-wrap">
+        <input id="customer-name" type="text" placeholder="Customer Name"
+          autocomplete="off"
+          oninput="onCustomerNameInput(this.value)"
+          onfocus="onCustomerNameInput(this.value)"
+          style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:4px;font-size:.9rem;background:#FAFAF8"
+        />
+        <div id="contacts-dropdown" class="contacts-dropdown"></div>
+      </div>
       <input id="customer-phone" type="tel" placeholder="Phone" style="max-width:155px" />
       <input id="customer-phone2" type="tel" placeholder="Alt Phone" style="max-width:155px" />
       <input id="customer-email" type="email" placeholder="Email" style="max-width:200px" />
+      <button class="print-btn" onclick="saveContact()" title="Save customer to contacts"
+        style="padding:8px 12px;background:#546e7a;font-size:.75rem;white-space:nowrap;flex-shrink:0">
+        &#128101; Save Contact
+      </button>
     </div>
 
     <!-- Address -->
@@ -597,8 +775,28 @@
 
     <!-- Crew notes (internal only — does NOT print on customer copy) -->
     <textarea id="crew-notes" placeholder="Crew Notes — INTERNAL ONLY, does not print on customer copy" rows="2"
-      style="width:100%;padding:8px 10px;border:1px solid #f0c050;border-radius:5px;font-size:.88rem;resize:vertical;font-family:inherit;background:#fffde7"></textarea>
-    <div style="font-size:.72rem;color:#a07000;margin-top:3px">Internal crew notes stay off the customer invoice</div>
+      style="width:100%;padding:8px 10px;border:1px solid #f0c050;border-radius:5px;font-size:.88rem;resize:vertical;font-family:inherit;background:#fffde7;margin-bottom:8px"></textarea>
+    <div style="font-size:.72rem;color:#a07000;margin-top:-4px;margin-bottom:10px">Internal crew notes stay off the customer invoice</div>
+
+    <!-- Sign-off / Change Order -->
+    <div>
+      <div style="font-size:.78rem;font-weight:700;color:var(--brand);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px">
+        Sign-Off / Change Order Notes
+      </div>
+      <textarea id="change-order" placeholder="If customer changes scope at signing — record it here. This prints on the invoice." rows="2"
+        style="width:100%;padding:8px 10px;border:1px solid #90caf9;border-radius:5px;font-size:.88rem;resize:vertical;font-family:inherit;background:#e3f2fd"></textarea>
+      <div style="font-size:.72rem;color:#1565c0;margin-top:3px">Change order notes print on the customer invoice</div>
+    </div>
+  </div>
+
+  <!-- Gates -->
+  <div class="card">
+    <h2>Gates</h2>
+    <div class="gates-col-headers">
+      <span>Type</span><span>Width (ft)</span><span>Height (ft)</span><span>Notes (latch, hinge side, opener…)</span><span></span>
+    </div>
+    <div id="gates-rows"></div>
+    <button class="add-btn" onclick="addGate()">+ Add Gate</button>
   </div>
 
   <!-- Job Log -->
@@ -625,6 +823,13 @@
       <button class="log-filter-btn"        data-filter="scheduled"  onclick="setLogFilter(this)">Scheduled</button>
       <button class="log-filter-btn"        data-filter="in-progress" onclick="setLogFilter(this)">In Progress</button>
       <button class="log-filter-btn"        data-filter="complete"   onclick="setLogFilter(this)">Complete</button>
+    </div>
+
+    <!-- Storage meter -->
+    <div class="storage-bar-wrap" id="storage-meter" style="margin-bottom:12px">
+      <span style="white-space:nowrap">Storage:</span>
+      <div class="storage-bar"><div class="storage-bar-fill" id="storage-fill" style="width:0%"></div></div>
+      <span id="storage-label" style="white-space:nowrap;min-width:80px;text-align:right">0 KB / 5 MB</span>
     </div>
 
     <!-- Export / Import -->
@@ -1006,7 +1211,16 @@
         <td><strong>Net Profit (after labor)</strong></td>
         <td><strong>$<span id="tl-net-profit">0.00</span></strong></td>
       </tr>
+      <tr>
+        <td>Estimated Days on Job <span style="font-size:.75rem;color:var(--muted)">(blocks calendar)</span></td>
+        <td><input type="number" id="tl-est-days" value="" min="1" step="1" placeholder="auto"
+          style="width:70px;padding:3px 6px;border:1px solid var(--border);border-radius:3px;font-size:.88rem;text-align:right;background:#FAFAF8"
+          oninput="syncEstDays(this.value)" /></td>
+      </tr>
     </table>
+    <div style="font-size:.72rem;color:var(--muted);margin-top:6px">
+      Set "Est. Days" here (or in Job Info) to block that many days on the calendar starting from the Start date.
+    </div>
   </div>
 
   <!-- Fence Parts Calculator -->
@@ -1080,6 +1294,30 @@
           <input type="checkbox" id="parts-concrete" checked style="margin-right:4px" />Concrete (1 bag/post)
         </label>
       </div>
+      <div style="display:flex;align-items:flex-end;gap:6px;padding-bottom:2px">
+        <label style="font-size:.78rem;color:var(--muted)">
+          <input type="checkbox" id="parts-use-stretches" checked style="margin-right:4px" onchange="toggleStretchesUI()" />Use Hoover Stretches Method
+        </label>
+      </div>
+    </div>
+
+    <!-- Hoover Stretches UI -->
+    <div id="parts-stretches-wrap" style="margin-bottom:14px;padding:12px 14px;background:#EEF2FF;border-radius:4px;border:1px solid #9FA8DA">
+      <div style="font-family:'Oswald',Arial,sans-serif;font-size:.82rem;text-transform:uppercase;letter-spacing:.5px;color:#3949AB;margin-bottom:4px;border-bottom:1px solid #C5CAE9;padding-bottom:4px">
+        Hoover Stretches — each straight run is one stretch; gates &amp; corners end a stretch
+      </div>
+      <div style="font-size:.75rem;color:#5c6bc0;margin-bottom:10px">
+        A stretch = one unbroken straight run between two terminal posts. A gate mid-run splits that stretch into two. Enter each stretch separately.
+      </div>
+      <div style="display:grid;grid-template-columns:80px 70px 1fr;gap:8px;font-size:.72rem;color:var(--muted);margin-bottom:5px;padding-bottom:3px;border-bottom:1px solid #C5CAE9">
+        <span>Length (ft)</span><span>Gates in run</span><span>Notes (optional)</span>
+      </div>
+      <div id="stretches-rows"></div>
+      <button class="add-btn" onclick="addStretch()" style="border-color:#9FA8DA;color:#3949AB;margin-top:4px">+ Add Stretch</button>
+      <div style="margin-top:8px;font-size:.8rem;color:#3949AB;font-weight:600">
+        Calculated line posts: <span id="stretch-linepost-count" style="font-family:'Oswald',Arial,sans-serif;font-size:1rem">0</span>
+        &nbsp;·&nbsp; Terminal posts (corners + ends): <span id="stretch-terminal-count" style="font-family:'Oswald',Arial,sans-serif;font-size:1rem">0</span>
+      </div>
     </div>
 
     <!-- Wood extra options -->
@@ -1114,6 +1352,21 @@
     </div>
   </div>
 
+  <!-- Invoice Simple Paste-to-Parse -->
+  <div class="card">
+    <h2>Invoice Simple — Paste &amp; Parse</h2>
+    <div style="font-size:.84rem;color:var(--muted);margin-bottom:10px">
+      Copy text from an Invoice Simple PDF (Ctrl+A, Ctrl+C), paste it below, and click Parse. The app will auto-fill the job form.
+    </div>
+    <textarea id="invoice-paste" placeholder="Paste Invoice Simple PDF text here…" rows="6"
+      style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:5px;font-size:.83rem;resize:vertical;font-family:monospace;background:#fafaf8;margin-bottom:8px"></textarea>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button class="print-btn" onclick="parseInvoiceSimple()">&#128196; Parse &amp; Fill Job Form</button>
+      <button class="print-btn" onclick="document.getElementById('invoice-paste').value=''" style="background:#546e7a">Clear</button>
+      <span id="invoice-parse-result" style="font-size:.82rem;color:var(--ok)"></span>
+    </div>
+  </div>
+
 </div><!-- /container -->
 
 <script>
@@ -1136,6 +1389,55 @@
   const sides = { left: [], right: [], back: [], frontLeft: [], frontRight: [] };
   let rowCounter = 0;
   const ALL_SIDES = ['left','right','back','frontLeft','frontRight'];
+
+  // ── Gates data model ──
+  let gates = [];
+  let gateCounter = 0;
+
+  function addGate(type='Walk', width='', height='', notes='') {
+    const id = ++gateCounter;
+    gates.push({ id, type, width, height, notes });
+    renderGates();
+  }
+
+  function removeGate(id) {
+    gates = gates.filter(g => g.id !== id);
+    renderGates();
+  }
+
+  function updateGate(id, field, value) {
+    const g = gates.find(g => g.id === id);
+    if (g) g[field] = value;
+  }
+
+  function renderGates() {
+    const container = document.getElementById('gates-rows');
+    if (!container) return;
+    if (!gates.length) {
+      container.innerHTML = '<div style="color:var(--muted);font-size:.82rem;padding:4px 0">No gates added.</div>';
+      return;
+    }
+    container.innerHTML = gates.map(g => `
+      <div class="gates-row">
+        <select onchange="updateGate(${g.id},'type',this.value)" style="padding:5px 8px;border:1px solid var(--border);border-radius:4px;font-size:.85rem;background:#fafaf8">
+          <option ${g.type==='Walk'   ?'selected':''}>Walk</option>
+          <option ${g.type==='Drive'  ?'selected':''}>Drive</option>
+          <option ${g.type==='Single' ?'selected':''}>Single</option>
+          <option ${g.type==='Double' ?'selected':''}>Double</option>
+        </select>
+        <input type="number" min="0" step="0.5" placeholder="ft" value="${g.width}"
+          onchange="updateGate(${g.id},'width',this.value)"
+          style="padding:5px 8px;border:1px solid var(--border);border-radius:4px;font-size:.85rem;background:#fafaf8" />
+        <input type="number" min="0" step="0.5" placeholder="ft" value="${g.height}"
+          onchange="updateGate(${g.id},'height',this.value)"
+          style="padding:5px 8px;border:1px solid var(--border);border-radius:4px;font-size:.85rem;background:#fafaf8" />
+        <input type="text" placeholder="hinge side, latch style, auto opener…" value="${g.notes}"
+          oninput="updateGate(${g.id},'notes',this.value)"
+          class="gate-notes"
+          style="padding:5px 8px;border:1px solid var(--border);border-radius:4px;font-size:.85rem;background:#fafaf8;width:100%" />
+        <button class="del-btn" onclick="removeGate(${g.id})" title="Remove gate">✕</button>
+      </div>`).join('');
+  }
 
   // ── Add a fence section row ──
   function addRow(side, len='', hgt='', stainFace='outside', bleachFace='none') {
@@ -1955,11 +2257,35 @@
     const customerPhone2 = document.getElementById('customer-phone2').value;
     const customerEmail  = document.getElementById('customer-email').value;
     const accessNotes    = document.getElementById('access-notes').value;
+    const changeOrder    = document.getElementById('change-order').value;
     const crewLead       = document.getElementById('crew-lead').value;
     const jobStartDate   = document.getElementById('job-start-date').value;
+    const jobEndDate     = document.getElementById('job-end-date').value;
     const jobStatus      = document.getElementById('job-status').value;
+    const terrain        = document.getElementById('job-terrain').value;
+    const terrainLabel   = { normal:'Normal', rocky:'Rocky', clay:'Heavy Clay', hillside:'Hillside/Slope', wooded:'Wooded' }[terrain] || terrain;
     const addrParts = ['addr','city','state','zip'].map(id => document.getElementById(id).value).filter(Boolean);
     const phoneLine = [customerPhone, customerPhone2].filter(Boolean).join(' / ');
+
+    const scopeChecks = [
+      { id:'scope-demo',   label:'Demo / Remove Existing' },
+      { id:'scope-haul',   label:'Haul-Away' },
+      { id:'scope-811',    label:'811 Call Made' },
+      { id:'scope-permit', label:'Dig Permit Required' },
+      { id:'scope-cusmat', label:'Customer-Supplied Materials' },
+    ];
+    const activeScope = scopeChecks.filter(c => document.getElementById(c.id)?.checked).map(c => c.label);
+
+    const gateRows = gates.filter(g => g.type || g.width || g.height || g.notes);
+    const gatesHtml = gateRows.length ? `
+      <div style="margin-top:6px;font-size:.82rem">
+        <strong>Gates:</strong>
+        <table style="width:100%;border-collapse:collapse;margin-top:3px;font-size:.8rem;border:1px solid #ddd">
+          <tr style="background:#f5f5f5"><th style="padding:3px 7px;text-align:left">Type</th><th style="padding:3px 7px">W</th><th style="padding:3px 7px">H</th><th style="padding:3px 7px;text-align:left">Notes</th></tr>
+          ${gateRows.map(g=>`<tr><td style="padding:3px 7px">${g.type||'—'}</td><td style="padding:3px 7px;text-align:center">${g.width||'—'}'</td><td style="padding:3px 7px;text-align:center">${g.height||'—'}'</td><td style="padding:3px 7px">${g.notes||''}</td></tr>`).join('')}
+        </table>
+      </div>` : '';
+
     const customerHtml = `
       <div style="margin:6px 0 10px;font-size:.88rem;line-height:1.8;border-bottom:1px solid #e0e0e0;padding-bottom:8px">
         <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
@@ -1969,14 +2295,19 @@
             ${customerEmail ? `<div style="color:#444">${customerEmail}</div>` : ''}
             ${addrParts.length ? `<div>${addrParts.join(', ')}</div>` : ''}
             ${accessNotes ? `<div style="margin-top:3px;color:#555;font-size:.82rem"><em>Access: ${accessNotes}</em></div>` : ''}
+            ${activeScope.length ? `<div style="margin-top:3px;font-size:.8rem;color:#333"><strong>Scope:</strong> ${activeScope.join(' · ')}</div>` : ''}
+            ${terrain !== 'normal' ? `<div style="font-size:.8rem;color:#333"><strong>Terrain:</strong> ${terrainLabel}</div>` : ''}
+            ${gatesHtml}
           </div>
           <div style="text-align:right;font-size:.82rem;color:#555">
             <div>Job: <strong>${currentJobNumber || ''}</strong></div>
             ${jobStatus    ? `<div>Status: ${(STATUS_STYLES[jobStatus]||{label:jobStatus}).label}</div>` : ''}
             ${jobStartDate ? `<div>Start: ${jobStartDate}</div>` : ''}
+            ${jobEndDate   ? `<div>Complete: ${jobEndDate}</div>` : ''}
             ${crewLead     ? `<div>Crew Lead: ${crewLead}</div>` : ''}
           </div>
         </div>
+        ${changeOrder ? `<div style="margin-top:8px;padding:6px 10px;background:#e3f2fd;border-left:3px solid #1565c0;font-size:.82rem"><strong>Change Order:</strong> ${changeOrder}</div>` : ''}
       </div>`;
     const addressHtml = customerHtml;
 
@@ -2136,6 +2467,27 @@
 
         <div style="font-weight:700;font-size:.9rem;margin-bottom:10px">Additional Supplies / Notes:</div>
         ${['','','','',''].map(() => `<div style="border-bottom:1px solid #ccc;margin-bottom:14px;height:18px"></div>`).join('')}
+
+        <div style="margin-top:40px;page-break-inside:avoid">
+          <div style="font-weight:700;font-size:.9rem;margin-bottom:20px;border-top:2px solid #333;padding-top:12px">Customer Authorization</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:30px">
+            <div>
+              <div style="border-bottom:1px solid #333;height:38px;margin-bottom:5px"></div>
+              <div style="font-size:.78rem;color:#444">Customer Signature</div>
+            </div>
+            <div>
+              <div style="border-bottom:1px solid #333;height:38px;margin-bottom:5px"></div>
+              <div style="font-size:.78rem;color:#444">Date</div>
+            </div>
+          </div>
+          <div style="margin-top:18px">
+            <div style="border-bottom:1px solid #333;height:38px;margin-bottom:5px"></div>
+            <div style="font-size:.78rem;color:#444">Printed Name</div>
+          </div>
+          <div style="margin-top:16px;padding:8px 12px;background:#f9f9f9;border:1px solid #ddd;font-size:.78rem;color:#555;line-height:1.5">
+            By signing above, customer authorizes Holliday Welding &amp; Fence to perform the work described. Any changes to scope must be agreed in writing.
+          </div>
+        </div>
       </div>
     `;
   }
@@ -2177,11 +2529,19 @@
      'tl-rate','tl-crew','tl-labor-rate'].forEach(id => {
       rates[id] = document.getElementById(id).value;
     });
+    const scopeIds = ['scope-demo','scope-haul','scope-811','scope-permit','scope-cusmat'];
+    const scope = {};
+    scopeIds.forEach(id => { scope[id] = document.getElementById(id)?.checked || false; });
     return {
       jobNumber:     currentJobNumber,
       jobStatus:     document.getElementById('job-status').value,
       jobStartDate:  document.getElementById('job-start-date').value,
+      jobEndDate:    document.getElementById('job-end-date').value,
+      jobEstDays:    document.getElementById('job-est-days').value,
       crewLead:      document.getElementById('crew-lead').value,
+      terrain:       document.getElementById('job-terrain').value,
+      changeOrder:   document.getElementById('change-order').value,
+      scope,
       customerName:  document.getElementById('customer-name').value,
       customerPhone: document.getElementById('customer-phone').value,
       customerPhone2:document.getElementById('customer-phone2').value,
@@ -2195,6 +2555,7 @@
       stainProduct: document.getElementById('stain-product').value,
       rates,
       sides: JSON.parse(JSON.stringify(sides)),
+      gates: JSON.parse(JSON.stringify(gates)),
       quoteMode,
     };
   }
@@ -2213,6 +2574,7 @@
     localStorage.setItem('fsig-jobs', JSON.stringify(jobs.slice(0, 50)));
     renderJobLog();
     renderCalendar();
+    updateStorageMeter();
     const btn = document.getElementById('save-job-btn');
     const orig = btn.textContent;
     btn.textContent = '✓ Saved!';
@@ -2229,7 +2591,16 @@
     document.getElementById('job-number').textContent = currentJobNumber;
     document.getElementById('job-status').value     = s.jobStatus     || 'pending';
     document.getElementById('job-start-date').value = s.jobStartDate  || '';
+    document.getElementById('job-end-date').value   = s.jobEndDate    || '';
+    document.getElementById('job-est-days').value   = s.jobEstDays    || '';
     document.getElementById('crew-lead').value       = s.crewLead      || '';
+    document.getElementById('job-terrain').value     = s.terrain       || 'normal';
+    document.getElementById('change-order').value    = s.changeOrder   || '';
+    const scopeIds = ['scope-demo','scope-haul','scope-811','scope-permit','scope-cusmat'];
+    scopeIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.checked = (s.scope || {})[id] || false;
+    });
     document.getElementById('customer-name').value   = s.customerName  || '';
     document.getElementById('customer-phone').value  = s.customerPhone || '';
     document.getElementById('customer-phone2').value = s.customerPhone2|| '';
@@ -2249,6 +2620,9 @@
     Object.assign(sides, JSON.parse(JSON.stringify(s.sides)));
     rowCounter = Math.max(0, ...Object.values(s.sides).flat().map(r => r.id || 0));
     ALL_SIDES.forEach(side => renderRows(side));
+    gates = JSON.parse(JSON.stringify(s.gates || []));
+    gateCounter = Math.max(0, ...gates.map(g => g.id || 0));
+    renderGates();
     setMode(s.quoteMode || 'linft');
     recalc();
     window.scrollTo(0, 0);
@@ -2369,6 +2743,191 @@
     a.click();
   }
 
+  // ── Customer Contacts Database ──────────────────────────────────────────────
+
+  function getContacts() {
+    return JSON.parse(localStorage.getItem('fsig-contacts') || '[]');
+  }
+  function saveContacts(list) {
+    localStorage.setItem('fsig-contacts', JSON.stringify(list));
+    updateStorageMeter();
+  }
+
+  function saveContact() {
+    const name  = document.getElementById('customer-name').value.trim();
+    const phone = document.getElementById('customer-phone').value.trim();
+    const phone2= document.getElementById('customer-phone2').value.trim();
+    const email = document.getElementById('customer-email').value.trim();
+    const addr  = document.getElementById('addr').value.trim();
+    const city  = document.getElementById('city').value.trim();
+    const state = document.getElementById('state').value.trim();
+    const zip   = document.getElementById('zip').value.trim();
+    if (!name) { alert('Enter a customer name first.'); return; }
+    const contacts = getContacts();
+    const existing = contacts.findIndex(c => c.name.toLowerCase() === name.toLowerCase());
+    const entry = { name, phone, phone2, email, addr, city, state, zip };
+    if (existing >= 0) {
+      if (!confirm(`Update contact "${name}"?`)) return;
+      contacts[existing] = entry;
+    } else {
+      contacts.unshift(entry);
+    }
+    saveContacts(contacts.slice(0, 200));
+    const btn = event.target;
+    const orig = btn.innerHTML;
+    btn.innerHTML = '✓ Saved';
+    btn.style.background = '#27ae60';
+    setTimeout(() => { btn.innerHTML = orig; btn.style.background = ''; }, 2000);
+  }
+
+  function fillFromContact(c) {
+    document.getElementById('customer-name').value   = c.name   || '';
+    document.getElementById('customer-phone').value  = c.phone  || '';
+    document.getElementById('customer-phone2').value = c.phone2 || '';
+    document.getElementById('customer-email').value  = c.email  || '';
+    document.getElementById('addr').value  = c.addr  || '';
+    document.getElementById('city').value  = c.city  || '';
+    document.getElementById('state').value = c.state || '';
+    document.getElementById('zip').value   = c.zip   || '';
+    closeContactsDropdown();
+  }
+
+  let _contactMatches = [];
+
+  function onCustomerNameInput(val) {
+    const dd = document.getElementById('contacts-dropdown');
+    if (!dd) return;
+    const q = val.trim().toLowerCase();
+    if (!q) { dd.classList.remove('open'); return; }
+    const contacts = getContacts();
+    _contactMatches = contacts.filter(c => c.name.toLowerCase().includes(q)).slice(0, 8);
+    if (!_contactMatches.length) { dd.classList.remove('open'); return; }
+    dd.innerHTML = _contactMatches.map((c, i) => {
+      const sub = [c.phone, c.addr, c.city].filter(Boolean).join(' · ');
+      return `<div class="contacts-item" onmousedown="_pickContact(${i})">
+        <div style="font-weight:600">${c.name}</div>
+        ${sub ? `<div class="ci-sub">${sub}</div>` : ''}
+      </div>`;
+    }).join('');
+    dd.classList.add('open');
+  }
+
+  function _pickContact(idx) {
+    const c = _contactMatches[idx];
+    if (c) fillFromContact(c);
+  }
+
+  function closeContactsDropdown() {
+    const dd = document.getElementById('contacts-dropdown');
+    if (dd) dd.classList.remove('open');
+  }
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.customer-name-wrap')) closeContactsDropdown();
+  });
+
+  // ── Storage Meter ──────────────────────────────────────────────────────────
+
+  function updateStorageMeter() {
+    try {
+      let totalBytes = 0;
+      for (const k in localStorage) {
+        if (!localStorage.hasOwnProperty(k)) continue;
+        totalBytes += (localStorage.getItem(k) || '').length * 2;
+      }
+      const MAX_BYTES = 5 * 1024 * 1024;
+      const pct = Math.min(100, (totalBytes / MAX_BYTES) * 100);
+      const kb = (totalBytes / 1024).toFixed(0);
+      const mb = (MAX_BYTES / 1024 / 1024).toFixed(0);
+      const fill = document.getElementById('storage-fill');
+      const label = document.getElementById('storage-label');
+      if (!fill || !label) return;
+      fill.style.width = pct + '%';
+      fill.className = 'storage-bar-fill' + (pct > 85 ? ' danger' : pct > 65 ? ' warn' : '');
+      label.textContent = kb + ' KB / ' + mb + ' MB';
+    } catch {}
+  }
+
+  // ── Est. Days sync (Job Info ↔ Time & Labor) ──────────────────────────────
+
+  function syncEstDays(val) {
+    const a = document.getElementById('job-est-days');
+    const b = document.getElementById('tl-est-days');
+    if (a && b) { a.value = val; b.value = val; }
+  }
+
+  document.getElementById('job-est-days')?.addEventListener('input', function() {
+    const b = document.getElementById('tl-est-days');
+    if (b) b.value = this.value;
+    renderCalendar();
+  });
+
+  // ── Invoice Simple Paste-to-Parse ─────────────────────────────────────────
+
+  function parseInvoiceSimple() {
+    const text = (document.getElementById('invoice-paste')?.value || '').trim();
+    const result = document.getElementById('invoice-parse-result');
+    if (!text) { result.textContent = 'Paste some text first.'; return; }
+
+    const filled = [];
+
+    function extract(patterns, multi = false) {
+      for (const pat of patterns) {
+        const m = text.match(pat);
+        if (m) return multi ? m : m[1];
+      }
+      return '';
+    }
+
+    const name = extract([
+      /(?:bill to|client|customer)[:\s]+([A-Za-z][\w\s\-\.]{1,50}?)(?:\n|$)/i,
+      /^([A-Z][a-z]+ [A-Z][a-z]+)\s*\n/m,
+    ]);
+    const phone = extract([
+      /(\(?\d{3}\)?[\s\-\.]\d{3}[\s\-\.]\d{4})/,
+    ]);
+    const email = extract([
+      /([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})/,
+    ]);
+    const addr = extract([
+      /(\d+\s+[\w\s\.\-]+(?:St|Ave|Blvd|Rd|Dr|Ln|Ct|Way|Pl|Hwy|Tr)[.,]?\s*(?:\w+,?\s*\w{2}\s*\d{5})?)/i,
+    ]);
+    const dateStr = extract([
+      /(?:date|invoice date)[:\s]+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i,
+      /(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})/,
+    ]);
+
+    if (name)   { document.getElementById('customer-name').value  = name.trim(); filled.push('Name'); }
+    if (phone)  { document.getElementById('customer-phone').value = phone.trim(); filled.push('Phone'); }
+    if (email)  { document.getElementById('customer-email').value = email.trim(); filled.push('Email'); }
+    if (addr) {
+      const parts = addr.trim().split(/,\s*/);
+      if (parts[0]) document.getElementById('addr').value = parts[0];
+      if (parts[1]) document.getElementById('city').value = parts[1];
+      const stateZip = (parts[2] || '').trim().split(/\s+/);
+      if (stateZip[0]) document.getElementById('state').value = stateZip[0];
+      if (stateZip[1]) document.getElementById('zip').value   = stateZip[1];
+      filled.push('Address');
+    }
+    if (dateStr) {
+      // Attempt ISO date conversion
+      const parts = dateStr.split(/[\/\-]/);
+      if (parts.length === 3) {
+        const y = parts[2].length === 2 ? '20' + parts[2] : parts[2];
+        document.getElementById('job-start-date').value = `${y}-${parts[0].padStart(2,'0')}-${parts[1].padStart(2,'0')}`;
+        filled.push('Start Date');
+      }
+    }
+
+    if (filled.length) {
+      result.style.color = 'var(--ok)';
+      result.textContent = '✓ Filled: ' + filled.join(', ');
+    } else {
+      result.style.color = 'var(--accent)';
+      result.textContent = 'Could not extract info — try selecting more text from the PDF.';
+    }
+  }
+
   function _buildJobMsg() {
     const s = {
       name:    document.getElementById('customer-name').value,
@@ -2422,24 +2981,105 @@
     if (!confirm('Start a new job? Current data will be cleared.')) return;
     currentJobNumber = genJobNumber();
     document.getElementById('job-number').textContent = currentJobNumber;
-    ['job-status'].forEach(id => { document.getElementById(id).value = 'pending'; });
-    ['job-start-date','crew-lead','customer-name','customer-phone','customer-phone2',
-     'customer-email','access-notes','crew-notes','addr','city','state','zip'].forEach(id => {
-      document.getElementById(id).value = '';
+    document.getElementById('job-status').value = 'pending';
+    document.getElementById('job-terrain').value = 'normal';
+    ['job-start-date','job-end-date','job-est-days','crew-lead','customer-name','customer-phone',
+     'customer-phone2','customer-email','access-notes','crew-notes','change-order',
+     'addr','city','state','zip'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.value = '';
+    });
+    ['scope-demo','scope-haul','scope-811','scope-permit','scope-cusmat'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.checked = false;
     });
     document.getElementById('stain-product').value = '';
     document.getElementById('stain-product-specs').style.display = 'none';
     ALL_SIDES.forEach(s => { sides[s] = []; });
     rowCounter = 0;
     ALL_SIDES.forEach(s => addRow(s));
+    gates = []; gateCounter = 0;
+    renderGates();
     recalc();
   }
 
   // ── Fence Parts Calculator ────────────────────────────────────────────────
+
+  let stretches = []; // [{ id, length, gatesInRun }]
+  let stretchCounter = 0;
+
   function partsTypeChange() {
     const t = document.getElementById('parts-type').value;
     document.getElementById('parts-chainlink-opts').style.display = (t === 'chainlink') ? 'flex' : 'none';
     document.getElementById('parts-wood-opts').style.display      = (t === 'wood' || t === 'vinyl') ? 'flex' : 'none';
+    toggleStretchesUI();
+  }
+
+  function toggleStretchesUI() {
+    const isChainlink = document.getElementById('parts-type').value === 'chainlink';
+    const useStretches = document.getElementById('parts-use-stretches')?.checked;
+    const wrap = document.getElementById('parts-stretches-wrap');
+    if (wrap) wrap.style.display = (isChainlink && useStretches) ? 'block' : 'none';
+  }
+
+  function addStretch(length='', gatesInRun=0) {
+    const id = ++stretchCounter;
+    stretches.push({ id, length, gatesInRun });
+    renderStretches();
+  }
+
+  function removeStretch(id) {
+    stretches = stretches.filter(s => s.id !== id);
+    renderStretches();
+  }
+
+  function renderStretches() {
+    const container = document.getElementById('stretches-rows');
+    if (!container) return;
+    if (!stretches.length) {
+      container.innerHTML = '<div style="color:var(--muted);font-size:.8rem;padding:4px 0">No stretches. Add one below.</div>';
+      document.getElementById('stretch-linepost-count').textContent = '0';
+      document.getElementById('stretch-terminal-count').textContent = '0';
+      return;
+    }
+    container.innerHTML = stretches.map(s => `
+      <div class="stretch-row">
+        <input type="number" min="0" step="1" placeholder="ft" value="${s.length}"
+          onchange="updateStretch(${s.id},'length',this.value)" />
+        <input type="number" min="0" step="1" value="${s.gatesInRun}"
+          onchange="updateStretch(${s.id},'gatesInRun',this.value)" />
+        <input type="text" placeholder="optional note" value="${s.note||''}"
+          oninput="updateStretch(${s.id},'note',this.value)" />
+        <button class="del-btn" onclick="removeStretch(${s.id})" title="Remove">✕</button>
+      </div>`).join('');
+    recalcStretches();
+  }
+
+  function updateStretch(id, field, value) {
+    const s = stretches.find(s => s.id === id);
+    if (s) { s[field] = field === 'note' ? value : (parseFloat(value) || 0); }
+    recalcStretches();
+  }
+
+  function recalcStretches() {
+    const spacing = parseFloat(document.getElementById('parts-spacing')?.value) || 8;
+    let linePosts = 0;
+    let totalGates = 0;
+    stretches.forEach(s => {
+      const L = parseFloat(s.length) || 0;
+      const g = parseInt(s.gatesInRun) || 0;
+      totalGates += g;
+      if (L > 0) {
+        // Each gate in the run splits it — treat sub-runs between gates
+        // Simple formula: line posts in stretch = max(0, ceil(L/spacing) - 1) - g
+        linePosts += Math.max(0, Math.ceil(L / spacing) - 1 - g);
+      }
+    });
+    const terminals = stretches.length + 1; // +1 for last end post (assumes straight runs)
+    document.getElementById('stretch-linepost-count').textContent = linePosts;
+    document.getElementById('stretch-terminal-count').textContent = terminals + (totalGates * 2);
+    // Sync terminal posts input
+    const termEl = document.getElementById('parts-terminals');
+    if (termEl) termEl.value = terminals + (totalGates * 2);
+    return { linePosts, terminals: terminals + (totalGates * 2), totalGates };
   }
 
   function pullPartsFromSections() {
@@ -2465,53 +3105,69 @@
     const lf       = parseFloat(document.getElementById('parts-lf').value) || 0;
     const height   = parseFloat(document.getElementById('parts-height').value) || 6;
     const spacing  = parseFloat(document.getElementById('parts-spacing').value) || 8;
-    const terminals= parseInt(document.getElementById('parts-terminals').value) || 0;
-    const gates    = parseInt(document.getElementById('parts-gates').value) || 0;
+    let   terminals= parseInt(document.getElementById('parts-terminals').value) || 0;
+    const gatesNum = parseInt(document.getElementById('parts-gates').value) || 0;
 
     if (!lf) { alert('Enter a linear footage or click "Pull from Sections".'); return; }
 
     let items = [];
 
     if (type === 'chainlink') {
-      const rollSize  = parseFloat(document.getElementById('parts-roll').value) || 50;
-      const railLen   = parseFloat(document.getElementById('parts-rail-len').value) || 21;
-      const concrete  = document.getElementById('parts-concrete').checked;
+      const rollSize    = parseFloat(document.getElementById('parts-roll').value) || 50;
+      const railLen     = parseFloat(document.getElementById('parts-rail-len').value) || 21;
+      const concrete    = document.getElementById('parts-concrete').checked;
+      const useStretches= document.getElementById('parts-use-stretches')?.checked;
 
-      // Posts
-      const linePosts = Math.ceil(lf / spacing) - terminals + 1; // Hoover method
-      const totalPosts = linePosts + terminals + (gates * 2);    // gate posts count as terminal
-      // Fabric
+      let linePosts, terminalPosts, totalGates;
+
+      if (useStretches && stretches.length > 0) {
+        // ── Hoover Stretches Method ──
+        // For each stretch: line posts = max(0, ceil(L/spacing) - 1 - gatesInRun)
+        // Terminal posts = one at each end of each stretch, de-duped at shared corners
+        //   = stretches.length + 1 (for a single run) + gates*2 already counted
+        const sc = recalcStretches();
+        linePosts    = sc.linePosts;
+        terminalPosts= sc.terminals;
+        totalGates   = sc.totalGates;
+        // Update terminals input to reflect calculation
+        terminals = terminalPosts;
+      } else {
+        // ── Simple Method ──
+        linePosts     = Math.max(0, Math.ceil(lf / spacing) - terminals + 1);
+        terminalPosts = terminals;
+        totalGates    = gatesNum;
+      }
+
+      const totalPosts  = linePosts + terminalPosts;
       const fabricRolls = Math.ceil(lf / rollSize);
-      // Top rail
       const railSticks  = Math.ceil(lf / railLen);
-      // Hardware per terminal post
-      const tensionBands = terminals * 3 + gates * 2 * 3;
-      const tensionBars  = (terminals + gates * 2) * 1;
-      const braceBands   = (terminals + gates * 2) * 2;
-      const railEnds     = (terminals + gates * 2) * 1;
-      const postCaps     = terminals + gates * 2;
-      const loopCaps     = linePosts;
-      // Fence ties: every 24" on line posts × height rows + every 12" on rails
-      const tiesPerPost  = Math.ceil((height * 12) / 24);
-      const tiesOnPosts  = linePosts * tiesPerPost;
-      const tiesOnRails  = Math.ceil(lf / 1); // 1 tie per foot on rail (approx)
-      const fenceTies    = tiesOnPosts + tiesOnRails;
-      const concreteBags = concrete ? totalPosts : 0;
+      const tensionBands= terminalPosts * 3;
+      const tensionBars = terminalPosts;
+      const braceBands  = terminalPosts * 2;
+      const railEnds    = terminalPosts;
+      const postCaps    = terminalPosts;
+      const loopCaps    = linePosts;
+      const tiesPerPost = Math.ceil((height * 12) / 24);
+      const fenceTies   = linePosts * tiesPerPost + Math.ceil(lf);
+      const concreteBags= concrete ? totalPosts : 0;
+      const methodNote  = (useStretches && stretches.length > 0)
+        ? ` (Hoover stretches: ${stretches.length} run${stretches.length!==1?'s':''})`
+        : ' (simple method)';
 
       items = [
-        { cat: 'Posts',    name: `Line Posts (${height + 2}' burial + ${height}' above)`, qty: linePosts,     unit: 'posts' },
-        { cat: 'Posts',    name: `Terminal Posts (end/corner)`,                            qty: terminals,     unit: 'posts' },
-        { cat: 'Posts',    name: `Gate Posts`,                                             qty: gates * 2,     unit: 'posts' },
-        { cat: 'Fabric',   name: `Chain Link Fabric ${height}' × ${rollSize}' rolls`,     qty: fabricRolls,   unit: 'rolls' },
-        { cat: 'Rail',     name: `Top Rail — ${railLen}' sticks`,                         qty: railSticks,    unit: 'sticks' },
-        { cat: 'Hardware', name: `Tension Bands (3 per terminal/gate post)`,               qty: tensionBands,  unit: 'ea' },
-        { cat: 'Hardware', name: `Tension Bars (1 per terminal/gate post)`,                qty: tensionBars,   unit: 'ea' },
-        { cat: 'Hardware', name: `Brace Bands (2 per terminal/gate post)`,                 qty: braceBands,    unit: 'ea' },
-        { cat: 'Hardware', name: `Rail Ends (1 per terminal/gate post)`,                   qty: railEnds,      unit: 'ea' },
-        { cat: 'Hardware', name: `Post Caps — terminal`,                                   qty: postCaps,      unit: 'ea' },
-        { cat: 'Hardware', name: `Loop Caps — line posts`,                                 qty: loopCaps,      unit: 'ea' },
-        { cat: 'Hardware', name: `Fence Ties`,                                             qty: fenceTies,     unit: 'ea' },
-        { cat: 'Gate',     name: `Gate Hardware Sets`,                                     qty: gates,         unit: 'sets' },
+        { cat: 'Posts',    name: `Line Posts (${height + 2}' burial + ${height}' above)${methodNote}`, qty: linePosts,    unit: 'posts' },
+        { cat: 'Posts',    name: `Terminal Posts (ends + corners)`,                                     qty: terminalPosts,unit: 'posts' },
+        { cat: 'Posts',    name: `Gate Posts (2 per gate, already in terminals above)`,                 qty: totalGates * 2,unit: 'posts (see note)' },
+        { cat: 'Fabric',   name: `Chain Link Fabric ${height}' × ${rollSize}' rolls`,                  qty: fabricRolls,  unit: 'rolls' },
+        { cat: 'Rail',     name: `Top Rail — ${railLen}' sticks`,                                       qty: railSticks,   unit: 'sticks' },
+        { cat: 'Hardware', name: `Tension Bands (3 per terminal/gate post)`,                            qty: tensionBands, unit: 'ea' },
+        { cat: 'Hardware', name: `Tension Bars (1 per terminal/gate post)`,                             qty: tensionBars,  unit: 'ea' },
+        { cat: 'Hardware', name: `Brace Bands (2 per terminal/gate post)`,                              qty: braceBands,   unit: 'ea' },
+        { cat: 'Hardware', name: `Rail Ends (1 per terminal/gate post)`,                                qty: railEnds,     unit: 'ea' },
+        { cat: 'Hardware', name: `Post Caps — terminal`,                                                qty: postCaps,     unit: 'ea' },
+        { cat: 'Hardware', name: `Loop Caps — line posts`,                                              qty: loopCaps,     unit: 'ea' },
+        { cat: 'Hardware', name: `Fence Ties`,                                                          qty: fenceTies,    unit: 'ea' },
+        { cat: 'Gate',     name: `Gate Hardware Sets`,                                                  qty: totalGates,   unit: 'sets' },
       ];
       if (concrete) items.push({ cat: 'Concrete', name: `Concrete (80 lb bags)`, qty: concreteBags, unit: 'bags' });
 
@@ -2588,9 +3244,13 @@
 
   // Init — start with one blank row per side
   ALL_SIDES.forEach(s => addRow(s));
+  addGate(); // start with one gate row
+  addStretch(); // start with one stretch row
   initJobNumber();
   renderJobLog();
   renderCalendar();
+  updateStorageMeter();
+  toggleStretchesUI();
 </script>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -2629,25 +3289,45 @@
       monday.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' – ' +
       end.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
 
+    // Build a set of all ISO dates blocked by jobs with estimated days
+    const blockedByJob = {}; // iso -> [{j, isStart, dayIdx}]
+    jobs.forEach(j => {
+      const startISO = j.date || (j.state && j.state.jobStartDate);
+      if (!startISO) return;
+      const estDays = parseInt((j.state && j.state.jobEstDays) || 1) || 1;
+      const start = new Date(startISO + 'T00:00:00');
+      for (let d = 0; d < estDays; d++) {
+        const dt = new Date(start);
+        dt.setDate(start.getDate() + d);
+        const iso = fmtDate(dt);
+        if (!blockedByJob[iso]) blockedByJob[iso] = [];
+        blockedByJob[iso].push({ j, isStart: d === 0, dayIdx: d });
+      }
+    });
+
     // Build day cells
     const grid = document.getElementById('cal-grid');
     grid.innerHTML = days.map(d => {
       const iso = fmtDate(d);
       const isToday = iso === fmtDate(today);
       const isWknd  = d.getDay() === 0 || d.getDay() === 6;
-      const dayJobs = jobs.filter(j => (j.date || (j.state && j.state.jobStartDate)) === iso);
-      const chips = dayJobs.map(j => {
+      const blocked = blockedByJob[iso] || [];
+      const chips = blocked.map(({ j, isStart, dayIdx }) => {
         const st = STATUS_STYLES[j.status] || STATUS_STYLES['pending'];
+        const estDays = parseInt((j.state && j.state.jobEstDays) || 1) || 1;
+        const label   = isStart ? j.label : `↳ ${j.label} (day ${dayIdx + 1}/${estDays})`;
+        const opacity = isStart ? '1' : '0.75';
         return `<div class="cal-job-chip" onclick="loadJob(${j.id})"
-          style="background:${st.bg};color:${st.color};border-left-color:${st.color}"
-          title="${j.label}">
-          ${j.label}
+          style="background:${st.bg};color:${st.color};border-left-color:${st.color};opacity:${opacity}"
+          title="${j.label} · Day ${dayIdx+1} of ${estDays}">
+          ${label}
         </div>`;
       }).join('');
-      return `<div class="cal-day${isToday?' today':''}${isWknd?' weekend':''}">
+      const jobCount = blocked.filter(b => b.isStart).length;
+      return `<div class="cal-day${isToday?' today':''}${isWknd?' weekend':''}${blocked.length&&!blocked.some(b=>b.isStart)?' ':''}">
         <div class="cal-date">${d.getDate()}</div>
         ${chips}
-        ${dayJobs.length >= 3 ? '<div style="font-size:.65rem;color:var(--accent);font-weight:700">'+dayJobs.length+' jobs</div>' : ''}
+        ${jobCount >= 3 ? '<div style="font-size:.65rem;color:var(--accent);font-weight:700">'+jobCount+' jobs</div>' : ''}
       </div>`;
     }).join('');
 
