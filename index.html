@@ -904,7 +904,14 @@
       <button class="print-btn" onclick="clearPlanningMap()" style="background:#c0392b">Clear</button>
       <button class="print-btn" onclick="savePlanSnapshot()" style="background:#27ae60" id="save-plan-btn">&#128190; Save Plan</button>
       <button class="print-btn" onclick="printSitePlan()" style="background:#374a5a">&#128424; Print Plan</button>
+      <button class="print-btn" onclick="downloadKML()" style="background:#1A73E8" title="Open in Google Earth">&#127758; Download KML</button>
       <span style="font-size:.78rem;color:var(--muted)">Tap map to trace fence. Each point measures the segment.</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:#f7f6f2;border-radius:4px;border:1px solid var(--border);margin-bottom:10px">
+      <span style="font-size:.72rem;color:var(--muted);white-space:nowrap">Google Maps API Key</span>
+      <input id="gmaps-api-key" type="text" placeholder="Paste key → enables Google Maps &amp; Google Earth snapshots (optional)"
+        style="flex:1;padding:4px 7px;border:1px solid var(--border);border-radius:3px;font-size:.75rem;background:white" />
+      <button id="gmaps-key-save" onclick="saveGmapsKey()" class="print-btn" style="padding:5px 12px;font-size:.72rem;white-space:nowrap">Apply</button>
     </div>
     <div class="planner-wrap">
       <div id="planning-map"></div>
@@ -2975,7 +2982,8 @@
       plannerSvg: buildPlannerSvg(planPoints.map(p => ({lat: p.lat, lng: p.lng})), _planSegments),
       mapSnapshotUrl: (planPoints.length >= 2) ? buildMapSnapshotUrl(planPoints.map(p => ({lat: p.lat, lng: p.lng}))) : '',
       plannerSvgOverlay: (() => {
-        if (planPoints.length < 2) return '';
+        // Skip overlay when Google key is set — path is already baked into the Static Maps URL
+        if (planPoints.length < 2 || getGmapsKey()) return '';
         const pts = planPoints.map(p => ({lat: p.lat, lng: p.lng}));
         return buildPlannerSvgOverlay(pts, _planSegments, getPlanBbox(pts), 580, 280);
       })(),
@@ -3922,10 +3930,100 @@
 
   // ── SITE PLANNER ──────────────────────────────────────────────────────────
   let planMap = null;
-  let planPoints = [];
+  let planPoints = []; // always plain {lat, lng}
   let planLayers = [];
-  let _savedPlanPoints = null; // deferred restore when map not yet initialized
+  let _savedPlanPoints = null;
+  let _mapIsGoogle = false;
   const ORANGE = '#C8530A';
+
+  // ── Map provider abstraction ──────────────────────────────────────────────
+  function getGmapsKey() { return localStorage.getItem('fsig-gmaps-key') || ''; }
+
+  function saveGmapsKey() {
+    const key = (document.getElementById('gmaps-api-key')?.value || '').trim();
+    localStorage.setItem('fsig-gmaps-key', key);
+    // Tear down existing map and reinitialize
+    if (planMap) {
+      planLayers.forEach(l => _mapRemoveLayer(l));
+      planLayers = [];
+      if (!_mapIsGoogle) { try { planMap.remove(); } catch(e) {} }
+      planMap = null;
+      _mapIsGoogle = false;
+    }
+    initPlanMap();
+    const btn = document.getElementById('gmaps-key-save');
+    if (btn) { btn.textContent = '✓ Applied'; setTimeout(() => { btn.textContent = 'Apply'; }, 2500); }
+  }
+
+  function _mapAddDot(ll) {
+    if (_mapIsGoogle) {
+      const m = new google.maps.Marker({
+        position: { lat: +ll.lat, lng: +ll.lng }, map: planMap,
+        icon: { path: google.maps.SymbolPath.CIRCLE, scale: 6,
+          fillColor: ORANGE, fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2 }
+      });
+      planLayers.push(m);
+    } else {
+      planLayers.push(L.circleMarker([ll.lat, ll.lng], {
+        radius: 5, color: ORANGE, fillColor: ORANGE, fillOpacity: 1, weight: 2
+      }).addTo(planMap));
+    }
+  }
+
+  function _mapAddLine(pts, dashed) {
+    if (_mapIsGoogle) {
+      const po = new google.maps.Polyline({
+        path: pts.map(p => ({ lat: +p.lat, lng: +p.lng })),
+        map: planMap, strokeColor: ORANGE, strokeWeight: 3,
+        ...(dashed
+          ? { strokeOpacity: 0, icons: [{ icon: { path: 'M 0,-1 0,1', strokeOpacity: 1, scale: 3 }, offset: '0', repeat: '10px' }] }
+          : { strokeOpacity: 0.9 })
+      });
+      planLayers.push(po);
+    } else {
+      planLayers.push(L.polyline(pts.map(p => [p.lat, p.lng]), {
+        color: ORANGE, weight: 3, opacity: 0.9, dashArray: dashed ? '6 4' : null
+      }).addTo(planMap));
+    }
+  }
+
+  function _mapRemoveLayer(layer) {
+    if (_mapIsGoogle) { try { layer.setMap(null); } catch(e) {} }
+    else { try { planMap.removeLayer(layer); } catch(e) {} }
+  }
+
+  function _mapFitBounds(pts) {
+    if (!pts || pts.length < 2) return;
+    try {
+      if (_mapIsGoogle) {
+        const b = new google.maps.LatLngBounds();
+        pts.forEach(p => b.extend({ lat: +p.lat, lng: +p.lng }));
+        planMap.fitBounds(b, 40);
+      } else {
+        planMap.fitBounds(L.latLngBounds(pts.map(p => [p.lat, p.lng])), { padding: [30, 30] });
+      }
+    } catch(e) {}
+  }
+
+  function _mapSetCenter(lat, lng, zoom) {
+    if (_mapIsGoogle) { planMap.setCenter({ lat, lng }); planMap.setZoom(zoom); }
+    else { planMap.setView([lat, lng], zoom); }
+  }
+
+  function _afterMapInit() {
+    if (_savedPlanPoints) {
+      const { pts, segs } = _savedPlanPoints;
+      _savedPlanPoints = null;
+      planPoints = pts.map(p => ({ lat: +p.lat, lng: +p.lng }));
+      _planSegments = segs || [];
+      planPoints.forEach((ll, i) => {
+        _mapAddDot(ll);
+        if (i > 0) _mapAddLine([planPoints[i - 1], ll]);
+      });
+      _mapFitBounds(planPoints);
+      updatePlanMeasurements();
+    }
+  }
 
   // Build a standalone SVG diagram (for thumbnails / offline fallback)
   function buildPlannerSvg(points, segments) {
@@ -3991,9 +4089,15 @@
     return { minLat: minLat - pLat, maxLat: maxLat + pLat, minLng: minLng - pLng, maxLng: maxLng + pLng };
   }
 
-  // Generate ESRI satellite export URL (returns PNG, works as <img> src)
+  // Generate satellite snapshot URL — Google Static Maps when key set (path baked in), else ESRI export
   function buildMapSnapshotUrl(pts) {
     if (!pts || pts.length < 2) return '';
+    const key = getGmapsKey();
+    if (key) {
+      const pathStr = pts.map(p => `${(+p.lat).toFixed(6)},${(+p.lng).toFixed(6)}`).join('|');
+      return `https://maps.googleapis.com/maps/api/staticmap?size=580x280&maptype=satellite`
+        + `&path=color:0xC8530Aff|weight:3|${pathStr}&key=${encodeURIComponent(key)}`;
+    }
     const b = getPlanBbox(pts);
     return `https://server.arcgisonline.com/arcgis/rest/services/World_Imagery/MapServer/export`
       + `?bbox=${b.minLng.toFixed(6)},${b.minLat.toFixed(6)},${b.maxLng.toFixed(6)},${b.maxLat.toFixed(6)}`
@@ -4061,9 +4165,11 @@
   function savePlanSnapshot() {
     if (planPoints.length < 2) { alert('Trace at least 2 points on the map first.'); return; }
     const pts = planPoints.map(p => ({ lat: p.lat, lng: p.lng }));
-    const bbox = getPlanBbox(pts);
     const mapUrl = buildMapSnapshotUrl(pts);
-    const overlay = buildPlannerSvgOverlay(pts, _planSegments, bbox, 580, 280);
+    // When using Google Static Maps the fence path is already baked into the image; skip SVG overlay
+    const overlay = getGmapsKey()
+      ? ''
+      : buildPlannerSvgOverlay(pts, _planSegments, getPlanBbox(pts), 580, 280);
     showPlannerPreview(mapUrl, overlay);
     const btn = document.getElementById('save-plan-btn');
     if (btn) { const o = btn.textContent; btn.textContent = '✓ Plan Saved!'; setTimeout(() => { btn.textContent = o; }, 2000); }
@@ -4083,63 +4189,69 @@
 
   function restorePlanPoints(pts, segs) {
     if (!pts || pts.length < 2) return;
-    planPoints = pts.map(p => ({ lat: p.lat, lng: p.lng }));
+    const normalized = pts.map(p => ({ lat: +p.lat, lng: +p.lng }));
     _planSegments = segs || [];
     if (!planMap) {
-      _savedPlanPoints = { pts, segs };
+      _savedPlanPoints = { pts: normalized, segs };
+      planPoints = normalized;
       return;
     }
-    planLayers.forEach(l => planMap.removeLayer(l));
+    planLayers.forEach(l => _mapRemoveLayer(l));
     planLayers = [];
-    planPoints = pts.map(p => L.latLng(p.lat, p.lng));
+    planPoints = normalized;
     planPoints.forEach((ll, i) => {
-      const dot = L.circleMarker(ll, { radius: 5, color: ORANGE, fillColor: ORANGE, fillOpacity: 1, weight: 2 }).addTo(planMap);
-      planLayers.push(dot);
-      if (i > 0) {
-        const seg = L.polyline([planPoints[i - 1], ll], { color: ORANGE, weight: 3 }).addTo(planMap);
-        planLayers.push(seg);
-      }
+      _mapAddDot(ll);
+      if (i > 0) _mapAddLine([planPoints[i - 1], ll]);
     });
-    try { planMap.fitBounds(L.latLngBounds(planPoints), { padding: [30, 30] }); } catch(e) {}
+    _mapFitBounds(planPoints);
     updatePlanMeasurements();
   }
 
   function initPlanMap() {
     if (planMap) return;
-    planMap = L.map('planning-map', { zoomControl: true });
+    const key = getGmapsKey();
+    if (key) {
+      document.getElementById('gmaps-api-key').value = key;
+      if (window.google && window.google.maps) { _initGoogleMap(); }
+      else {
+        const s = document.createElement('script');
+        s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}`;
+        s.onload = _initGoogleMap;
+        s.onerror = () => { _initLeaflet(); };
+        document.head.appendChild(s);
+      }
+    } else {
+      _initLeaflet();
+    }
+  }
 
-    // ESRI satellite imagery (free, no API key)
+  function _initLeaflet() {
+    _mapIsGoogle = false;
+    planMap = L.map('planning-map', { zoomControl: true });
     L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
       { maxZoom: 21, attribution: 'Imagery © Esri' }
     ).addTo(planMap);
-
-    // Labels overlay (roads, addresses, property lines)
     L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
       { maxZoom: 21, opacity: 0.85 }
     ).addTo(planMap);
+    planMap.setView([37.63, -91.54], 14);
+    planMap.on('click', e => onPlanClick({ latlng: { lat: e.latlng.lat, lng: e.latlng.lng } }));
+    _afterMapInit();
+  }
 
-    planMap.setView([37.63, -91.54], 14); // default: Salem, MO area
-    planMap.on('click', onPlanClick);
-
-    // Restore any plan that was loaded before the map initialized
-    if (_savedPlanPoints) {
-      const { pts, segs } = _savedPlanPoints;
-      _savedPlanPoints = null;
-      planPoints = pts.map(p => L.latLng(p.lat, p.lng));
-      _planSegments = segs || [];
-      planPoints.forEach((ll, i) => {
-        const dot = L.circleMarker(ll, { radius: 5, color: ORANGE, fillColor: ORANGE, fillOpacity: 1, weight: 2 }).addTo(planMap);
-        planLayers.push(dot);
-        if (i > 0) {
-          const seg = L.polyline([planPoints[i - 1], ll], { color: ORANGE, weight: 3 }).addTo(planMap);
-          planLayers.push(seg);
-        }
-      });
-      try { planMap.fitBounds(L.latLngBounds(planPoints), { padding: [30, 30] }); } catch(e) {}
-      updatePlanMeasurements();
-    }
+  function _initGoogleMap() {
+    _mapIsGoogle = true;
+    planMap = new google.maps.Map(document.getElementById('planning-map'), {
+      zoom: 14, center: { lat: 37.63, lng: -91.54 },
+      mapTypeId: 'satellite', tilt: 0,
+      streetViewControl: false, mapTypeControl: false
+    });
+    planMap.addListener('click', e =>
+      onPlanClick({ latlng: { lat: e.latLng.lat(), lng: e.latLng.lng() } })
+    );
+    _afterMapInit();
   }
 
   function findProperty() {
@@ -4147,80 +4259,110 @@
     const addr = ['addr','city','state','zip']
       .map(id => document.getElementById(id).value).filter(Boolean).join(', ');
     if (!addr) { alert('Enter an address in Job Info first.'); return; }
-
     const btn = document.getElementById('find-prop-btn');
-    btn.textContent = 'Searching…';
-    btn.disabled = true;
-
-    fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(addr))
-      .then(r => r.json())
-      .then(data => {
-        btn.textContent = '🌍 Find Property';
-        btn.disabled = false;
-        if (!data.length) { alert('Address not found. Check the address in Job Info.'); return; }
-        planMap.setView([+data[0].lat, +data[0].lon], 19);
-      })
-      .catch(() => { btn.textContent = '🌍 Find Property'; btn.disabled = false; alert('Network error.'); });
+    btn.textContent = 'Searching…'; btn.disabled = true;
+    const done = () => { btn.textContent = '🌍 Find Property'; btn.disabled = false; };
+    if (_mapIsGoogle && window.google) {
+      new google.maps.Geocoder().geocode({ address: addr }, (results, status) => {
+        done();
+        if (status === 'OK' && results[0]) {
+          planMap.setCenter(results[0].geometry.location);
+          planMap.setZoom(19);
+        } else { alert('Address not found.'); }
+      });
+    } else {
+      fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(addr))
+        .then(r => r.json())
+        .then(data => {
+          done();
+          if (!data.length) { alert('Address not found.'); return; }
+          _mapSetCenter(+data[0].lat, +data[0].lon, 19);
+        })
+        .catch(() => { done(); alert('Network error.'); });
+    }
   }
 
   function haversineFt(a, b) {
     const R = 20925525;
     const dLat = (b.lat - a.lat) * Math.PI / 180;
     const dLon = (b.lng - a.lng) * Math.PI / 180;
-    const sinLat = Math.sin(dLat/2);
-    const sinLon = Math.sin(dLon/2);
+    const sinLat = Math.sin(dLat/2), sinLon = Math.sin(dLon/2);
     const c = sinLat*sinLat + sinLon*sinLon * Math.cos(a.lat*Math.PI/180) * Math.cos(b.lat*Math.PI/180);
     return R * 2 * Math.atan2(Math.sqrt(c), Math.sqrt(1-c));
   }
 
   function onPlanClick(e) {
-    initPlanMap();
-    const ll = e.latlng;
+    const ll = { lat: +e.latlng.lat, lng: +e.latlng.lng };
+    const prev = planPoints[planPoints.length - 1];
     planPoints.push(ll);
-
-    const dot = L.circleMarker(ll, {
-      radius: 5, color: ORANGE, fillColor: ORANGE, fillOpacity: 1, weight: 2
-    }).addTo(planMap);
-    planLayers.push(dot);
-
-    if (planPoints.length > 1) {
-      const seg = L.polyline(planPoints, { color: ORANGE, weight: 3, opacity: .9 }).addTo(planMap);
-      planLayers.push(seg);
-    }
-
+    _mapAddDot(ll);
+    if (planPoints.length > 1) _mapAddLine([prev, ll]);
     updatePlanMeasurements();
   }
 
   function closePlanningLine() {
     if (planPoints.length < 3) { alert('Add at least 3 points first to close the loop.'); return; }
-    const closed = [...planPoints, planPoints[0]];
-    const line = L.polyline(closed, { color: ORANGE, weight: 3, opacity: .9, dashArray: '6 4' }).addTo(planMap);
-    planLayers.push(line);
-    planPoints = [...planPoints, planPoints[0]];
+    _mapAddLine([planPoints[planPoints.length - 1], planPoints[0]], true);
+    planPoints.push({ lat: planPoints[0].lat, lng: planPoints[0].lng });
     updatePlanMeasurements(true);
   }
 
   function undoLastPoint() {
     if (!planPoints.length) return;
     planPoints.pop();
-    planLayers.forEach(l => planMap.removeLayer(l));
+    planLayers.forEach(l => _mapRemoveLayer(l));
     planLayers = [];
     planPoints.forEach((ll, i) => {
-      const dot = L.circleMarker(ll, { radius: 5, color: ORANGE, fillColor: ORANGE, fillOpacity: 1, weight: 2 }).addTo(planMap);
-      planLayers.push(dot);
-      if (i > 0) {
-        const seg = L.polyline([planPoints[i-1], ll], { color: ORANGE, weight: 3 }).addTo(planMap);
-        planLayers.push(seg);
-      }
+      _mapAddDot(ll);
+      if (i > 0) _mapAddLine([planPoints[i - 1], ll]);
     });
     updatePlanMeasurements();
   }
 
   function clearPlanningMap() {
-    planLayers.forEach(l => planMap.removeLayer(l));
+    planLayers.forEach(l => _mapRemoveLayer(l));
     planLayers = []; planPoints = [];
     document.getElementById('planning-measurements').innerHTML =
       '<div style="color:var(--muted);font-size:.8rem">Trace the fence line on the map to see measurements here.</div>';
+  }
+
+  function downloadKML() {
+    if (planPoints.length < 2) { alert('Trace at least 2 points on the map first.'); return; }
+    const customerName = document.getElementById('customer-name')?.value || '';
+    const addr = ['addr','city','state','zip'].map(id => document.getElementById(id)?.value || '').filter(Boolean).join(', ');
+    const total = _planSegments.reduce((s, seg) => s + (seg.dist || 0), 0);
+    const coords = planPoints.map(p => `          ${(+p.lng).toFixed(8)},${(+p.lat).toFixed(8)},0`).join('\n');
+    const name = (customerName || addr || 'Fence Layout').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+    const kml = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>${name}</name>
+    <description>${addr}${total > 0 ? ' | Total fence: ' + total.toFixed(0) + ' ft' : ''}</description>
+    <Style id="fence"><LineStyle><color>FF0A53C8</color><width>4</width></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+    <Style id="pt"><IconStyle><color>FF0A53C8</color><scale>0.8</scale>
+      <Icon><href>https://maps.google.com/mapfiles/kml/shapes/placemark_circle.png</href></Icon>
+    </IconStyle><LabelStyle><scale>0.7</scale></LabelStyle></Style>
+    <Placemark>
+      <name>Fence Outline${total > 0 ? ' — ' + total.toFixed(0) + ' ft' : ''}</name>
+      <styleUrl>#fence</styleUrl>
+      <LineString><tessellate>1</tessellate><coordinates>
+${coords}
+      </coordinates></LineString>
+    </Placemark>
+    ${_planSegments.map((seg, i) => {
+      const a = planPoints[i], b = planPoints[i + 1];
+      if (!a || !b) return '';
+      const midLat = (a.lat + b.lat) / 2, midLng = (a.lng + b.lng) / 2;
+      return `<Placemark><name>${seg.dist.toFixed(0)} ft</name><styleUrl>#pt</styleUrl>` +
+        `<Point><coordinates>${midLng.toFixed(8)},${midLat.toFixed(8)},0</coordinates></Point></Placemark>`;
+    }).join('\n    ')}
+  </Document>
+</kml>`;
+    const blob = new Blob([kml], { type: 'application/vnd.google-earth.kml+xml' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${(customerName || addr || 'fence').replace(/[^\w\s-]/g,'').replace(/\s+/g,'-').toLowerCase() || 'fence'}.kml`;
+    a.click();
   }
 
   // Calculate compass bearing (degrees) between two latlng points
