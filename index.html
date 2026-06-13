@@ -260,6 +260,44 @@
     .face-badge.both    { background: #e3f2fd; color: #1565c0; }
 
     /* ── JOB LOG ── */
+    .stats-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+    .stat-chip {
+      flex: 1;
+      min-width: 70px;
+      text-align: center;
+      padding: 8px 6px;
+      border-radius: 6px;
+      background: #f0f0f0;
+    }
+    .stat-chip .sc-num { font-size: 1.5rem; font-weight: 700; display: block; line-height: 1.1; }
+    .stat-chip .sc-lbl { font-size: .7rem; color: var(--muted); margin-top: 2px; display: block; }
+    .stat-chip.s-pending    { background: #fff3e0; }
+    .stat-chip.s-scheduled  { background: #e8eaf6; }
+    .stat-chip.s-inprogress { background: #e3f2fd; }
+    .stat-chip.s-complete   { background: #e8f5e9; }
+
+    .log-filter-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .log-filter-btn {
+      padding: 5px 12px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: white;
+      cursor: pointer;
+      font-size: .8rem;
+      color: var(--muted);
+    }
+    .log-filter-btn.active { background: var(--brand); color: white; border-color: var(--brand); }
+
     .job-log-item {
       display: flex;
       align-items: center;
@@ -271,13 +309,12 @@
       background: #fafafa;
     }
     .job-log-item .job-label { flex: 1; font-size: .88rem; color: var(--text); }
-    .job-log-item .job-status {
-      font-size: .75rem;
+    .job-status-badge {
+      font-size: .72rem;
       padding: 2px 8px;
       border-radius: 10px;
-      background: #e8f5e9;
-      color: #2e7d32;
       font-weight: 600;
+      white-space: nowrap;
     }
     .jl-btn {
       background: var(--brand);
@@ -349,6 +386,7 @@
   <div style="display:flex;gap:8px;flex-wrap:wrap">
     <button class="print-btn" onclick="newJob()" style="background:#555">New Job</button>
     <button class="print-btn" onclick="saveJob()" id="save-job-btn">Save Job</button>
+    <button class="print-btn" onclick="textCustomer()" style="background:#27ae60">Text Customer</button>
     <button class="print-btn" onclick="textCrew()" style="background:#1a6fad">Text Crew</button>
     <button class="print-btn" onclick="buildPrintInvoice();window.print()">Print / Save PDF</button>
   </div>
@@ -359,27 +397,94 @@
   <!-- Print invoice — populated by buildPrintInvoice() before printing -->
   <div id="print-invoice" class="print-only" style="display:none;font-family:Arial,sans-serif;color:#222;max-width:750px;margin:0 auto"></div>
 
-  <!-- Address / Customer -->
+  <!-- Job Info -->
   <div class="card">
-    <h2>Property &amp; Customer</h2>
-    <div class="addr-row" style="margin-bottom:10px">
-      <input id="customer-name" type="text" placeholder="Customer Name" style="flex:1.5;min-width:180px" />
-      <input id="customer-phone" type="tel" placeholder="Phone" style="max-width:160px" />
+    <h2>Job Info</h2>
+
+    <!-- Job number / status / date row -->
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px;padding:8px 12px;background:#f8f8f8;border-radius:6px">
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Job #</span>
+        <span id="job-number" style="font-weight:700;font-size:1rem;letter-spacing:1px;color:var(--brand)">—</span>
+      </div>
+      <select id="job-status" style="padding:5px 10px;border:1px solid var(--border);border-radius:5px;font-size:.85rem;background:white">
+        <option value="pending">Pending</option>
+        <option value="scheduled">Scheduled</option>
+        <option value="in-progress">In Progress</option>
+        <option value="complete">Complete</option>
+        <option value="cancelled">Cancelled</option>
+      </select>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:.78rem;color:var(--muted)">Start:</span>
+        <input id="job-start-date" type="date" style="padding:5px 8px;border:1px solid var(--border);border-radius:5px;font-size:.85rem" />
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:.78rem;color:var(--muted)">Crew Lead:</span>
+        <input id="crew-lead" type="text" placeholder="Name" style="padding:5px 8px;border:1px solid var(--border);border-radius:5px;font-size:.85rem;width:120px" />
+      </div>
     </div>
+
+    <!-- Customer name / phones / email -->
+    <div class="addr-row" style="margin-bottom:10px">
+      <input id="customer-name" type="text" placeholder="Customer Name" style="flex:2;min-width:180px" />
+      <input id="customer-phone" type="tel" placeholder="Phone" style="max-width:155px" />
+      <input id="customer-phone2" type="tel" placeholder="Alt Phone" style="max-width:155px" />
+      <input id="customer-email" type="email" placeholder="Email" style="max-width:200px" />
+    </div>
+
+    <!-- Address -->
     <div class="addr-row" style="margin-bottom:10px">
       <input id="addr" type="text" placeholder="Street Address" />
       <input id="city" type="text" placeholder="City" />
       <input id="state" type="text" placeholder="State" style="max-width:80px" />
       <input id="zip" type="text" placeholder="ZIP" style="max-width:90px" />
     </div>
-    <textarea id="access-notes" placeholder="Access / Crew Notes (gate codes, dogs, key box, etc.)" rows="2"
-      style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:5px;font-size:.88rem;resize:vertical;font-family:inherit"></textarea>
+
+    <!-- Access notes (prints on invoice) -->
+    <textarea id="access-notes" placeholder="Access Notes — prints on invoice (gate codes, dogs, key box location, etc.)" rows="2"
+      style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:5px;font-size:.88rem;resize:vertical;font-family:inherit;margin-bottom:8px"></textarea>
+
+    <!-- Crew notes (internal only — does NOT print on customer copy) -->
+    <textarea id="crew-notes" placeholder="Crew Notes — INTERNAL ONLY, does not print on customer copy" rows="2"
+      style="width:100%;padding:8px 10px;border:1px solid #f0c050;border-radius:5px;font-size:.88rem;resize:vertical;font-family:inherit;background:#fffde7"></textarea>
+    <div style="font-size:.72rem;color:#a07000;margin-top:3px">Internal crew notes stay off the customer invoice</div>
   </div>
 
   <!-- Job Log -->
   <div class="card">
     <h2>Job Log</h2>
-    <div id="job-log-list"><div style="color:#999;font-size:.85rem;padding:4px 0">No saved jobs yet — fill out a job and hit Save Job.</div></div>
+
+    <!-- Stats bar -->
+    <div class="stats-bar" id="job-stats-bar">
+      <div class="stat-chip"><span class="sc-num" id="stat-total">0</span><span class="sc-lbl">Total</span></div>
+      <div class="stat-chip s-pending"><span class="sc-num" id="stat-pending">0</span><span class="sc-lbl">Pending</span></div>
+      <div class="stat-chip s-scheduled"><span class="sc-num" id="stat-scheduled">0</span><span class="sc-lbl">Scheduled</span></div>
+      <div class="stat-chip s-inprogress"><span class="sc-num" id="stat-inprogress">0</span><span class="sc-lbl">In Progress</span></div>
+      <div class="stat-chip s-complete"><span class="sc-num" id="stat-complete">0</span><span class="sc-lbl">Complete</span></div>
+    </div>
+
+    <!-- Search -->
+    <input id="job-search" type="text" placeholder="Search by customer, address, or job #..." oninput="renderJobLog()"
+      style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:5px;font-size:.88rem;margin-bottom:10px" />
+
+    <!-- Filter tabs -->
+    <div class="log-filter-row" id="log-filter-row">
+      <button class="log-filter-btn active" data-filter="all"        onclick="setLogFilter(this)">All</button>
+      <button class="log-filter-btn"        data-filter="pending"    onclick="setLogFilter(this)">Pending</button>
+      <button class="log-filter-btn"        data-filter="scheduled"  onclick="setLogFilter(this)">Scheduled</button>
+      <button class="log-filter-btn"        data-filter="in-progress" onclick="setLogFilter(this)">In Progress</button>
+      <button class="log-filter-btn"        data-filter="complete"   onclick="setLogFilter(this)">Complete</button>
+    </div>
+
+    <!-- Export / Import -->
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <button class="jl-btn" onclick="exportBackup()" style="background:#546e7a">Export Backup (.json)</button>
+      <button class="jl-btn" onclick="document.getElementById('import-file').click()" style="background:#546e7a">Import Backup</button>
+      <button class="jl-btn" onclick="exportCSV()" style="background:#546e7a">Export CSV</button>
+      <input type="file" id="import-file" accept=".json" style="display:none" onchange="importBackup(this)" />
+    </div>
+
+    <div id="job-log-list"></div>
   </div>
 
   <!-- House Visual -->
@@ -1527,17 +1632,34 @@
     const measureUnit  = sqft ? 'sq ft' : 'lin ft';
     const measureLabel = sqft ? 'Square Footage' : 'Linear Footage';
 
-    const customerName  = document.getElementById('customer-name').value;
-    const customerPhone = document.getElementById('customer-phone').value;
-    const accessNotes   = document.getElementById('access-notes').value;
+    const customerName   = document.getElementById('customer-name').value;
+    const customerPhone  = document.getElementById('customer-phone').value;
+    const customerPhone2 = document.getElementById('customer-phone2').value;
+    const customerEmail  = document.getElementById('customer-email').value;
+    const accessNotes    = document.getElementById('access-notes').value;
+    const crewLead       = document.getElementById('crew-lead').value;
+    const jobStartDate   = document.getElementById('job-start-date').value;
+    const jobStatus      = document.getElementById('job-status').value;
     const addrParts = ['addr','city','state','zip'].map(id => document.getElementById(id).value).filter(Boolean);
-    const customerHtml = (customerName || customerPhone || addrParts.length) ? `
-      <div style="margin:6px 0 12px;font-size:.88rem;line-height:1.7">
-        ${customerName  ? `<strong>${customerName}</strong>&ensp;` : ''}
-        ${customerPhone ? `<span style="color:#555">${customerPhone}</span>` : ''}<br>
-        ${addrParts.length ? `<span>${addrParts.join(', ')}</span>` : ''}
-        ${accessNotes ? `<div style="margin-top:4px;color:#555;font-size:.82rem"><em>Notes: ${accessNotes}</em></div>` : ''}
-      </div>` : '';
+    const phoneLine = [customerPhone, customerPhone2].filter(Boolean).join(' / ');
+    const customerHtml = `
+      <div style="margin:6px 0 10px;font-size:.88rem;line-height:1.8;border-bottom:1px solid #e0e0e0;padding-bottom:8px">
+        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <div>
+            ${customerName  ? `<div><strong style="font-size:1rem">${customerName}</strong></div>` : ''}
+            ${phoneLine     ? `<div style="color:#444">${phoneLine}</div>` : ''}
+            ${customerEmail ? `<div style="color:#444">${customerEmail}</div>` : ''}
+            ${addrParts.length ? `<div>${addrParts.join(', ')}</div>` : ''}
+            ${accessNotes ? `<div style="margin-top:3px;color:#555;font-size:.82rem"><em>Access: ${accessNotes}</em></div>` : ''}
+          </div>
+          <div style="text-align:right;font-size:.82rem;color:#555">
+            <div>Job: <strong>${currentJobNumber || ''}</strong></div>
+            ${jobStatus    ? `<div>Status: ${(STATUS_STYLES[jobStatus]||{label:jobStatus}).label}</div>` : ''}
+            ${jobStartDate ? `<div>Start: ${jobStartDate}</div>` : ''}
+            ${crewLead     ? `<div>Crew Lead: ${crewLead}</div>` : ''}
+          </div>
+        </div>
+      </div>`;
     const addressHtml = customerHtml;
 
     function getSectionsForType(type) {
@@ -1690,7 +1812,34 @@
 
   window.addEventListener('beforeprint', buildPrintInvoice);
 
+  // ── Job number ──
+  let currentJobNumber = null;
+  function genJobNumber() {
+    const jobs = JSON.parse(localStorage.getItem('fsig-jobs') || '[]');
+    const n = jobs.length + 1;
+    return 'FS-' + String(n).padStart(4, '0');
+  }
+  function initJobNumber() {
+    if (!currentJobNumber) currentJobNumber = genJobNumber();
+    document.getElementById('job-number').textContent = currentJobNumber;
+  }
+
   // ── Job Log ──
+  let logFilter = 'all';
+
+  const STATUS_STYLES = {
+    'pending':     { bg: '#fff3e0', color: '#e65100', label: 'Pending' },
+    'scheduled':   { bg: '#e8eaf6', color: '#3949ab', label: 'Scheduled' },
+    'in-progress': { bg: '#e3f2fd', color: '#0277bd', label: 'In Progress' },
+    'complete':    { bg: '#e8f5e9', color: '#2e7d32', label: 'Complete' },
+    'cancelled':   { bg: '#fce4ec', color: '#c62828', label: 'Cancelled' },
+  };
+
+  function statusBadge(status) {
+    const s = STATUS_STYLES[status] || STATUS_STYLES['pending'];
+    return `<span class="job-status-badge" style="background:${s.bg};color:${s.color}">${s.label}</span>`;
+  }
+
   function getJobState() {
     const rates = {};
     ['s-rate','s-cov','s-gal-cost','b-rate','b-cov','b-gal-cost',
@@ -1699,9 +1848,16 @@
       rates[id] = document.getElementById(id).value;
     });
     return {
+      jobNumber:     currentJobNumber,
+      jobStatus:     document.getElementById('job-status').value,
+      jobStartDate:  document.getElementById('job-start-date').value,
+      crewLead:      document.getElementById('crew-lead').value,
       customerName:  document.getElementById('customer-name').value,
       customerPhone: document.getElementById('customer-phone').value,
+      customerPhone2:document.getElementById('customer-phone2').value,
+      customerEmail: document.getElementById('customer-email').value,
       accessNotes:   document.getElementById('access-notes').value,
+      crewNotes:     document.getElementById('crew-notes').value,
       addr:  document.getElementById('addr').value,
       city:  document.getElementById('city').value,
       state: document.getElementById('state').value,
@@ -1716,10 +1872,14 @@
   function saveJob() {
     const jobs = JSON.parse(localStorage.getItem('fsig-jobs') || '[]');
     const state = getJobState();
-    const id = Date.now();
-    const name = state.customerName || state.addr || 'Job ' + jobs.length;
-    const label = name + ' — ' + new Date().toLocaleDateString();
-    jobs.unshift({ id, label, state });
+    // Upsert by job number
+    const existing = jobs.findIndex(j => j.state && j.state.jobNumber === state.jobNumber);
+    const id = existing >= 0 ? jobs[existing].id : Date.now();
+    const name = state.customerName || state.addr || currentJobNumber;
+    const label = name;
+    const entry = { id, label, status: state.jobStatus, date: state.jobStartDate, state };
+    if (existing >= 0) jobs[existing] = entry;
+    else jobs.unshift(entry);
     localStorage.setItem('fsig-jobs', JSON.stringify(jobs.slice(0, 50)));
     renderJobLog();
     const btn = document.getElementById('save-job-btn');
@@ -1734,9 +1894,17 @@
     const job = jobs.find(j => j.id === id);
     if (!job) return;
     const s = job.state;
-    document.getElementById('customer-name').value  = s.customerName  || '';
-    document.getElementById('customer-phone').value = s.customerPhone || '';
-    document.getElementById('access-notes').value   = s.accessNotes   || '';
+    currentJobNumber = s.jobNumber || genJobNumber();
+    document.getElementById('job-number').textContent = currentJobNumber;
+    document.getElementById('job-status').value     = s.jobStatus     || 'pending';
+    document.getElementById('job-start-date').value = s.jobStartDate  || '';
+    document.getElementById('crew-lead').value       = s.crewLead      || '';
+    document.getElementById('customer-name').value   = s.customerName  || '';
+    document.getElementById('customer-phone').value  = s.customerPhone || '';
+    document.getElementById('customer-phone2').value = s.customerPhone2|| '';
+    document.getElementById('customer-email').value  = s.customerEmail || '';
+    document.getElementById('access-notes').value    = s.accessNotes   || '';
+    document.getElementById('crew-notes').value      = s.crewNotes     || '';
     document.getElementById('addr').value  = s.addr  || '';
     document.getElementById('city').value  = s.city  || '';
     document.getElementById('state').value = s.state || '';
@@ -1752,6 +1920,7 @@
     ALL_SIDES.forEach(side => renderRows(side));
     setMode(s.quoteMode || 'linft');
     recalc();
+    window.scrollTo(0, 0);
   }
 
   function deleteJob(id) {
@@ -1761,47 +1930,169 @@
     renderJobLog();
   }
 
+  function setLogFilter(btn) {
+    logFilter = btn.dataset.filter;
+    document.querySelectorAll('.log-filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderJobLog();
+  }
+
   function renderJobLog() {
-    const jobs = JSON.parse(localStorage.getItem('fsig-jobs') || '[]');
+    let jobs = JSON.parse(localStorage.getItem('fsig-jobs') || '[]');
+
+    // Update stats bar
+    const statMap = { pending:0, scheduled:0, 'in-progress':0, complete:0 };
+    jobs.forEach(j => { if (statMap[j.status] !== undefined) statMap[j.status]++; });
+    document.getElementById('stat-total').textContent      = jobs.length;
+    document.getElementById('stat-pending').textContent    = statMap['pending'];
+    document.getElementById('stat-scheduled').textContent  = statMap['scheduled'];
+    document.getElementById('stat-inprogress').textContent = statMap['in-progress'];
+    document.getElementById('stat-complete').textContent   = statMap['complete'];
+
+    // Filter
+    if (logFilter !== 'all') jobs = jobs.filter(j => j.status === logFilter);
+
+    // Search
+    const q = (document.getElementById('job-search')?.value || '').toLowerCase();
+    if (q) jobs = jobs.filter(j => {
+      const s = j.state || {};
+      return (j.label||'').toLowerCase().includes(q)
+          || (s.addr||'').toLowerCase().includes(q)
+          || (s.customerName||'').toLowerCase().includes(q)
+          || (s.jobNumber||'').toLowerCase().includes(q);
+    });
+
     const container = document.getElementById('job-log-list');
     if (!container) return;
     if (!jobs.length) {
-      container.innerHTML = '<div style="color:#999;font-size:.85rem;padding:4px 0">No saved jobs yet — fill out a job and hit Save Job.</div>';
+      container.innerHTML = '<div style="color:#999;font-size:.85rem;padding:4px 0">No jobs found.</div>';
       return;
     }
-    container.innerHTML = jobs.map(j => `
-      <div class="job-log-item">
-        <div class="job-label">${j.label}</div>
+    container.innerHTML = jobs.map(j => {
+      const s = j.state || {};
+      const sub = [s.addr, s.city, s.state].filter(Boolean).join(', ');
+      const dateStr = j.date ? ' · ' + j.date : '';
+      const crewStr = s.crewLead ? ' · Lead: ' + s.crewLead : '';
+      return `<div class="job-log-item">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span class="job-label" style="font-weight:600">${j.label}</span>
+            <span style="font-size:.75rem;color:var(--muted)">${s.jobNumber || ''}</span>
+            ${statusBadge(j.status)}
+          </div>
+          <div style="font-size:.78rem;color:var(--muted);margin-top:2px">${sub}${dateStr}${crewStr}</div>
+        </div>
         <button class="jl-btn" onclick="loadJob(${j.id})">Load</button>
         <button class="jl-del" onclick="deleteJob(${j.id})">✕</button>
-      </div>`).join('');
+      </div>`;
+    }).join('');
+  }
+
+  function exportBackup() {
+    const jobs = localStorage.getItem('fsig-jobs') || '[]';
+    const blob = new Blob([jobs], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'FSIG_backup_' + new Date().toISOString().slice(0,10) + '.json';
+    a.click();
+  }
+
+  function importBackup(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const jobs = JSON.parse(e.target.result);
+        if (!Array.isArray(jobs)) throw new Error('Invalid format');
+        if (!confirm('Import ' + jobs.length + ' jobs? This will replace your current job log.')) return;
+        localStorage.setItem('fsig-jobs', JSON.stringify(jobs));
+        renderJobLog();
+        alert('Import complete: ' + jobs.length + ' jobs loaded.');
+      } catch {
+        alert('Could not read backup file. Make sure it is a valid FSIG .json backup.');
+      }
+    };
+    reader.readAsText(file);
+    input.value = '';
+  }
+
+  function exportCSV() {
+    const jobs = JSON.parse(localStorage.getItem('fsig-jobs') || '[]');
+    if (!jobs.length) { alert('No jobs to export.'); return; }
+    const rows = [['Job #','Customer','Phone','Address','Status','Start Date','Crew Lead','Stain Product']];
+    jobs.forEach(j => {
+      const s = j.state || {};
+      rows.push([
+        s.jobNumber||'', s.customerName||'', s.customerPhone||'',
+        [s.addr,s.city,s.state,s.zip].filter(Boolean).join(', '),
+        j.status||'', j.date||'', s.crewLead||'', s.stainProduct||''
+      ]);
+    });
+    const csv = rows.map(r => r.map(c => '"' + String(c).replace(/"/g,'""') + '"').join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'FSIG_jobs_' + new Date().toISOString().slice(0,10) + '.csv';
+    a.click();
+  }
+
+  function _buildJobMsg() {
+    const s = {
+      name:    document.getElementById('customer-name').value,
+      phone:   document.getElementById('customer-phone').value,
+      phone2:  document.getElementById('customer-phone2').value,
+      email:   document.getElementById('customer-email').value,
+      addr:    ['addr','city','state','zip'].map(id => document.getElementById(id).value).filter(Boolean).join(', '),
+      notes:   document.getElementById('access-notes').value,
+      crew:    document.getElementById('crew-notes').value,
+      product: document.getElementById('stain-product').value,
+      startDate: document.getElementById('job-start-date').value,
+      crewLead:  document.getElementById('crew-lead').value,
+      stainLF:   totalLinFtByType('stain').toFixed(0),
+      bleachLF:  totalLinFtByType('bleach').toFixed(0),
+      stainGal:  document.getElementById('s-gal').textContent,
+      bleachGal: document.getElementById('b-gal').textContent,
+      jobNum:    currentJobNumber,
+    };
+    return s;
+  }
+
+  function textCustomer() {
+    const s = _buildJobMsg();
+    let msg = 'Hi ' + (s.name || 'there') + ', this is FSIG confirming your staining job.\n';
+    if (s.addr)      msg += 'Address: ' + s.addr + '\n';
+    if (s.startDate) msg += 'Scheduled: ' + s.startDate + '\n';
+    if (s.product)   msg += 'Product: ' + s.product + '\n';
+    msg += '\nPlease reply with any questions. Thank you!';
+    const phone = s.phone || s.phone2;
+    window.open('sms:' + (phone || '') + '?body=' + encodeURIComponent(msg));
   }
 
   function textCrew() {
-    const name  = document.getElementById('customer-name').value;
-    const phone = document.getElementById('customer-phone').value;
-    const addr  = ['addr','city','state','zip'].map(id => document.getElementById(id).value).filter(Boolean).join(', ');
-    const notes = document.getElementById('access-notes').value;
-    const product = document.getElementById('stain-product').value;
-    const stainLF  = totalLinFtByType('stain').toFixed(0);
-    const bleachLF = totalLinFtByType('bleach').toFixed(0);
-    const stainGal  = document.getElementById('s-gal').textContent;
-    const bleachGal = document.getElementById('b-gal').textContent;
-    let msg = 'FSIG Job Sheet\n';
-    if (name)  msg += 'Customer: ' + name + '\n';
-    if (phone) msg += 'Phone: ' + phone + '\n';
-    if (addr)  msg += 'Address: ' + addr + '\n';
-    if (notes) msg += 'Notes: ' + notes + '\n';
+    const s = _buildJobMsg();
+    let msg = 'FSIG JOB SHEET — ' + (s.jobNum || '') + '\n';
+    if (s.name)      msg += 'Customer: ' + s.name + '\n';
+    if (s.phone)     msg += 'Phone: ' + s.phone + (s.phone2 ? ' / ' + s.phone2 : '') + '\n';
+    if (s.addr)      msg += 'Address: ' + s.addr + '\n';
+    if (s.startDate) msg += 'Start: ' + s.startDate + '\n';
+    if (s.crewLead)  msg += 'Crew Lead: ' + s.crewLead + '\n';
+    if (s.notes)     msg += 'Access: ' + s.notes + '\n';
+    if (s.crew)      msg += 'Crew Notes: ' + s.crew + '\n';
     msg += '\nJob:\n';
-    if (product) msg += 'Stain: ' + product + '\n';
-    if (parseFloat(stainLF)  > 0) msg += 'Stain:  ' + stainLF  + ' lin ft · ' + stainGal  + ' gal\n';
-    if (parseFloat(bleachLF) > 0) msg += 'Bleach: ' + bleachLF + ' lin ft · ' + bleachGal + ' gal\n';
+    if (s.product)                    msg += 'Stain: ' + s.product + '\n';
+    if (parseFloat(s.stainLF)  > 0)  msg += 'Stain:  ' + s.stainLF  + ' lin ft · ' + s.stainGal  + ' gal\n';
+    if (parseFloat(s.bleachLF) > 0)  msg += 'Bleach: ' + s.bleachLF + ' lin ft · ' + s.bleachGal + ' gal\n';
     window.open('sms:?body=' + encodeURIComponent(msg));
   }
 
   function newJob() {
     if (!confirm('Start a new job? Current data will be cleared.')) return;
-    ['customer-name','customer-phone','access-notes','addr','city','state','zip'].forEach(id => {
+    currentJobNumber = genJobNumber();
+    document.getElementById('job-number').textContent = currentJobNumber;
+    ['job-status'].forEach(id => { document.getElementById(id).value = 'pending'; });
+    ['job-start-date','crew-lead','customer-name','customer-phone','customer-phone2',
+     'customer-email','access-notes','crew-notes','addr','city','state','zip'].forEach(id => {
       document.getElementById(id).value = '';
     });
     document.getElementById('stain-product').value = '';
@@ -1814,6 +2105,7 @@
 
   // Init — start with one blank row per side
   ALL_SIDES.forEach(s => addRow(s));
+  initJobNumber();
   renderJobLog();
 </script>
 </body>
