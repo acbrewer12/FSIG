@@ -1363,9 +1363,9 @@
   // ── Print invoice generation ──
 
   function buildPrintMapSVG() {
-    const VW = 580, VH = 270;
-    const FX = 118, FY = 68, FW = 344, FH = 158;
-    const BW = 15;
+    const VW = 580, VH = 230;
+    const FX = 118, FY = 52, FW = 344, FH = 148;
+    const BW = 14;
     const C_STAIN = '#B8760E', C_BLEACH = '#1F7EC2', C_BOTH = '#7B3FA0', C_EMPTY = '#d5d2cd';
     function tc(row) {
       const s = row.stainFace && row.stainFace !== 'none';
@@ -1373,12 +1373,16 @@
       return s && b ? C_BOTH : s ? C_STAIN : b ? C_BLEACH : C_EMPTY;
     }
     function faceDimLabel(row) {
-      const s = row.stainFace && row.stainFace !== 'none';
-      const b = row.bleachFace && row.bleachFace !== 'none';
-      return s && b ? 'S+B' : s ? 'S' : b ? 'B' : '—';
+      const sf = row.stainFace || 'none', bf = row.bleachFace || 'none';
+      const hasIn  = sf==='inside'||sf==='both'||bf==='inside'||bf==='both';
+      const hasOut = sf==='outside'||sf==='both'||bf==='outside'||bf==='both';
+      if (hasIn && hasOut) return '←→';
+      if (hasIn)  return '←';
+      if (hasOut) return '→';
+      return '';
     }
 
-    let svg = `<svg viewBox="0 0 ${VW} ${VH}" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;margin:8px auto">`;
+    let svg = `<svg viewBox="0 0 ${VW} ${VH}" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;margin:4px auto">`;
     svg += `<rect width="${VW}" height="${VH}" fill="white"/>`;
 
     // Yard interior fill
@@ -1505,15 +1509,15 @@
         const fml = sqft ? `${len}' × ${hgt}' × ${f}` : `${len}' × ${f}`;
         return `<tr>
           <td></td>
-          <td style="padding:2px 10px;color:#333">${fml}</td>
-          <td style="padding:2px 10px;text-align:right;color:#333">${Number(m).toLocaleString()} ${measureUnit}</td>
+          <td style="padding:1px 7px;color:#333">${fml}</td>
+          <td style="padding:1px 7px;text-align:right;color:#333">${Number(m).toLocaleString()} ${measureUnit}</td>
         </tr>`;
       }).join('');
 
       return `
-      <table style="width:100%;border-collapse:collapse;margin-bottom:12px;font-size:.85rem;border:1px solid #bbb">
-        <tr><td colspan="3" style="background:${hdrC};color:white;font-weight:700;padding:4px 8px;font-size:.88rem;letter-spacing:.5px">${cap.toUpperCase()}:</td></tr>
-        <tr><td style="padding:3px 8px;font-weight:600">Total ${measureLabel}</td><td></td><td></td></tr>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:8px;font-size:.82rem;border:1px solid #bbb">
+        <tr><td colspan="3" style="background:${hdrC};color:white;font-weight:700;padding:3px 7px;font-size:.84rem;letter-spacing:.5px">${cap.toUpperCase()}:</td></tr>
+        <tr><td style="padding:2px 7px;font-weight:600">Total ${measureLabel}</td><td></td><td></td></tr>
         ${sRows}
         <tr>
           <td></td><td></td>
@@ -1521,28 +1525,28 @@
         </tr>
         <tr><td colspan="3" style="padding:2px 0;border-top:1px solid #ddd"></td></tr>
         <tr>
-          <td style="padding:3px 8px">Customer Charged</td>
-          <td style="padding:3px 8px;color:#444">${Math.round(measure).toLocaleString()} × $${rate.toFixed(2)}</td>
-          <td style="padding:3px 8px;text-align:right;font-weight:700">$${charged.toFixed(2)}</td>
+          <td style="padding:2px 7px">Customer Charged</td>
+          <td style="padding:2px 7px;color:#444">${Math.round(measure).toLocaleString()} × $${rate.toFixed(2)}</td>
+          <td style="padding:2px 7px;text-align:right;font-weight:700">$${charged.toFixed(2)}</td>
         </tr>
         <tr>
-          <td style="padding:3px 8px">Coverage</td>
-          <td style="padding:3px 8px;color:#444">${Math.round(measure).toLocaleString()} / ${Math.round(cov)}</td>
-          <td style="padding:3px 8px;text-align:right;font-weight:700">${gal} Gallons</td>
+          <td style="padding:2px 7px">Coverage</td>
+          <td style="padding:2px 7px;color:#444">${Math.round(measure).toLocaleString()} / ${Math.round(cov)}</td>
+          <td style="padding:2px 7px;text-align:right;font-weight:700">${gal} Gallons</td>
         </tr>
         <tr>
-          <td style="padding:3px 8px">Material Cost</td>
-          <td style="padding:3px 8px;color:#444">${gal} Gal × $${galCost.toFixed(2)}</td>
-          <td style="padding:3px 8px;text-align:right;font-weight:700">$${mat.toFixed(2)}</td>
+          <td style="padding:2px 7px">Material Cost</td>
+          <td style="padding:2px 7px;color:#444">${gal} Gal × $${galCost.toFixed(2)}</td>
+          <td style="padding:2px 7px;text-align:right;font-weight:700">$${mat.toFixed(2)}</td>
         </tr>
         <tr>
-          <td style="padding:3px 8px">Gross Profit</td>
-          <td style="padding:3px 8px;color:#444">$${charged.toFixed(2)} - $${mat.toFixed(2)}</td>
-          <td style="padding:3px 8px;text-align:right;font-weight:700">$${profit.toFixed(2)}</td>
+          <td style="padding:2px 7px">Gross Profit</td>
+          <td style="padding:2px 7px;color:#444">$${charged.toFixed(2)} - $${mat.toFixed(2)}</td>
+          <td style="padding:2px 7px;text-align:right;font-weight:700">$${profit.toFixed(2)}</td>
         </tr>
         <tr>
-          <td colspan="2" style="padding:3px 8px;text-align:right;border-top:1px solid #ddd">Gross Profit ${cap}:</td>
-          <td style="padding:3px 8px;text-align:right;font-weight:700;background:#ffff00;border-top:1px solid #ddd">$${profit.toFixed(2)}</td>
+          <td colspan="2" style="padding:2px 7px;text-align:right;border-top:1px solid #ddd">Gross Profit ${cap}:</td>
+          <td style="padding:2px 7px;text-align:right;font-weight:700;background:#ffff00;border-top:1px solid #ddd">$${profit.toFixed(2)}</td>
         </tr>
       </table>`;
     }
@@ -1580,9 +1584,9 @@
     document.getElementById('print-invoice').innerHTML = `
       <!-- PAGE 1 -->
       <div style="page-break-after:always">
-        <div style="text-align:center;border-bottom:2px solid #222;margin-bottom:8px;padding-bottom:7px">
-          <div style="font-size:1.7rem;font-weight:700;letter-spacing:1px">Jobsite Analysis</div>
-          <div style="font-size:.75rem;color:#888;margin-top:1px">Date: ${dateStr}</div>
+        <div style="text-align:center;border-bottom:2px solid #222;margin-bottom:6px;padding-bottom:5px">
+          <div style="font-size:1.5rem;font-weight:700;letter-spacing:1px">Jobsite Analysis</div>
+          <div style="font-size:.72rem;color:#888;margin-top:1px">Date: ${dateStr}</div>
         </div>
         ${buildPrintMapSVG()}
         ${addressHtml}
