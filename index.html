@@ -489,7 +489,11 @@
       * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
       /* Selective print modes */
       body.print-customer-only .print-page-internal { display: none !important; }
+      body.print-customer-only .print-page-plan { display: none !important; }
       body.print-job-only .print-page-customer { display: none !important; }
+      body.print-job-only .print-page-plan { display: none !important; }
+      body.print-plan-only .print-page-internal { display: none !important; }
+      body.print-plan-only .print-page-customer { display: none !important; }
     }
 
     /* ── JOB LOG THUMBNAIL ── */
@@ -896,6 +900,8 @@
       <button class="print-btn" onclick="closePlanningLine()" style="background:#374a5a">Close Loop</button>
       <button class="print-btn" onclick="undoLastPoint()" style="background:#374a5a">&#8617; Undo</button>
       <button class="print-btn" onclick="clearPlanningMap()" style="background:#c0392b">Clear</button>
+      <button class="print-btn" onclick="savePlanSnapshot()" style="background:#27ae60" id="save-plan-btn">&#128190; Save Plan</button>
+      <button class="print-btn" onclick="printSitePlan()" style="background:#374a5a">&#128424; Print Plan</button>
       <span style="font-size:.78rem;color:var(--muted)">Tap map to trace fence. Each point measures the segment.</span>
     </div>
     <div class="planner-wrap">
@@ -904,6 +910,14 @@
         <div style="font-family:'Oswald',Arial,sans-serif;font-size:.82rem;text-transform:uppercase;letter-spacing:.5px;color:var(--brand);margin-bottom:8px;border-bottom:2px solid var(--accent);padding-bottom:4px">Measurements</div>
         <div id="planning-measurements"><div style="color:var(--muted);font-size:.8rem">Trace the fence line on the map to see measurements here.</div></div>
       </div>
+    </div>
+    <!-- Saved plan SVG preview -->
+    <div id="plan-svg-preview" style="display:none;margin-top:14px;border:1px solid var(--border);border-radius:4px;overflow:hidden">
+      <div style="font-size:.7rem;color:var(--muted);padding:4px 8px;background:#f7f6f2;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <span>Saved Site Plan (saves &amp; prints with job)</span>
+        <button onclick="clearPlanSnapshot()" style="border:none;background:none;color:var(--accent);cursor:pointer;font-size:.72rem;padding:0">&#10005; Clear Saved Plan</button>
+      </div>
+      <div id="plan-svg-preview-inner" style="padding:6px"></div>
     </div>
   </div>
 
@@ -1332,9 +1346,14 @@
       </div>
       <div id="stretches-rows"></div>
       <button class="add-btn" onclick="addStretch()" style="border-color:#9FA8DA;color:#3949AB;margin-top:4px">+ Add Stretch</button>
-      <div style="margin-top:8px;font-size:.8rem;color:#3949AB;font-weight:600">
-        Calculated line posts: <span id="stretch-linepost-count" style="font-family:'Oswald',Arial,sans-serif;font-size:1rem">0</span>
-        &nbsp;·&nbsp; Terminal posts (corners + ends): <span id="stretch-terminal-count" style="font-family:'Oswald',Arial,sans-serif;font-size:1rem">0</span>
+      <label style="display:flex;align-items:center;gap:6px;margin-top:9px;font-size:.78rem;color:#3949AB;cursor:pointer">
+        <input type="checkbox" id="stretch-closed-loop" onchange="recalcStretches()" />
+        Closed loop (polygon — last stretch returns to first point)
+      </label>
+      <div style="margin-top:6px;font-size:.8rem;color:#3949AB;font-weight:600">
+        Line posts: <span id="stretch-linepost-count" style="font-family:'Oswald',Arial,sans-serif;font-size:1rem">0</span>
+        &nbsp;·&nbsp; Terminal posts: <span id="stretch-terminal-count" style="font-family:'Oswald',Arial,sans-serif;font-size:1rem">0</span>
+        <span id="stretch-terminal-note" style="font-weight:400;font-size:.72rem;color:#7986CB;margin-left:4px"></span>
       </div>
     </div>
 
@@ -2436,6 +2455,20 @@
 
     const partsListHtml  = buildPartsListHtml();
     const custInvoiceHtml = buildCustomerInvoiceHtml(addressHtml, dateStr);
+    const _planSvgContent = buildPlannerSvg(planPoints, _planSegments);
+    const plannerSvgPage = _planSvgContent
+      ? `<div class="print-page-plan">
+          <div style="border-bottom:3px solid #1B2937;margin-bottom:10px;padding-bottom:8px;display:flex;justify-content:space-between;align-items:flex-end">
+            <div>
+              <div style="font-size:1.3rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#1B2937">Holliday Welding &amp; Fence</div>
+              <div style="font-size:.72rem;color:#C8530A;letter-spacing:2px;text-transform:uppercase;font-weight:700;margin-top:1px">Site Plan — Fence Layout</div>
+            </div>
+            <div style="text-align:right;font-size:.72rem;color:#666"><div>Salem, MO</div><div>Date: ${dateStr}</div></div>
+          </div>
+          ${addressHtml}
+          <div style="margin-top:10px">${_planSvgContent}</div>
+        </div>`
+      : '';
     const hdr = (subtitle) => `
       <div style="border-bottom:3px solid #1B2937;margin-bottom:10px;padding-bottom:8px;display:flex;justify-content:space-between;align-items:flex-end">
         <div>
@@ -2487,9 +2520,12 @@
       </div>
 
       <!-- PAGE 4: Customer Invoice -->
-      <div class="print-page-customer">
+      <div class="print-page-customer" style="page-break-after:always">
         ${custInvoiceHtml}
       </div>
+
+      <!-- PAGE 5: Site Plan -->
+      ${plannerSvgPage}
     `;
   }
 
@@ -2498,7 +2534,7 @@
   // ── Print mode helpers ──────────────────────────────────────────────────────
 
   function printFull() {
-    document.body.classList.remove('print-customer-only','print-job-only');
+    document.body.classList.remove('print-customer-only','print-job-only','print-plan-only');
     buildPrintInvoice();
     window.print();
   }
@@ -2872,6 +2908,9 @@
       gates: JSON.parse(JSON.stringify(gates)),
       quoteMode,
       fenceMapSvg: buildPrintMapSVG(),
+      planPoints: planPoints.map(p => ({ lat: p.lat, lng: p.lng })),
+      planSegments: _planSegments.slice(),
+      plannerSvg: document.getElementById('plan-svg-preview-inner')?.innerHTML || '',
     };
   }
 
@@ -2940,6 +2979,21 @@
     renderGates();
     setMode(s.quoteMode || 'linft');
     recalc();
+    // Restore site planner
+    clearPlanSnapshot();
+    if (s.planPoints && s.planPoints.length >= 2) {
+      restorePlanPoints(s.planPoints, s.planSegments || []);
+    } else {
+      // Clear map if loaded job has no plan
+      if (planMap) {
+        planLayers.forEach(l => planMap.removeLayer(l));
+        planLayers = [];
+      }
+      planPoints = [];
+      _planSegments = [];
+      _savedPlanPoints = null;
+    }
+    if (s.plannerSvg) showPlannerPreview(s.plannerSvg);
     window.scrollTo(0, 0);
   }
 
@@ -2998,8 +3052,11 @@
       const thumbHtml = s.fenceMapSvg
         ? `<div class="jl-thumb" title="Fence layout">${s.fenceMapSvg}</div>`
         : '';
+      const planThumbHtml = s.plannerSvg
+        ? `<div class="jl-thumb" title="Site plan">${s.plannerSvg}</div>`
+        : '';
       return `<div class="job-log-item">
-        ${thumbHtml}
+        ${thumbHtml}${planThumbHtml}
         <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <span class="job-label" style="font-weight:600">${j.label}</span>
@@ -3382,6 +3439,7 @@
 
   function recalcStretches() {
     const spacing = parseFloat(document.getElementById('parts-spacing')?.value) || 8;
+    const closed = document.getElementById('stretch-closed-loop')?.checked;
     let linePosts = 0;
     let totalGates = 0;
     stretches.forEach(s => {
@@ -3389,18 +3447,27 @@
       const g = parseInt(s.gatesInRun) || 0;
       totalGates += g;
       if (L > 0) {
-        // Each gate in the run splits it — treat sub-runs between gates
-        // Simple formula: line posts in stretch = max(0, ceil(L/spacing) - 1) - g
         linePosts += Math.max(0, Math.ceil(L / spacing) - 1 - g);
       }
     });
-    const terminals = stretches.length + 1; // +1 for last end post (assumes straight runs)
+    // Closed polygon: one corner post per stretch (no extra end post at open end)
+    // Open run: terminals = stretches + 1 (one post at each end)
+    const n = stretches.length;
+    const cornerPosts = closed ? n : n + 1;
+    const gatePosts = totalGates * 2;
+    const terminalTotal = cornerPosts + gatePosts;
+    const noteText = n > 0
+      ? (closed
+          ? `(${n} corner${n !== 1 ? 's' : ''} + ${gatePosts} gate posts)`
+          : `(${cornerPosts} end/corner${cornerPosts !== 1 ? 's' : ''} + ${gatePosts} gate posts)`)
+      : '';
     document.getElementById('stretch-linepost-count').textContent = linePosts;
-    document.getElementById('stretch-terminal-count').textContent = terminals + (totalGates * 2);
-    // Sync terminal posts input
+    document.getElementById('stretch-terminal-count').textContent = terminalTotal;
+    const noteEl = document.getElementById('stretch-terminal-note');
+    if (noteEl) noteEl.textContent = noteText;
     const termEl = document.getElementById('parts-terminals');
-    if (termEl) termEl.value = terminals + (totalGates * 2);
-    return { linePosts, terminals: terminals + (totalGates * 2), totalGates };
+    if (termEl) termEl.value = terminalTotal;
+    return { linePosts, terminals: terminalTotal, totalGates };
   }
 
   function pullPartsFromSections() {
@@ -3668,8 +3735,128 @@
   let planMap = null;
   let planPoints = [];
   let planLayers = [];
-
+  let _savedPlanPoints = null; // deferred restore when map not yet initialized
   const ORANGE = '#C8530A';
+
+  // Build a normalized SVG diagram from GPS lat/lng points + segment data
+  function buildPlannerSvg(points, segments) {
+    if (!points || points.length < 2) return '';
+    const VW = 580, VH = 300, PAD = 55;
+    const lats = points.map(p => p.lat);
+    const lngs = points.map(p => p.lng);
+    const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+    const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+    const midLat = (minLat + maxLat) / 2;
+    const dLat = maxLat - minLat || 0.0001;
+    const dLng = (maxLng - minLng) || 0.0001;
+    const cosLat = Math.cos(midLat * Math.PI / 180);
+    const scaleX = (VW - PAD * 2) / (dLng * cosLat);
+    const scaleY = (VH - PAD * 2) / dLat;
+    const scale = Math.min(scaleX, scaleY);
+    const offX = (VW - PAD * 2 - dLng * cosLat * scale) / 2;
+    const offY = (VH - PAD * 2 - dLat * scale) / 2;
+    function toXY(p) {
+      return {
+        x: PAD + offX + (p.lng - minLng) * cosLat * scale,
+        y: PAD + offY + (maxLat - p.lat) * scale
+      };
+    }
+    const coords = points.map(toXY);
+    const pathD = coords.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+    let svg = `<svg viewBox="0 0 ${VW} ${VH}" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block">`;
+    svg += `<rect width="${VW}" height="${VH}" fill="#f0ede8"/>`;
+    // North arrow
+    svg += `<text x="${VW - 18}" y="22" text-anchor="middle" fill="#666" font-size="9" font-family="Arial">N</text>`;
+    svg += `<line x1="${VW-18}" y1="26" x2="${VW-18}" y2="38" stroke="#666" stroke-width="1.5"/>`;
+    svg += `<polygon points="${VW-18},24 ${VW-21},30 ${VW-18},28 ${VW-15},30" fill="#666"/>`;
+    // Fence path
+    svg += `<path d="${pathD}" fill="none" stroke="${ORANGE}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>`;
+    // Corner dots
+    coords.forEach(p => {
+      svg += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4.5" fill="${ORANGE}" stroke="white" stroke-width="1.5"/>`;
+    });
+    // Segment labels
+    if (segments && segments.length) {
+      segments.forEach((seg, i) => {
+        if (i + 1 >= coords.length) return;
+        const a = coords[i], b = coords[i + 1];
+        const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+        const normAngle = angle > 90 ? angle - 180 : angle < -90 ? angle + 180 : angle;
+        const labelDist = seg.dist.toFixed(0) + ' ft';
+        const bear = seg.bearing !== undefined ? ' · ' + seg.bearing.toFixed(0) + '°' : '';
+        svg += `<text x="${mx.toFixed(1)}" y="${my.toFixed(1)}" text-anchor="middle" dominant-baseline="central"
+          fill="#1B2937" font-size="9" font-weight="bold" font-family="Arial"
+          transform="rotate(${normAngle.toFixed(1)},${mx.toFixed(1)},${my.toFixed(1)})"
+          dy="-6">${labelDist}${bear}</text>`;
+      });
+    }
+    // Total perimeter
+    const total = (segments || []).reduce((s, seg) => s + (seg.dist || 0), 0);
+    if (total > 0) {
+      svg += `<text x="${(VW / 2).toFixed(0)}" y="${VH - 8}" text-anchor="middle" fill="#1B2937" font-size="10" font-weight="700" font-family="Arial">Total Perimeter: ${total.toFixed(0)} ft</text>`;
+    }
+    svg += `<text x="${(VW / 2).toFixed(0)}" y="16" text-anchor="middle" fill="${ORANGE}" font-size="10" font-weight="700" font-family="Arial" letter-spacing="1">SITE PLAN — FENCE LAYOUT</text>`;
+    svg += '</svg>';
+    return svg;
+  }
+
+  function showPlannerPreview(svgHtml) {
+    const wrap = document.getElementById('plan-svg-preview');
+    const inner = document.getElementById('plan-svg-preview-inner');
+    if (!wrap || !inner) return;
+    if (svgHtml) {
+      inner.innerHTML = svgHtml;
+      wrap.style.display = 'block';
+    } else {
+      wrap.style.display = 'none';
+      inner.innerHTML = '';
+    }
+  }
+
+  function savePlanSnapshot() {
+    if (planPoints.length < 2) { alert('Trace at least 2 points on the map first.'); return; }
+    const svg = buildPlannerSvg(planPoints, _planSegments);
+    showPlannerPreview(svg);
+    const btn = document.getElementById('save-plan-btn');
+    if (btn) { const o = btn.textContent; btn.textContent = '✓ Plan Saved!'; setTimeout(() => { btn.textContent = o; }, 2000); }
+  }
+
+  function clearPlanSnapshot() {
+    showPlannerPreview('');
+  }
+
+  function printSitePlan() {
+    document.body.classList.add('print-plan-only');
+    document.body.classList.remove('print-customer-only', 'print-job-only');
+    buildPrintInvoice();
+    window.print();
+    setTimeout(() => document.body.classList.remove('print-plan-only'), 1000);
+  }
+
+  function restorePlanPoints(pts, segs) {
+    if (!pts || pts.length < 2) return;
+    planPoints = pts.map(p => ({ lat: p.lat, lng: p.lng }));
+    _planSegments = segs || [];
+    if (!planMap) {
+      _savedPlanPoints = { pts, segs };
+      return;
+    }
+    planLayers.forEach(l => planMap.removeLayer(l));
+    planLayers = [];
+    planPoints = pts.map(p => L.latLng(p.lat, p.lng));
+    planPoints.forEach((ll, i) => {
+      const dot = L.circleMarker(ll, { radius: 5, color: ORANGE, fillColor: ORANGE, fillOpacity: 1, weight: 2 }).addTo(planMap);
+      planLayers.push(dot);
+      if (i > 0) {
+        const seg = L.polyline([planPoints[i - 1], ll], { color: ORANGE, weight: 3 }).addTo(planMap);
+        planLayers.push(seg);
+      }
+    });
+    try { planMap.fitBounds(L.latLngBounds(planPoints), { padding: [30, 30] }); } catch(e) {}
+    updatePlanMeasurements();
+  }
 
   function initPlanMap() {
     if (planMap) return;
@@ -3689,6 +3876,24 @@
 
     planMap.setView([37.63, -91.54], 14); // default: Salem, MO area
     planMap.on('click', onPlanClick);
+
+    // Restore any plan that was loaded before the map initialized
+    if (_savedPlanPoints) {
+      const { pts, segs } = _savedPlanPoints;
+      _savedPlanPoints = null;
+      planPoints = pts.map(p => L.latLng(p.lat, p.lng));
+      _planSegments = segs || [];
+      planPoints.forEach((ll, i) => {
+        const dot = L.circleMarker(ll, { radius: 5, color: ORANGE, fillColor: ORANGE, fillOpacity: 1, weight: 2 }).addTo(planMap);
+        planLayers.push(dot);
+        if (i > 0) {
+          const seg = L.polyline([planPoints[i - 1], ll], { color: ORANGE, weight: 3 }).addTo(planMap);
+          planLayers.push(seg);
+        }
+      });
+      try { planMap.fitBounds(L.latLngBounds(planPoints), { padding: [30, 30] }); } catch(e) {}
+      updatePlanMeasurements();
+    }
   }
 
   function findProperty() {
