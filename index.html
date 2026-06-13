@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FSIG · Holliday Welding &amp; Fence</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Open+Sans:wght@400;600&display=swap');
     :root {
@@ -412,6 +413,73 @@
       font-size: .8rem;
     }
 
+    /* ── CALENDAR ── */
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+    @media(max-width:640px) {
+      .cal-grid { grid-template-columns: repeat(7, minmax(40px, 1fr)); overflow-x: auto; }
+    }
+    .cal-day-header {
+      text-align: center;
+      font-family: 'Oswald', Arial, sans-serif;
+      font-size: .75rem;
+      letter-spacing: .5px;
+      color: var(--muted);
+      padding: 4px 2px;
+      text-transform: uppercase;
+    }
+    .cal-day {
+      min-height: 90px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 5px;
+      background: white;
+      vertical-align: top;
+    }
+    .cal-day.today { border-color: var(--accent); background: #FFF8F4; }
+    .cal-day.weekend { background: #F8F7F4; }
+    .cal-date {
+      font-family: 'Oswald', Arial, sans-serif;
+      font-size: .85rem;
+      font-weight: 600;
+      color: var(--brand);
+      margin-bottom: 4px;
+    }
+    .cal-day.today .cal-date { color: var(--accent); font-size: 1rem; }
+    .cal-job-chip {
+      font-size: .7rem;
+      border-radius: 3px;
+      padding: 2px 5px;
+      margin-bottom: 3px;
+      cursor: pointer;
+      line-height: 1.3;
+      border-left: 3px solid transparent;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .cal-job-chip:hover { filter: brightness(.93); }
+
+    /* ── SITE PLANNER ── */
+    .planner-wrap {
+      display: grid;
+      grid-template-columns: 1fr 200px;
+      gap: 14px;
+    }
+    @media(max-width:640px) { .planner-wrap { grid-template-columns: 1fr; } }
+    #planning-map { height: 360px; border-radius: 5px; border: 1px solid var(--border); }
+    .measure-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      border-bottom: 1px solid #F0EDE8;
+      font-size: .82rem;
+    }
+    .measure-row:last-child { border-bottom: none; font-weight: 700; }
+
     /* ── PRINT INVOICE ── */
     .print-only { display: none; }
     @media print {
@@ -568,6 +636,52 @@
     </div>
 
     <div id="job-log-list"></div>
+  </div>
+
+  <!-- Schedule -->
+  <div class="card" id="schedule-card">
+    <h2>Schedule</h2>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      <button class="print-btn" onclick="calWeekOffset--;renderCalendar()" style="padding:7px 14px;background:var(--brand-light)">&#9664;</button>
+      <span id="cal-week-label" style="flex:1;text-align:center;font-family:'Oswald',Arial,sans-serif;font-weight:600;font-size:.95rem;letter-spacing:.5px"></span>
+      <button class="print-btn" onclick="calWeekOffset++;renderCalendar()" style="padding:7px 14px;background:var(--brand-light)">&#9654;</button>
+      <button class="print-btn" onclick="calWeekOffset=0;renderCalendar()" style="padding:7px 14px;font-size:.75rem;background:#374a5a">Today</button>
+    </div>
+    <div class="cal-grid" id="cal-headers">
+      <div class="cal-day-header">Mon</div>
+      <div class="cal-day-header">Tue</div>
+      <div class="cal-day-header">Wed</div>
+      <div class="cal-day-header">Thu</div>
+      <div class="cal-day-header">Fri</div>
+      <div class="cal-day-header" style="color:#C8530A">Sat</div>
+      <div class="cal-day-header" style="color:#C8530A">Sun</div>
+    </div>
+    <div class="cal-grid" id="cal-grid" style="margin-top:4px"></div>
+    <div style="margin-top:14px">
+      <div style="font-family:'Oswald',Arial,sans-serif;font-size:.8rem;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px">
+        Unscheduled &nbsp;<span id="unscheduled-count" style="background:#eee;border-radius:10px;padding:1px 8px">0</span>
+      </div>
+      <div id="unscheduled-list" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+    </div>
+  </div>
+
+  <!-- Site Planner -->
+  <div class="card">
+    <h2>Site Planner — Satellite View</h2>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+      <button class="print-btn" id="find-prop-btn" onclick="findProperty()">&#127759; Find Property</button>
+      <button class="print-btn" onclick="closePlanningLine()" style="background:#374a5a">Close Loop</button>
+      <button class="print-btn" onclick="undoLastPoint()" style="background:#374a5a">&#8617; Undo</button>
+      <button class="print-btn" onclick="clearPlanningMap()" style="background:#c0392b">Clear</button>
+      <span style="font-size:.78rem;color:var(--muted)">Tap map to trace fence. Each point measures the segment.</span>
+    </div>
+    <div class="planner-wrap">
+      <div id="planning-map"></div>
+      <div>
+        <div style="font-family:'Oswald',Arial,sans-serif;font-size:.82rem;text-transform:uppercase;letter-spacing:.5px;color:var(--brand);margin-bottom:8px;border-bottom:2px solid var(--accent);padding-bottom:4px">Measurements</div>
+        <div id="planning-measurements"><div style="color:var(--muted);font-size:.8rem">Trace the fence line on the map to see measurements here.</div></div>
+      </div>
+    </div>
   </div>
 
   <!-- House Visual -->
@@ -1977,6 +2091,7 @@
     else jobs.unshift(entry);
     localStorage.setItem('fsig-jobs', JSON.stringify(jobs.slice(0, 50)));
     renderJobLog();
+    renderCalendar();
     const btn = document.getElementById('save-job-btn');
     const orig = btn.textContent;
     btn.textContent = '✓ Saved!';
@@ -2023,6 +2138,7 @@
     const jobs = JSON.parse(localStorage.getItem('fsig-jobs') || '[]');
     localStorage.setItem('fsig-jobs', JSON.stringify(jobs.filter(j => j.id !== id)));
     renderJobLog();
+    renderCalendar();
   }
 
   function setLogFilter(btn) {
@@ -2202,6 +2318,211 @@
   ALL_SIDES.forEach(s => addRow(s));
   initJobNumber();
   renderJobLog();
+  renderCalendar();
+</script>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  // ── CALENDAR ──────────────────────────────────────────────────────────────
+  let calWeekOffset = 0;
+
+  function getMondayOf(date) {
+    const d = new Date(date);
+    d.setHours(0,0,0,0);
+    const dow = d.getDay();
+    const diff = dow === 0 ? -6 : 1 - dow;
+    d.setDate(d.getDate() + diff);
+    return d;
+  }
+
+  function fmtDate(d) {
+    return d.toISOString().slice(0,10);
+  }
+
+  function renderCalendar() {
+    const jobs = JSON.parse(localStorage.getItem('fsig-jobs') || '[]');
+    const today = new Date(); today.setHours(0,0,0,0);
+    const monday = getMondayOf(today);
+    monday.setDate(monday.getDate() + calWeekOffset * 7);
+
+    const days = Array.from({length:7}, (_,i) => {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      return d;
+    });
+
+    // Week label
+    const end = days[6];
+    document.getElementById('cal-week-label').textContent =
+      monday.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' – ' +
+      end.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+
+    // Build day cells
+    const grid = document.getElementById('cal-grid');
+    grid.innerHTML = days.map(d => {
+      const iso = fmtDate(d);
+      const isToday = iso === fmtDate(today);
+      const isWknd  = d.getDay() === 0 || d.getDay() === 6;
+      const dayJobs = jobs.filter(j => (j.date || (j.state && j.state.jobStartDate)) === iso);
+      const chips = dayJobs.map(j => {
+        const st = STATUS_STYLES[j.status] || STATUS_STYLES['pending'];
+        return `<div class="cal-job-chip" onclick="loadJob(${j.id})"
+          style="background:${st.bg};color:${st.color};border-left-color:${st.color}"
+          title="${j.label}">
+          ${j.label}
+        </div>`;
+      }).join('');
+      return `<div class="cal-day${isToday?' today':''}${isWknd?' weekend':''}">
+        <div class="cal-date">${d.getDate()}</div>
+        ${chips}
+        ${dayJobs.length >= 3 ? '<div style="font-size:.65rem;color:var(--accent);font-weight:700">'+dayJobs.length+' jobs</div>' : ''}
+      </div>`;
+    }).join('');
+
+    // Unscheduled jobs
+    const unscheduled = jobs.filter(j => !j.date && !(j.state && j.state.jobStartDate));
+    document.getElementById('unscheduled-count').textContent = unscheduled.length;
+    document.getElementById('unscheduled-list').innerHTML = unscheduled.map(j => {
+      const st = STATUS_STYLES[j.status] || STATUS_STYLES['pending'];
+      return `<div onclick="loadJob(${j.id})" class="cal-job-chip"
+        style="background:${st.bg};color:${st.color};border-left-color:${st.color};cursor:pointer;padding:4px 10px">
+        ${j.label}
+      </div>`;
+    }).join('') || '<div style="color:var(--muted);font-size:.82rem">All jobs are scheduled.</div>';
+  }
+
+  // ── SITE PLANNER ──────────────────────────────────────────────────────────
+  let planMap = null;
+  let planPoints = [];
+  let planLayers = [];
+
+  const ORANGE = '#C8530A';
+
+  function initPlanMap() {
+    if (planMap) return;
+    planMap = L.map('planning-map', { zoomControl: true });
+
+    // ESRI satellite imagery (free, no API key)
+    L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      { maxZoom: 21, attribution: 'Imagery © Esri' }
+    ).addTo(planMap);
+
+    // Labels overlay (roads, addresses, property lines)
+    L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+      { maxZoom: 21, opacity: 0.85 }
+    ).addTo(planMap);
+
+    planMap.setView([37.63, -91.54], 14); // default: Salem, MO area
+    planMap.on('click', onPlanClick);
+  }
+
+  function findProperty() {
+    initPlanMap();
+    const addr = ['addr','city','state','zip']
+      .map(id => document.getElementById(id).value).filter(Boolean).join(', ');
+    if (!addr) { alert('Enter an address in Job Info first.'); return; }
+
+    const btn = document.getElementById('find-prop-btn');
+    btn.textContent = 'Searching…';
+    btn.disabled = true;
+
+    fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(addr))
+      .then(r => r.json())
+      .then(data => {
+        btn.textContent = '🌍 Find Property';
+        btn.disabled = false;
+        if (!data.length) { alert('Address not found. Check the address in Job Info.'); return; }
+        planMap.setView([+data[0].lat, +data[0].lon], 19);
+      })
+      .catch(() => { btn.textContent = '🌍 Find Property'; btn.disabled = false; alert('Network error.'); });
+  }
+
+  function haversineFt(a, b) {
+    const R = 20925525;
+    const dLat = (b.lat - a.lat) * Math.PI / 180;
+    const dLon = (b.lng - a.lng) * Math.PI / 180;
+    const sinLat = Math.sin(dLat/2);
+    const sinLon = Math.sin(dLon/2);
+    const c = sinLat*sinLat + sinLon*sinLon * Math.cos(a.lat*Math.PI/180) * Math.cos(b.lat*Math.PI/180);
+    return R * 2 * Math.atan2(Math.sqrt(c), Math.sqrt(1-c));
+  }
+
+  function onPlanClick(e) {
+    initPlanMap();
+    const ll = e.latlng;
+    planPoints.push(ll);
+
+    const dot = L.circleMarker(ll, {
+      radius: 5, color: ORANGE, fillColor: ORANGE, fillOpacity: 1, weight: 2
+    }).addTo(planMap);
+    planLayers.push(dot);
+
+    if (planPoints.length > 1) {
+      const seg = L.polyline(planPoints, { color: ORANGE, weight: 3, opacity: .9 }).addTo(planMap);
+      planLayers.push(seg);
+    }
+
+    updatePlanMeasurements();
+  }
+
+  function closePlanningLine() {
+    if (planPoints.length < 3) { alert('Add at least 3 points first to close the loop.'); return; }
+    const closed = [...planPoints, planPoints[0]];
+    const line = L.polyline(closed, { color: ORANGE, weight: 3, opacity: .9, dashArray: '6 4' }).addTo(planMap);
+    planLayers.push(line);
+    planPoints = [...planPoints, planPoints[0]];
+    updatePlanMeasurements(true);
+  }
+
+  function undoLastPoint() {
+    if (!planPoints.length) return;
+    planPoints.pop();
+    planLayers.forEach(l => planMap.removeLayer(l));
+    planLayers = [];
+    planPoints.forEach((ll, i) => {
+      const dot = L.circleMarker(ll, { radius: 5, color: ORANGE, fillColor: ORANGE, fillOpacity: 1, weight: 2 }).addTo(planMap);
+      planLayers.push(dot);
+      if (i > 0) {
+        const seg = L.polyline([planPoints[i-1], ll], { color: ORANGE, weight: 3 }).addTo(planMap);
+        planLayers.push(seg);
+      }
+    });
+    updatePlanMeasurements();
+  }
+
+  function clearPlanningMap() {
+    planLayers.forEach(l => planMap.removeLayer(l));
+    planLayers = []; planPoints = [];
+    document.getElementById('planning-measurements').innerHTML =
+      '<div style="color:var(--muted);font-size:.8rem">Trace the fence line on the map to see measurements here.</div>';
+  }
+
+  function updatePlanMeasurements(closed = false) {
+    if (planPoints.length < 2) { return; }
+    let total = 0;
+    const rows = [];
+    for (let i = 1; i < planPoints.length; i++) {
+      const d = haversineFt(planPoints[i-1], planPoints[i]);
+      total += d;
+      rows.push(`<div class="measure-row">
+        <span style="color:var(--muted)">Seg ${i}</span>
+        <strong>${d.toFixed(1)} ft</strong>
+      </div>`);
+    }
+    rows.push(`<div class="measure-row" style="margin-top:8px;padding-top:6px;border-top:2px solid var(--accent)">
+      <span>Total</span>
+      <strong style="color:var(--accent);font-size:1.05rem">${total.toFixed(1)} ft</strong>
+    </div>`);
+    document.getElementById('planning-measurements').innerHTML = rows.join('');
+  }
+
+  // Initialize map lazily when the card scrolls into view
+  const planObserver = new IntersectionObserver(entries => {
+    if (entries[0].isIntersecting) { initPlanMap(); planObserver.disconnect(); }
+  }, { threshold: 0.1 });
+  planObserver.observe(document.getElementById('planning-map'));
 </script>
 </body>
 </html>
