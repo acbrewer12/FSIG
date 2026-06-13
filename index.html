@@ -2583,32 +2583,17 @@
     const custInvoiceHtml = buildCustomerInvoiceHtml(addressHtml, dateStr);
     const _printPts = planPoints.map(p => ({lat: p.lat, lng: p.lng}));
     const _printPlanUrl = _printPts.length >= 2 ? buildMapSnapshotUrl(_printPts) : '';
-    const _printOverlay = _printPts.length >= 2 ? buildPlannerSvgOverlay(_printPts, _planSegments, getPlanBbox(_printPts), 580, 280) : '';
+    // Skip SVG overlay when Google key is set — path is already baked into the Static Maps image
+    const _printOverlay = (_printPts.length >= 2 && !getGmapsKey())
+      ? buildPlannerSvgOverlay(_printPts, _planSegments, getPlanBbox(_printPts), 580, 280) : '';
     const _standalonesvg = buildPlannerSvg(_printPts, _planSegments);
     const _planAddrLine = [
       document.getElementById('customer-name')?.value,
       document.getElementById('addr')?.value,
       [document.getElementById('city')?.value, document.getElementById('state')?.value, document.getElementById('zip')?.value].filter(Boolean).join(', ')
     ].filter(Boolean).join(' · ');
-    const plannerSvgPage = (_printPlanUrl || _standalonesvg)
-      ? `<div class="print-page-plan">
-          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
-            <div>
-              <span style="font-size:1.1rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#1B2937">Holliday Welding &amp; Fence</span>
-              <span style="font-size:.7rem;color:#C8530A;letter-spacing:2px;text-transform:uppercase;font-weight:700;margin-left:10px">Site Plan</span>
-            </div>
-            <div style="font-size:.72rem;color:#666;text-align:right">
-              ${currentJobNumber} &nbsp;·&nbsp; ${dateStr}
-              ${_planAddrLine ? `<br>${_planAddrLine}` : ''}
-            </div>
-          </div>
-          <div style="position:relative;line-height:0;border:1px solid #ccc;border-radius:3px;overflow:hidden">
-            ${_printPlanUrl
-              ? `<img src="${_printPlanUrl}" style="width:100%;display:block" />${_printOverlay}`
-              : _standalonesvg}
-          </div>
-        </div>`
-      : '';
+
+    // hdr defined before plannerSvgPage so both can use the same header style
     const hdr = (subtitle) => `
       <div style="border-bottom:3px solid #1B2937;margin-bottom:10px;padding-bottom:8px;display:flex;justify-content:space-between;align-items:flex-end">
         <div>
@@ -2617,6 +2602,18 @@
         </div>
         <div style="text-align:right;font-size:.72rem;color:#666"><div>Salem, MO</div><div>Date: ${dateStr}</div></div>
       </div>`;
+
+    const plannerSvgPage = (_printPlanUrl || _standalonesvg)
+      ? `<div class="print-page-plan" style="page-break-before:always">
+          ${hdr('Site Plan')}
+          ${_planAddrLine ? `<div style="font-size:.75rem;color:#555;margin:-6px 0 10px">${_planAddrLine}</div>` : ''}
+          <div style="position:relative;line-height:0;border:1px solid #ccc;border-radius:3px;overflow:hidden">
+            ${_printPlanUrl
+              ? `<img src="${_printPlanUrl}" style="width:100%;display:block" />${_printOverlay}`
+              : _standalonesvg}
+          </div>
+        </div>`
+      : '';
 
     document.getElementById('print-invoice').innerHTML = `
       <!-- PAGE 1: Internal Jobsite Analysis -->
