@@ -259,6 +259,45 @@
     .face-badge.outside { background: #fff3e0; color: #bf360c; }
     .face-badge.both    { background: #e3f2fd; color: #1565c0; }
 
+    /* ── JOB LOG ── */
+    .job-log-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-bottom: 8px;
+      background: #fafafa;
+    }
+    .job-log-item .job-label { flex: 1; font-size: .88rem; color: var(--text); }
+    .job-log-item .job-status {
+      font-size: .75rem;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: #e8f5e9;
+      color: #2e7d32;
+      font-weight: 600;
+    }
+    .jl-btn {
+      background: var(--brand);
+      color: white;
+      border: none;
+      padding: 5px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: .8rem;
+    }
+    .jl-del {
+      background: none;
+      border: 1px solid #c0392b;
+      color: #c0392b;
+      padding: 5px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: .8rem;
+    }
+
     /* ── PRINT INVOICE ── */
     .print-only { display: none; }
     @media print {
@@ -307,7 +346,12 @@
 
 <header>
   <h1>FSIG &nbsp;·&nbsp; Jobsite Analysis</h1>
-  <button class="print-btn" onclick="buildPrintInvoice();window.print()">Print / Save PDF</button>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="print-btn" onclick="newJob()" style="background:#555">New Job</button>
+    <button class="print-btn" onclick="saveJob()" id="save-job-btn">Save Job</button>
+    <button class="print-btn" onclick="textCrew()" style="background:#1a6fad">Text Crew</button>
+    <button class="print-btn" onclick="buildPrintInvoice();window.print()">Print / Save PDF</button>
+  </div>
 </header>
 
 <div class="container">
@@ -315,15 +359,27 @@
   <!-- Print invoice — populated by buildPrintInvoice() before printing -->
   <div id="print-invoice" class="print-only" style="display:none;font-family:Arial,sans-serif;color:#222;max-width:750px;margin:0 auto"></div>
 
-  <!-- Address -->
+  <!-- Address / Customer -->
   <div class="card">
-    <h2>Property</h2>
-    <div class="addr-row">
+    <h2>Property &amp; Customer</h2>
+    <div class="addr-row" style="margin-bottom:10px">
+      <input id="customer-name" type="text" placeholder="Customer Name" style="flex:1.5;min-width:180px" />
+      <input id="customer-phone" type="tel" placeholder="Phone" style="max-width:160px" />
+    </div>
+    <div class="addr-row" style="margin-bottom:10px">
       <input id="addr" type="text" placeholder="Street Address" />
       <input id="city" type="text" placeholder="City" />
       <input id="state" type="text" placeholder="State" style="max-width:80px" />
       <input id="zip" type="text" placeholder="ZIP" style="max-width:90px" />
     </div>
+    <textarea id="access-notes" placeholder="Access / Crew Notes (gate codes, dogs, key box, etc.)" rows="2"
+      style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:5px;font-size:.88rem;resize:vertical;font-family:inherit"></textarea>
+  </div>
+
+  <!-- Job Log -->
+  <div class="card">
+    <h2>Job Log</h2>
+    <div id="job-log-list"><div style="color:#999;font-size:.85rem;padding:4px 0">No saved jobs yet — fill out a job and hit Save Job.</div></div>
   </div>
 
   <!-- House Visual -->
@@ -1471,10 +1527,18 @@
     const measureUnit  = sqft ? 'sq ft' : 'lin ft';
     const measureLabel = sqft ? 'Square Footage' : 'Linear Footage';
 
+    const customerName  = document.getElementById('customer-name').value;
+    const customerPhone = document.getElementById('customer-phone').value;
+    const accessNotes   = document.getElementById('access-notes').value;
     const addrParts = ['addr','city','state','zip'].map(id => document.getElementById(id).value).filter(Boolean);
-    const addressHtml = addrParts.length
-      ? `<div style="margin:8px 0 16px;font-size:.9rem">${addrParts.join(', ')}</div>`
-      : '';
+    const customerHtml = (customerName || customerPhone || addrParts.length) ? `
+      <div style="margin:6px 0 12px;font-size:.88rem;line-height:1.7">
+        ${customerName  ? `<strong>${customerName}</strong>&ensp;` : ''}
+        ${customerPhone ? `<span style="color:#555">${customerPhone}</span>` : ''}<br>
+        ${addrParts.length ? `<span>${addrParts.join(', ')}</span>` : ''}
+        ${accessNotes ? `<div style="margin-top:4px;color:#555;font-size:.82rem"><em>Notes: ${accessNotes}</em></div>` : ''}
+      </div>` : '';
+    const addressHtml = customerHtml;
 
     function getSectionsForType(type) {
       const out = [];
@@ -1626,8 +1690,131 @@
 
   window.addEventListener('beforeprint', buildPrintInvoice);
 
+  // ── Job Log ──
+  function getJobState() {
+    const rates = {};
+    ['s-rate','s-cov','s-gal-cost','b-rate','b-cov','b-gal-cost',
+     's-rate-sqft','s-cov-sqft','b-rate-sqft','b-cov-sqft',
+     'tl-rate','tl-crew','tl-labor-rate'].forEach(id => {
+      rates[id] = document.getElementById(id).value;
+    });
+    return {
+      customerName:  document.getElementById('customer-name').value,
+      customerPhone: document.getElementById('customer-phone').value,
+      accessNotes:   document.getElementById('access-notes').value,
+      addr:  document.getElementById('addr').value,
+      city:  document.getElementById('city').value,
+      state: document.getElementById('state').value,
+      zip:   document.getElementById('zip').value,
+      stainProduct: document.getElementById('stain-product').value,
+      rates,
+      sides: JSON.parse(JSON.stringify(sides)),
+      quoteMode,
+    };
+  }
+
+  function saveJob() {
+    const jobs = JSON.parse(localStorage.getItem('fsig-jobs') || '[]');
+    const state = getJobState();
+    const id = Date.now();
+    const name = state.customerName || state.addr || 'Job ' + jobs.length;
+    const label = name + ' — ' + new Date().toLocaleDateString();
+    jobs.unshift({ id, label, state });
+    localStorage.setItem('fsig-jobs', JSON.stringify(jobs.slice(0, 50)));
+    renderJobLog();
+    const btn = document.getElementById('save-job-btn');
+    const orig = btn.textContent;
+    btn.textContent = '✓ Saved!';
+    btn.style.background = '#27ae60';
+    setTimeout(() => { btn.textContent = orig; btn.style.background = ''; }, 2000);
+  }
+
+  function loadJob(id) {
+    const jobs = JSON.parse(localStorage.getItem('fsig-jobs') || '[]');
+    const job = jobs.find(j => j.id === id);
+    if (!job) return;
+    const s = job.state;
+    document.getElementById('customer-name').value  = s.customerName  || '';
+    document.getElementById('customer-phone').value = s.customerPhone || '';
+    document.getElementById('access-notes').value   = s.accessNotes   || '';
+    document.getElementById('addr').value  = s.addr  || '';
+    document.getElementById('city').value  = s.city  || '';
+    document.getElementById('state').value = s.state || '';
+    document.getElementById('zip').value   = s.zip   || '';
+    document.getElementById('stain-product').value = s.stainProduct || '';
+    if (s.stainProduct) selectStain(s.stainProduct);
+    Object.entries(s.rates || {}).forEach(([rid, val]) => {
+      const el = document.getElementById(rid);
+      if (el) el.value = val;
+    });
+    Object.assign(sides, JSON.parse(JSON.stringify(s.sides)));
+    rowCounter = Math.max(0, ...Object.values(s.sides).flat().map(r => r.id || 0));
+    ALL_SIDES.forEach(side => renderRows(side));
+    setMode(s.quoteMode || 'linft');
+    recalc();
+  }
+
+  function deleteJob(id) {
+    if (!confirm('Delete this saved job?')) return;
+    const jobs = JSON.parse(localStorage.getItem('fsig-jobs') || '[]');
+    localStorage.setItem('fsig-jobs', JSON.stringify(jobs.filter(j => j.id !== id)));
+    renderJobLog();
+  }
+
+  function renderJobLog() {
+    const jobs = JSON.parse(localStorage.getItem('fsig-jobs') || '[]');
+    const container = document.getElementById('job-log-list');
+    if (!container) return;
+    if (!jobs.length) {
+      container.innerHTML = '<div style="color:#999;font-size:.85rem;padding:4px 0">No saved jobs yet — fill out a job and hit Save Job.</div>';
+      return;
+    }
+    container.innerHTML = jobs.map(j => `
+      <div class="job-log-item">
+        <div class="job-label">${j.label}</div>
+        <button class="jl-btn" onclick="loadJob(${j.id})">Load</button>
+        <button class="jl-del" onclick="deleteJob(${j.id})">✕</button>
+      </div>`).join('');
+  }
+
+  function textCrew() {
+    const name  = document.getElementById('customer-name').value;
+    const phone = document.getElementById('customer-phone').value;
+    const addr  = ['addr','city','state','zip'].map(id => document.getElementById(id).value).filter(Boolean).join(', ');
+    const notes = document.getElementById('access-notes').value;
+    const product = document.getElementById('stain-product').value;
+    const stainLF  = totalLinFtByType('stain').toFixed(0);
+    const bleachLF = totalLinFtByType('bleach').toFixed(0);
+    const stainGal  = document.getElementById('s-gal').textContent;
+    const bleachGal = document.getElementById('b-gal').textContent;
+    let msg = 'FSIG Job Sheet\n';
+    if (name)  msg += 'Customer: ' + name + '\n';
+    if (phone) msg += 'Phone: ' + phone + '\n';
+    if (addr)  msg += 'Address: ' + addr + '\n';
+    if (notes) msg += 'Notes: ' + notes + '\n';
+    msg += '\nJob:\n';
+    if (product) msg += 'Stain: ' + product + '\n';
+    if (parseFloat(stainLF)  > 0) msg += 'Stain:  ' + stainLF  + ' lin ft · ' + stainGal  + ' gal\n';
+    if (parseFloat(bleachLF) > 0) msg += 'Bleach: ' + bleachLF + ' lin ft · ' + bleachGal + ' gal\n';
+    window.open('sms:?body=' + encodeURIComponent(msg));
+  }
+
+  function newJob() {
+    if (!confirm('Start a new job? Current data will be cleared.')) return;
+    ['customer-name','customer-phone','access-notes','addr','city','state','zip'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('stain-product').value = '';
+    document.getElementById('stain-product-specs').style.display = 'none';
+    ALL_SIDES.forEach(s => { sides[s] = []; });
+    rowCounter = 0;
+    ALL_SIDES.forEach(s => addRow(s));
+    recalc();
+  }
+
   // Init — start with one blank row per side
   ALL_SIDES.forEach(s => addRow(s));
+  renderJobLog();
 </script>
 </body>
 </html>
