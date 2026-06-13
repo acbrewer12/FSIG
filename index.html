@@ -1985,9 +1985,84 @@
     updateCosts();
   }
 
+  // ── Fence trace top-down SVG (used by both live view and print) ──
+  // Reconstructs shape from bearing+distance of each segment (north = up)
+  function buildFenceTraceSvg(segs, VW, VH, PAD) {
+    if (!segs || segs.length < 1) return '';
+    const FCOLOR = '#C8530A';
+
+    // Build relative x,y coords from bearing + distance
+    const rel = [{ x: 0, y: 0 }];
+    segs.forEach(seg => {
+      const r = seg.bearing * Math.PI / 180;
+      const last = rel[rel.length - 1];
+      rel.push({ x: last.x + seg.dist * Math.sin(r), y: last.y - seg.dist * Math.cos(r) });
+    });
+
+    // Scale to fit canvas
+    const xs = rel.map(p => p.x), ys = rel.map(p => p.y);
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minY = Math.min(...ys), maxY = Math.max(...ys);
+    const rangeX = maxX - minX || 1, rangeY = maxY - minY || 1;
+    const drawW = VW - PAD * 2, drawH = VH - PAD * 2;
+    const scale = Math.min(drawW / rangeX, drawH / rangeY);
+    const offX = PAD + (drawW - rangeX * scale) / 2 - minX * scale;
+    const offY = PAD + (drawH - rangeY * scale) / 2 - minY * scale;
+    const sc = rel.map(p => ({ x: p.x * scale + offX, y: p.y * scale + offY }));
+
+    let h = '';
+
+    // Fence line: white halo + orange stroke
+    const pathD = sc.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+    h += `<path d="${pathD}" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="7" stroke-linejoin="round" stroke-linecap="round"/>`;
+    h += `<path d="${pathD}" fill="none" stroke="${FCOLOR}" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>`;
+
+    // Corner dots
+    sc.forEach(p => {
+      h += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="5.5" fill="${FCOLOR}" stroke="white" stroke-width="2"/>`;
+    });
+
+    // Segment distance labels (rotated along each segment)
+    const SIDE_SHORT = { left: 'Left', right: 'Right', back: 'Back', frontLeft: 'Front-L', frontRight: 'Front-R', '': '' };
+    segs.forEach((seg, i) => {
+      const a = sc[i], b = sc[i + 1];
+      if (!a || !b) return;
+      const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+      const angle = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
+      const norm = angle > 90 ? angle - 180 : angle < -90 ? angle + 180 : angle;
+      const side = SIDE_SHORT[seg.side] || '';
+      const label = `${seg.dist.toFixed(0)} ft${side ? ' · ' + side : ''}`;
+      h += `<text x="${mx.toFixed(1)}" y="${my.toFixed(1)}" text-anchor="middle" dominant-baseline="central"
+        font-size="11" font-weight="bold" font-family="Arial"
+        fill="white" stroke="#333" stroke-width="3" paint-order="stroke"
+        transform="rotate(${norm.toFixed(1)},${mx.toFixed(1)},${my.toFixed(1)})" dy="-9">${label}</text>`;
+    });
+
+    // Total perimeter (bottom-left)
+    const total = segs.reduce((s, seg) => s + (seg.dist || 0), 0);
+    h += `<text x="8" y="${VH - 6}" text-anchor="start" fill="#555" font-size="10" font-weight="700" font-family="Arial">Total: ${total.toFixed(0)} ft</text>`;
+
+    // North indicator (top-right)
+    h += `<text x="${VW - 8}" y="16" text-anchor="end" fill="#444" font-size="12" font-weight="bold" font-family="Arial">N ▲</text>`;
+
+    return h;
+  }
+
   // ── SVG Top-Down Property Map ──
   function updateHouseVisual() {
     const svg = document.getElementById('house-visual');
+
+    // When site planner segments exist, draw the actual fence trace (north = up)
+    if (typeof _planSegments !== 'undefined' && _planSegments && _planSegments.length > 0) {
+      const VW = 800, VH = 530, PAD = 72;
+      let h = `<rect x="0" y="0" width="${VW}" height="${VH}" fill="#eceae3" rx="8"/>`;
+      // Subtle grid
+      for (let gx = PAD; gx < VW - PAD; gx += 55) h += `<line x1="${gx}" y1="${PAD}" x2="${gx}" y2="${VH-PAD}" stroke="#ddd9d1" stroke-width="1"/>`;
+      for (let gy = PAD; gy < VH - PAD; gy += 55) h += `<line x1="${PAD}" y1="${gy}" x2="${VW-PAD}" y2="${gy}" stroke="#ddd9d1" stroke-width="1"/>`;
+      h += buildFenceTraceSvg(_planSegments, VW, VH, PAD);
+      svg.innerHTML = h;
+      return;
+    }
 
     // ── Layout constants ──
     // SVG: 800 × 530
@@ -2307,6 +2382,16 @@
 
   function buildPrintMapSVG() {
     const VW = 580, VH = 230;
+
+    // When site planner segments exist, draw the actual fence trace
+    if (typeof _planSegments !== 'undefined' && _planSegments && _planSegments.length > 0) {
+      const PAD = 36;
+      return `<svg viewBox="0 0 ${VW} ${VH}" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;margin:4px auto">
+        <rect width="${VW}" height="${VH}" fill="#f5f4f1" rx="4"/>
+        ${buildFenceTraceSvg(_planSegments, VW, VH, PAD)}
+      </svg>`;
+    }
+
     const FX = 118, FY = 52, FW = 344, FH = 148;
     const BW = 14;
     const C_STAIN = '#B8760E', C_BLEACH = '#1F7EC2', C_BOTH = '#7B3FA0', C_EMPTY = '#d5d2cd';
@@ -4462,6 +4547,9 @@ ${coords}
     </button>`);
 
     document.getElementById('planning-measurements').innerHTML = rows.join('');
+
+    // Keep the top-down view in sync with the traced fence outline
+    if (typeof updateHouseVisual === 'function') updateHouseVisual();
   }
 
   function applyToFenceSections(evt) {
