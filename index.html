@@ -466,7 +466,7 @@
     /* ── SITE PLANNER ── */
     .planner-wrap {
       display: grid;
-      grid-template-columns: 1fr 200px;
+      grid-template-columns: 1fr 220px;
       gap: 14px;
     }
     @media(max-width:640px) { .planner-wrap { grid-template-columns: 1fr; } }
@@ -2499,23 +2499,96 @@
       '<div style="color:var(--muted);font-size:.8rem">Trace the fence line on the map to see measurements here.</div>';
   }
 
-  function updatePlanMeasurements(closed = false) {
-    if (planPoints.length < 2) { return; }
+  // Calculate compass bearing (degrees) between two latlng points
+  function planBearing(a, b) {
+    const dLon = (b.lng - a.lng) * Math.PI / 180;
+    const lat1 = a.lat * Math.PI / 180, lat2 = b.lat * Math.PI / 180;
+    const y = Math.sin(dLon) * Math.cos(lat2);
+    const x = Math.cos(lat1)*Math.sin(lat2) - Math.sin(lat1)*Math.cos(lat2)*Math.cos(dLon);
+    return (Math.atan2(y, x) * 180/Math.PI + 360) % 360;
+  }
+
+  // Auto-suggest a fence side based on compass bearing
+  // North ≈ Back of property, South ≈ Front, East ≈ Right, West ≈ Left
+  function bearingToSide(deg) {
+    if (deg >= 315 || deg < 45)  return 'back';
+    if (deg >= 45  && deg < 135) return 'right';
+    if (deg >= 135 && deg < 225) return 'frontLeft';
+    return 'left';
+  }
+
+  let _planSegments = [];
+
+  function updatePlanMeasurements() {
+    if (planPoints.length < 2) return;
     let total = 0;
-    const rows = [];
+    _planSegments = [];
+
     for (let i = 1; i < planPoints.length; i++) {
       const d = haversineFt(planPoints[i-1], planPoints[i]);
+      const bear = planBearing(planPoints[i-1], planPoints[i]);
       total += d;
-      rows.push(`<div class="measure-row">
-        <span style="color:var(--muted)">Seg ${i}</span>
-        <strong>${d.toFixed(1)} ft</strong>
-      </div>`);
+      _planSegments.push({ index: i, dist: d, bearing: bear, side: bearingToSide(bear) });
     }
-    rows.push(`<div class="measure-row" style="margin-top:8px;padding-top:6px;border-top:2px solid var(--accent)">
-      <span>Total</span>
+
+    const SIDES = [
+      { val:'left',       label:'Left Side' },
+      { val:'right',      label:'Right Side' },
+      { val:'back',       label:'Back' },
+      { val:'frontLeft',  label:'Front Left' },
+      { val:'frontRight', label:'Front Right' },
+      { val:'',           label:'— skip —' },
+    ];
+
+    const rows = _planSegments.map(seg => {
+      const opts = SIDES.map(o =>
+        `<option value="${o.val}"${o.val===seg.side?' selected':''}>${o.label}</option>`
+      ).join('');
+      const cardDir = seg.bearing.toFixed(0) + '°';
+      return `<div style="padding:5px 0;border-bottom:1px solid #F0EDE8">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="color:var(--muted);font-size:.75rem">Seg ${seg.index} &nbsp;<span style="opacity:.6">${cardDir}</span></span>
+          <strong style="font-size:.88rem">${seg.dist.toFixed(1)} ft</strong>
+        </div>
+        <select id="seg-side-${seg.index}" onchange="_planSegments[${seg.index-1}].side=this.value"
+          style="width:100%;margin-top:3px;font-size:.78rem;padding:3px 5px;border:1px solid var(--border);border-radius:3px;background:#fafaf8">
+          ${opts}
+        </select>
+      </div>`;
+    });
+
+    rows.push(`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:2px solid var(--accent);margin-top:6px">
+      <strong>Total</strong>
       <strong style="color:var(--accent);font-size:1.05rem">${total.toFixed(1)} ft</strong>
     </div>`);
+
+    rows.push(`<button class="print-btn" onclick="applyToFenceSections()"
+      style="width:100%;margin-top:8px;font-size:.78rem;padding:8px">
+      &#8595;&nbsp;Add to Fence Sections
+    </button>`);
+
     document.getElementById('planning-measurements').innerHTML = rows.join('');
+  }
+
+  function applyToFenceSections() {
+    if (!_planSegments.length) return;
+    const toApply = _planSegments.filter(s => s.side);
+    if (!toApply.length) { alert('Assign at least one segment to a side first.'); return; }
+
+    toApply.forEach(seg => {
+      addRow(seg.side, seg.dist.toFixed(1), '');
+    });
+
+    // Scroll to fence sections
+    const fenceCard = document.getElementById('rows-left')?.closest('.card');
+    if (fenceCard) fenceCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    // Flash confirmation
+    const btn = event.target;
+    const orig = btn.textContent;
+    btn.textContent = '✓ Applied! Set heights below.';
+    btn.style.background = '#27ae60';
+    setTimeout(() => { btn.textContent = orig; btn.style.background = ''; }, 3000);
   }
 
   // Initialize map lazily when the card scrolls into view
