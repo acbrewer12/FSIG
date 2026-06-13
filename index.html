@@ -1117,6 +1117,21 @@
 </div><!-- /container -->
 
 <script>
+  // ── Arrow directions per side ──
+  // "inside" = toward the property center; arrows show which way that is
+  const FACE_ARROWS = {
+    left:       { inside: '→', outside: '←', both: '←→' }, // left fence: inside = east (right)
+    right:      { inside: '←', outside: '→', both: '←→' }, // right fence: inside = west (left)
+    back:       { inside: '↓', outside: '↑', both: '↑↓' }, // back fence: inside = south (down)
+    frontLeft:  { inside: '↑', outside: '↓', both: '↑↓' }, // front: inside = north (up, toward house)
+    frontRight: { inside: '↑', outside: '↓', both: '↑↓' },
+  };
+  function sideArrow(side, face) {
+    const a = FACE_ARROWS[side] || FACE_ARROWS.left;
+    if (face === 'none') return '—';
+    return a[face] || face;
+  }
+
   // ── Data model ──
   const sides = { left: [], right: [], back: [], frontLeft: [], frontRight: [] };
   let rowCounter = 0;
@@ -1152,16 +1167,16 @@
         <span style="font-size:.76rem;font-weight:700;color:#B8760E;padding:0 2px">S</span>
         <select onchange="updateRow('${side}',${row.id},'stainFace',this.value)" style="font-size:.82rem;padding:5px 4px;border:1px solid var(--border);border-radius:4px">
           <option value="none"    ${row.stainFace==='none'    ?'selected':''}>—</option>
-          <option value="inside"  ${row.stainFace==='inside'  ?'selected':''}>In ←</option>
-          <option value="outside" ${row.stainFace==='outside' ?'selected':''}>Out →</option>
-          <option value="both"    ${row.stainFace==='both'    ?'selected':''}>Both ←→</option>
+          <option value="inside"  ${row.stainFace==='inside'  ?'selected':''}>In ${sideArrow(side,'inside')}</option>
+          <option value="outside" ${row.stainFace==='outside' ?'selected':''}>Out ${sideArrow(side,'outside')}</option>
+          <option value="both"    ${row.stainFace==='both'    ?'selected':''}>Both ${sideArrow(side,'both')}</option>
         </select>
         <span style="font-size:.76rem;font-weight:700;color:#1F7EC2;padding:0 2px">B</span>
         <select onchange="updateRow('${side}',${row.id},'bleachFace',this.value)" style="font-size:.82rem;padding:5px 4px;border:1px solid var(--border);border-radius:4px">
           <option value="none"    ${row.bleachFace==='none'    ?'selected':''}>—</option>
-          <option value="inside"  ${row.bleachFace==='inside'  ?'selected':''}>In ←</option>
-          <option value="outside" ${row.bleachFace==='outside' ?'selected':''}>Out →</option>
-          <option value="both"    ${row.bleachFace==='both'    ?'selected':''}>Both ←→</option>
+          <option value="inside"  ${row.bleachFace==='inside'  ?'selected':''}>In ${sideArrow(side,'inside')}</option>
+          <option value="outside" ${row.bleachFace==='outside' ?'selected':''}>Out ${sideArrow(side,'outside')}</option>
+          <option value="both"    ${row.bleachFace==='both'    ?'selected':''}>Both ${sideArrow(side,'both')}</option>
         </select>
         <span class="sq" id="sqft-${row.id}">${quoteMode==='sqft' ? rowSqft(row)+' sq ft' : rowLinFt(row)+' lin ft'}</span>
         <button class="del-btn" onclick="removeRow('${side}',${row.id})" title="Remove">✕</button>
@@ -1835,13 +1850,14 @@
       const b = row.bleachFace && row.bleachFace !== 'none';
       return s && b ? C_BOTH : s ? C_STAIN : b ? C_BLEACH : C_EMPTY;
     }
-    function faceDimLabel(row) {
+    function faceDimLabel(row, side) {
       const sf = row.stainFace || 'none', bf = row.bleachFace || 'none';
       const hasIn  = sf==='inside'||sf==='both'||bf==='inside'||bf==='both';
       const hasOut = sf==='outside'||sf==='both'||bf==='outside'||bf==='both';
-      if (hasIn && hasOut) return '←→';
-      if (hasIn)  return '←';
-      if (hasOut) return '→';
+      const a = FACE_ARROWS[side] || FACE_ARROWS.left;
+      if (hasIn && hasOut) return a.both;
+      if (hasIn)  return a.inside;
+      if (hasOut) return a.outside;
       return '';
     }
 
@@ -1906,22 +1922,22 @@
     // Dimension labels outside each band
     backC.forEach(({ sx, sw, row }) => {
       const cx = sx + sw/2;
-      svg += `<text x="${cx}" y="${FY-28}" text-anchor="middle" fill="#111" font-size="9.5" font-weight="bold" font-family="Arial">${row.len}' × ${row.hgt}' (${faceDimLabel(row)})</text>`;
+      svg += `<text x="${cx}" y="${FY-28}" text-anchor="middle" fill="#111" font-size="9.5" font-weight="bold" font-family="Arial">${row.len}' × ${row.hgt}' (${faceDimLabel(row,'back')})</text>`;
       svg += `<text x="${cx}" y="${FY-14}" text-anchor="middle" fill="#555" font-size="8.5" font-family="Arial">(${rowSqft(row)} sq ft)</text>`;
     });
     leftC.forEach(({ sy, sh, row }) => {
       const cy = sy + sh/2;
-      svg += `<text x="${FX-10}" y="${cy-6}" text-anchor="end" fill="#111" font-size="9.5" font-weight="bold" font-family="Arial">${row.len}' × ${row.hgt}' (${faceDimLabel(row)})</text>`;
+      svg += `<text x="${FX-10}" y="${cy-6}" text-anchor="end" fill="#111" font-size="9.5" font-weight="bold" font-family="Arial">${row.len}' × ${row.hgt}' (${faceDimLabel(row,'left')})</text>`;
       svg += `<text x="${FX-10}" y="${cy+8}" text-anchor="end" fill="#555" font-size="8.5" font-family="Arial">(${rowSqft(row)} sq ft)</text>`;
     });
     rightC.forEach(({ sy, sh, row }) => {
       const cy = sy + sh/2;
-      svg += `<text x="${FX+FW+10}" y="${cy-6}" text-anchor="start" fill="#111" font-size="9.5" font-weight="bold" font-family="Arial">${row.len}' × ${row.hgt}' (${faceDimLabel(row)})</text>`;
+      svg += `<text x="${FX+FW+10}" y="${cy-6}" text-anchor="start" fill="#111" font-size="9.5" font-weight="bold" font-family="Arial">${row.len}' × ${row.hgt}' (${faceDimLabel(row,'right')})</text>`;
       svg += `<text x="${FX+FW+10}" y="${cy+8}" text-anchor="start" fill="#555" font-size="8.5" font-family="Arial">(${rowSqft(row)} sq ft)</text>`;
     });
     frontC.forEach(({ sx, sw, row }) => {
       const cx = sx + sw/2;
-      svg += `<text x="${cx}" y="${FY+FH+14}" text-anchor="middle" fill="#111" font-size="9.5" font-weight="bold" font-family="Arial">${row.len}' × ${row.hgt}' (${faceDimLabel(row)})</text>`;
+      svg += `<text x="${cx}" y="${FY+FH+14}" text-anchor="middle" fill="#111" font-size="9.5" font-weight="bold" font-family="Arial">${row.len}' × ${row.hgt}' (${faceDimLabel(row,'frontLeft')})</text>`;
       svg += `<text x="${cx}" y="${FY+FH+28}" text-anchor="middle" fill="#555" font-size="8.5" font-family="Arial">(${rowSqft(row)} sq ft)</text>`;
     });
 
