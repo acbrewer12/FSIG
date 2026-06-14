@@ -737,10 +737,7 @@
     <div id="pipeline-form" style="display:none;background:#f7f6f2;border:1px solid var(--border);border-radius:6px;padding:14px;margin-bottom:14px">
       <div style="font-weight:700;font-size:.9rem;margin-bottom:10px;color:var(--brand)" id="pipe-form-title">New Lead</div>
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
-        <span style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Job Type:</span>
-        <button type="button" id="pipe-type-fence" onclick="setPipeLeadType('fence')" class="print-btn" style="font-size:.78rem;padding:3px 12px;background:#1B5E20">&#128296; Fence</button>
-        <button type="button" id="pipe-type-stain" onclick="setPipeLeadType('stain')" class="print-btn" style="font-size:.78rem;padding:3px 12px;background:#5f6368">&#128396; Stain</button>
-        <button type="button" id="pipe-type-both"  onclick="setPipeLeadType('both')"  class="print-btn" style="font-size:.78rem;padding:3px 12px;background:#5f6368">&#128296;&#128396; Both</button>
+        <button type="button" id="pipe-type-both" onclick="togglePipeLeadBoth()" class="print-btn" style="font-size:.78rem;padding:3px 12px;background:#5f6368">&#128296;&#128396; Both</button>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <div>
@@ -3502,15 +3499,18 @@
 
   // ── Job Pipeline ─────────────────────────────────────────────────────────────
   var _pipeTab = 'fence';
-  var _pipeLeadType = 'fence';
+  var _pipeLeadBoth = false; // true when "Both" toggle is active
 
-  function setPipeLeadType(t) {
-    _pipeLeadType = t;
-    var colors = { fence:'#1B5E20', stain:'#E65100', both:'#1565C0' };
-    ['fence','stain','both'].forEach(function(k) {
-      var btn = document.getElementById('pipe-type-' + k);
-      if (btn) btn.style.background = k === t ? colors[k] : '#5f6368';
-    });
+  function togglePipeLeadBoth() {
+    _pipeLeadBoth = !_pipeLeadBoth;
+    var btn = document.getElementById('pipe-type-both');
+    if (btn) btn.style.background = _pipeLeadBoth ? '#1565C0' : '#5f6368';
+  }
+
+  function _setPipeLeadBoth(val) {
+    _pipeLeadBoth = !!val;
+    var btn = document.getElementById('pipe-type-both');
+    if (btn) btn.style.background = _pipeLeadBoth ? '#1565C0' : '#5f6368';
   }
   var _pipeEditId = null;
   var _schedLeadId = null;
@@ -3835,7 +3835,7 @@
     _pipeEditId = null;
     document.getElementById('pipe-form-title').textContent = 'New Lead';
     ['pipe-name','pipe-phone','pipe-address','pipe-city','pipe-state','pipe-notes','pipe-bid','pipe-start'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
-    setPipeLeadType(localStorage.getItem('fsig-app-mode') || 'fence');
+    _setPipeLeadBoth(false);
     document.getElementById('pipeline-form').style.display = '';
     document.getElementById('pipe-name').focus();
   }
@@ -3853,7 +3853,7 @@
     document.getElementById('pipe-notes').value = job.notes||'';
     document.getElementById('pipe-bid').value = job.bidAmount||'';
     document.getElementById('pipe-start').value = job.startDate||'';
-    setPipeLeadType(job.type || 'fence');
+    _setPipeLeadBoth(job.type === 'both');
     document.getElementById('pipeline-form').style.display = '';
     document.getElementById('pipe-name').focus();
   }
@@ -3886,9 +3886,11 @@
         arr[idx].city = entry.city; arr[idx].state = entry.state;
         arr[idx].notes = entry.notes; arr[idx].bidAmount = entry.bidAmount;
         arr[idx].startDate = entry.startDate; arr[idx].updatedAt = entry.updatedAt;
+        arr[idx].type = _pipeLeadBoth ? 'both' : (localStorage.getItem('fsig-app-mode') || 'fence');
       }
     } else {
-      arr.push({ id: String(Date.now()), type: _pipeLeadType, status: 'lead', createdAt: Date.now(),
+      var _leadType = _pipeLeadBoth ? 'both' : (localStorage.getItem('fsig-app-mode') || 'fence');
+      arr.push({ id: String(Date.now()), type: _leadType, status: 'lead', createdAt: Date.now(),
         name: entry.name, phone: entry.phone, address: entry.address, street: entry.street,
         city: entry.city, state: entry.state, notes: entry.notes,
         bidAmount: entry.bidAmount, startDate: entry.startDate, updatedAt: entry.updatedAt });
