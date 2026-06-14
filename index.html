@@ -975,9 +975,12 @@
     </div>
   </div>
 
-  <!-- Fence Layout Planner -->
-  <div class="card" data-section="fence">
-    <h2 style="cursor:pointer;user-select:none" onclick="var b=document.getElementById('fence-layout-body');b.style.display=b.style.display==='none'?'':'none'">&#128208; Fence Layout Planner</h2>
+  <!-- Fence Layout Planner / Site Plan Fence Layout (visible in both modes) -->
+  <div class="card">
+    <h2 style="cursor:pointer;user-select:none" onclick="var b=document.getElementById('fence-layout-body');b.style.display=b.style.display==='none'?'':'none'">
+      <span class="fence-mode-title">&#128208; Fence Layout Planner</span>
+      <span class="stain-mode-title">&#128205; Site Plan &#8212; Fence Layout</span>
+    </h2>
     <div id="fence-layout-body">
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
         <button class="print-btn" onclick="syncFenceMapFromPlan()" style="font-size:.76rem;padding:3px 10px;background:#2E7D32">&#128506; Sync from Map</button>
