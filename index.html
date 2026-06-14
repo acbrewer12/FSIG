@@ -482,6 +482,13 @@
     }
     .measure-row:last-child { border-bottom: none; font-weight: 700; }
 
+    /* ── MODE SWITCH BAR ── */
+    .mode-bar { display:flex;gap:0;margin-bottom:16px;border-radius:6px;overflow:hidden;border:3px solid var(--brand); }
+    .mode-btn { flex:1;padding:14px;font-size:1.15rem;font-weight:700;font-family:'Oswald',Arial,sans-serif;text-transform:uppercase;letter-spacing:1.5px;border:none;cursor:pointer;transition:all .15s;background:#f7f6f2;color:var(--brand); }
+    .mode-btn.active { background:var(--brand);color:#fff; }
+    .container.mode-fence .card[data-section="stain"] { display:none !important; }
+    .container.mode-stain .card[data-section="fence"] { display:none !important; }
+
     /* ── JOB PIPELINE ── */
     .pipe-tab { padding:6px 18px;border:2px solid var(--border);border-radius:4px;background:#f7f6f2;cursor:pointer;font-size:.85rem;font-weight:600;transition:all .15s; }
     .pipe-tab.active { background:var(--brand);color:#fff;border-color:var(--brand); }
@@ -709,7 +716,12 @@
   </div>
 </header>
 
-<div class="container">
+<div class="container mode-fence" id="app-container">
+
+  <div class="mode-bar">
+    <button id="mode-btn-fence" class="mode-btn active" onclick="setAppMode('fence')">&#128296; Fence</button>
+    <button id="mode-btn-stain" class="mode-btn" onclick="setAppMode('stain')">&#129531; Stain</button>
+  </div>
 
   <!-- Print invoice — populated by buildPrintInvoice() before printing -->
   <div id="print-invoice" class="print-only" style="display:none;font-family:Arial,sans-serif;color:#222;max-width:750px;margin:0 auto"></div>
@@ -867,7 +879,7 @@
   </div>
 
   <!-- Gates -->
-  <div class="card">
+  <div class="card" data-section="fence">
     <h2>Gates</h2>
     <div class="gates-col-headers">
       <span>Type</span><span>Width (ft)</span><span>Height (ft)</span><span>Notes (latch, hinge side, opener…)</span><span></span>
@@ -948,7 +960,7 @@
   </div>
 
   <!-- Site Planner -->
-  <div class="card">
+  <div class="card" data-section="fence">
     <h2>Site Planner — Satellite View</h2>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
       <button class="print-btn" id="find-prop-btn" onclick="findProperty()">&#127759; Find Property</button>
@@ -990,13 +1002,13 @@
   </div>
 
   <!-- House Visual -->
-  <div class="card">
+  <div class="card" data-section="fence">
     <h2>Property Map — Top-Down View</h2>
     <svg id="house-visual" viewBox="0 0 800 530" xmlns="http://www.w3.org/2000/svg"></svg>
   </div>
 
   <!-- Perspective Views -->
-  <div class="card">
+  <div class="card" data-section="fence">
     <h2>Fence Views — Standing at Each Side</h2>
     <div class="views-grid">
       <div class="view-item">
@@ -1019,7 +1031,7 @@
   </div>
 
   <!-- Fence Sections -->
-  <div class="card">
+  <div class="card" data-section="fence">
     <h2>Fence Sections</h2>
     <div class="sides-grid">
       <div class="side-panel left" id="panel-left">
@@ -1095,7 +1107,7 @@
   </div>
 
   <!-- Stain Product -->
-  <div class="card">
+  <div class="card" data-section="stain">
     <h2>Stain</h2>
     <div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap">
       <div style="flex:1;min-width:200px">
@@ -1142,7 +1154,7 @@
   </div>
 
   <!-- Job Summary -->
-  <div class="card">
+  <div class="card" data-section="stain">
     <h2>Job Summary — What to Bring</h2>
     <div class="summary-grid">
       <div class="summary-chip">
@@ -1165,7 +1177,7 @@
   </div>
 
   <!-- Cost Calculator -->
-  <div class="card">
+  <div class="card" data-section="stain">
     <h2>Cost Calculator</h2>
 
     <div class="mode-toggle">
@@ -1280,7 +1292,7 @@
   </div>
 
   <!-- Time & Labor -->
-  <div class="card">
+  <div class="card" data-section="stain">
     <h2>Time &amp; Labor Estimate</h2>
     <table class="cost-tbl">
       <tr>
@@ -1324,7 +1336,7 @@
   </div>
 
   <!-- Fence Parts Calculator -->
-  <div class="card" id="parts-calc-card">
+  <div class="card" id="parts-calc-card" data-section="fence">
     <h2>Fence Parts Calculator</h2>
 
     <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px;align-items:flex-end">
@@ -1565,7 +1577,7 @@
   </div>
 
   <!-- On-Hand Materials -->
-  <div class="card">
+  <div class="card" data-section="fence">
     <h2>On-Hand Materials</h2>
     <div style="font-size:.84rem;color:var(--muted);margin-bottom:10px">
       Enter materials you already have on hand. These are tracked for inventory reference and saved with the job.
@@ -4205,6 +4217,20 @@
   toggleStretchesUI();
   partsTypeChange(); // ensure correct panels visible on load
   renderPipeline();
+
+  function setAppMode(mode) {
+    const c = document.getElementById('app-container');
+    c.classList.remove('mode-fence','mode-stain');
+    c.classList.add('mode-' + mode);
+    document.getElementById('mode-btn-fence').classList.toggle('active', mode === 'fence');
+    document.getElementById('mode-btn-stain').classList.toggle('active', mode === 'stain');
+    localStorage.setItem('fsig-app-mode', mode);
+    setPipeTab(mode);
+  }
+
+  // Restore mode on load
+  const _savedMode = localStorage.getItem('fsig-app-mode') || 'fence';
+  setAppMode(_savedMode);
 </script>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
