@@ -3067,7 +3067,7 @@
       detail: `${Math.round(bMeasure).toLocaleString()} ${measureUnit} @ $${bRate.toFixed(2)}/${measureUnit}`,
       amount: bCharged,
     });
-    if (activeScope.includes('Demolition / Removal')) lineItems.push({ desc:'Demolition / Removal', detail:'', amount:0 });
+    if (activeScope.includes('Demolition / Removal') && localStorage.getItem('fsig-app-mode') !== 'stain') lineItems.push({ desc:'Demolition / Removal', detail:'', amount:0 });
 
     const gateRowData = gates.filter(g => g.type || g.width || g.height);
     const gateList = gateRowData.length
