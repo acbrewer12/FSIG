@@ -897,15 +897,27 @@
   <!-- Site Planner -->
   <div class="card">
     <h2>Site Planner — Satellite View</h2>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
       <button class="print-btn" id="find-prop-btn" onclick="findProperty()">&#127759; Find Property</button>
+      <!-- Draw mode toggle -->
+      <span style="font-size:.72rem;color:var(--muted);margin-left:4px">Draw:</span>
+      <button id="mode-fence-btn" onclick="setDrawMode('fence')" class="print-btn"
+        style="background:#C8530A;padding:5px 12px;font-size:.75rem;border:2px solid #C8530A">&#128316; Fence</button>
+      <button id="mode-prop-btn" onclick="setDrawMode('property')" class="print-btn"
+        style="background:#374a5a;padding:5px 12px;font-size:.75rem;border:2px solid transparent">&#9633; Property</button>
+      <span style="font-size:.72rem;color:var(--muted);margin-left:4px">Fence:</span>
       <button class="print-btn" onclick="closePlanningLine()" style="background:#374a5a">Close Loop</button>
       <button class="print-btn" onclick="undoLastPoint()" style="background:#374a5a">&#8617; Undo</button>
       <button class="print-btn" onclick="clearPlanningMap()" style="background:#c0392b">Clear</button>
+      <span style="font-size:.72rem;color:var(--muted);margin-left:4px">Property:</span>
+      <button class="print-btn" onclick="closePropertyBoundary()" style="background:#1A73E8">Close Parcel</button>
+      <button class="print-btn" onclick="clearPropertyBoundary()" style="background:#5f6368">Clear Parcel</button>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
       <button class="print-btn" onclick="savePlanSnapshot()" style="background:#27ae60" id="save-plan-btn">&#128190; Save Plan</button>
       <button class="print-btn" onclick="printSitePlan()" style="background:#374a5a">&#128424; Print Plan</button>
       <button class="print-btn" onclick="downloadKML()" style="background:#1A73E8" title="Open in Google Earth">&#127758; Download KML</button>
-      <span style="font-size:.78rem;color:var(--muted)">Tap map to trace fence. Each point measures the segment.</span>
+      <span id="property-area-display" style="font-size:.8rem;color:#1A73E8;font-weight:700;padding:4px 10px;background:#E8F0FE;border-radius:4px;display:none"></span>
     </div>
     <div style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:#f7f6f2;border-radius:4px;border:1px solid var(--border);margin-bottom:10px">
       <span style="font-size:.72rem;color:var(--muted);white-space:nowrap">Google Maps API Key</span>
@@ -4016,6 +4028,110 @@
   let planLayers = [];
   let _savedPlanPoints = null;
   let _mapIsGoogle = false;
+
+  // ── Property Boundary ──
+  let drawMode = 'fence';           // 'fence' | 'property'
+  let propertyPoints = [];          // plain {lat, lng}
+  let propertyLayers = [];          // map layer handles for property polygon
+  let propertyPolygonClosed = false;
+
+  function setDrawMode(m) {
+    drawMode = m;
+    const fb = document.getElementById('mode-fence-btn');
+    const pb = document.getElementById('mode-prop-btn');
+    if (fb) { fb.style.background = m === 'fence' ? '#C8530A' : '#374a5a'; fb.style.borderColor = m === 'fence' ? '#fff' : 'transparent'; }
+    if (pb) { pb.style.background = m === 'property' ? '#1A73E8' : '#374a5a'; pb.style.borderColor = m === 'property' ? '#fff' : 'transparent'; }
+  }
+
+  function _mapAddPropertyDot(ll) {
+    if (_mapIsGoogle) {
+      const m = new google.maps.Marker({
+        position: { lat: ll.lat, lng: ll.lng }, map: planMap,
+        icon: { path: google.maps.SymbolPath.CIRCLE, scale: 5,
+                fillColor: '#1A73E8', fillOpacity: 1, strokeColor: 'white', strokeWeight: 2 }
+      });
+      propertyLayers.push(m);
+    } else {
+      const dot = L.circleMarker([ll.lat, ll.lng],
+        { radius: 5, color: '#1A73E8', fillColor: '#1A73E8', fillOpacity: 1, weight: 2 }
+      ).addTo(planMap);
+      propertyLayers.push(dot);
+    }
+  }
+
+  function _mapAddPropertyLine(pts, closed) {
+    if (_mapIsGoogle) {
+      const path = pts.map(p => ({ lat: p.lat, lng: p.lng }));
+      const poly = new google.maps.Polyline({
+        path, map: planMap, strokeColor: '#1A73E8', strokeWeight: 2.5,
+        strokeOpacity: closed ? 0.8 : 0,
+        icons: [{ icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.8, scale: 3 }, repeat: '10px' }]
+      });
+      propertyLayers.push(poly);
+    } else {
+      const line = L.polyline(pts.map(p => [p.lat, p.lng]),
+        { color: '#1A73E8', weight: 2.5, dashArray: '8 5' }
+      ).addTo(planMap);
+      propertyLayers.push(line);
+    }
+  }
+
+  function _mapRemovePropertyLayer(layer) {
+    if (_mapIsGoogle) { try { layer.setMap(null); } catch(e) {} }
+    else { try { planMap.removeLayer(layer); } catch(e) {} }
+  }
+
+  // Geographic area (sq ft) using Shoelace + local Cartesian approximation
+  function calcPropertyArea(pts) {
+    if (!pts || pts.length < 3) return { sqft: 0, acres: 0 };
+    const R = 20925525; // Earth radius in feet
+    const avgLat = pts.reduce((s, p) => s + p.lat, 0) / pts.length * Math.PI / 180;
+    const cosLat = Math.cos(avgLat);
+    const k = Math.PI / 180 * R;
+    let area = 0;
+    const n = pts.length;
+    for (let i = 0; i < n; i++) {
+      const a = pts[i], b = pts[(i + 1) % n];
+      area += (a.lng * cosLat * k * b.lat * k) - (b.lng * cosLat * k * a.lat * k);
+    }
+    const sqft = Math.abs(area) / 2;
+    return { sqft, acres: sqft / 43560 };
+  }
+
+  function updatePropertyArea() {
+    const el = document.getElementById('property-area-display');
+    if (!el) return;
+    const pts = propertyPoints.length > 0 && propertyPolygonClosed
+      ? propertyPoints : (propertyPoints.length >= 3 ? propertyPoints : null);
+    if (!pts) { el.style.display = 'none'; return; }
+    const { sqft, acres } = calcPropertyArea(pts);
+    if (sqft < 1) { el.style.display = 'none'; return; }
+    el.textContent = `Parcel: ${sqft.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} sq ft (${acres.toFixed(2)} ac)`;
+    el.style.display = '';
+  }
+
+  function onPropertyClick(ll) {
+    if (propertyPolygonClosed) return; // already closed, use Clear first
+    const prev = propertyPoints[propertyPoints.length - 1];
+    propertyPoints.push(ll);
+    _mapAddPropertyDot(ll);
+    if (propertyPoints.length > 1) _mapAddPropertyLine([prev, ll]);
+    updatePropertyArea();
+  }
+
+  function closePropertyBoundary() {
+    if (propertyPoints.length < 3) { alert('Add at least 3 points to close the property boundary.'); return; }
+    if (propertyPolygonClosed) return;
+    _mapAddPropertyLine([propertyPoints[propertyPoints.length - 1], propertyPoints[0]]);
+    propertyPolygonClosed = true;
+    updatePropertyArea();
+  }
+
+  function clearPropertyBoundary() {
+    propertyLayers.forEach(l => _mapRemovePropertyLayer(l));
+    propertyLayers = []; propertyPoints = []; propertyPolygonClosed = false;
+    updatePropertyArea();
+  }
   const ORANGE = '#C8530A';
 
   // ── Map provider abstraction ──────────────────────────────────────────────
@@ -4393,6 +4509,7 @@
 
   function onPlanClick(e) {
     const ll = { lat: +e.latlng.lat, lng: +e.latlng.lng };
+    if (drawMode === 'property') { onPropertyClick(ll); return; }
     const prev = planPoints[planPoints.length - 1];
     planPoints.push(ll);
     _mapAddDot(ll);
@@ -4408,6 +4525,19 @@
   }
 
   function undoLastPoint() {
+    if (drawMode === 'property') {
+      if (!propertyPoints.length) return;
+      if (propertyPolygonClosed) propertyPolygonClosed = false;
+      propertyPoints.pop();
+      propertyLayers.forEach(l => _mapRemovePropertyLayer(l));
+      propertyLayers = [];
+      propertyPoints.forEach((ll, i) => {
+        _mapAddPropertyDot(ll);
+        if (i > 0) _mapAddPropertyLine([propertyPoints[i - 1], ll]);
+      });
+      updatePropertyArea();
+      return;
+    }
     if (!planPoints.length) return;
     planPoints.pop();
     planLayers.forEach(l => _mapRemoveLayer(l));
@@ -4427,35 +4557,52 @@
   }
 
   function downloadKML() {
-    if (planPoints.length < 2) { alert('Trace at least 2 points on the map first.'); return; }
+    if (planPoints.length < 2 && propertyPoints.length < 3) { alert('Trace fence points or property boundary on the map first.'); return; }
     const customerName = document.getElementById('customer-name')?.value || '';
     const addr = ['addr','city','state','zip'].map(id => document.getElementById(id)?.value || '').filter(Boolean).join(', ');
     const total = _planSegments.reduce((s, seg) => s + (seg.dist || 0), 0);
-    const coords = planPoints.map(p => `          ${(+p.lng).toFixed(8)},${(+p.lat).toFixed(8)},0`).join('\n');
     const name = (customerName || addr || 'Fence Layout').replace(/&/g,'&amp;').replace(/</g,'&lt;');
-    const kml = `<?xml version="1.0" encoding="UTF-8"?>
-<kml xmlns="http://www.opengis.net/kml/2.2">
-  <Document>
-    <name>${name}</name>
-    <description>${addr}${total > 0 ? ' | Total fence: ' + total.toFixed(0) + ' ft' : ''}</description>
-    <Style id="fence"><LineStyle><color>FF0A53C8</color><width>4</width></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
-    <Style id="pt"><IconStyle><color>FF0A53C8</color><scale>0.8</scale>
-      <Icon><href>https://maps.google.com/mapfiles/kml/shapes/placemark_circle.png</href></Icon>
-    </IconStyle><LabelStyle><scale>0.7</scale></LabelStyle></Style>
+
+    const fencePlacemark = planPoints.length >= 2 ? `
     <Placemark>
       <name>Fence Outline${total > 0 ? ' — ' + total.toFixed(0) + ' ft' : ''}</name>
       <styleUrl>#fence</styleUrl>
       <LineString><tessellate>1</tessellate><coordinates>
-${coords}
+${planPoints.map(p => `        ${(+p.lng).toFixed(8)},${(+p.lat).toFixed(8)},0`).join('\n')}
       </coordinates></LineString>
     </Placemark>
     ${_planSegments.map((seg, i) => {
       const a = planPoints[i], b = planPoints[i + 1];
       if (!a || !b) return '';
       const midLat = (a.lat + b.lat) / 2, midLng = (a.lng + b.lng) / 2;
-      return `<Placemark><name>${seg.dist.toFixed(0)} ft</name><styleUrl>#pt</styleUrl>` +
-        `<Point><coordinates>${midLng.toFixed(8)},${midLat.toFixed(8)},0</coordinates></Point></Placemark>`;
-    }).join('\n    ')}
+      return `<Placemark><name>${seg.dist.toFixed(0)} ft</name><styleUrl>#pt</styleUrl>`
+        + `<Point><coordinates>${midLng.toFixed(8)},${midLat.toFixed(8)},0</coordinates></Point></Placemark>`;
+    }).join('\n    ')}` : '';
+
+    const propPts = propertyPoints.length >= 3
+      ? [...propertyPoints, propertyPoints[0]] : [];
+    const { sqft, acres } = calcPropertyArea(propertyPoints);
+    const propertyPlacemark = propPts.length >= 3 ? `
+    <Placemark>
+      <name>Property Boundary${sqft > 0 ? ' — ' + sqft.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,',') + ' sq ft (' + acres.toFixed(2) + ' ac)' : ''}</name>
+      <styleUrl>#parcel</styleUrl>
+      <Polygon><tessellate>1</tessellate><outerBoundaryIs><LinearRing><coordinates>
+${propPts.map(p => `        ${(+p.lng).toFixed(8)},${(+p.lat).toFixed(8)},0`).join('\n')}
+      </coordinates></LinearRing></outerBoundaryIs></Polygon>
+    </Placemark>` : '';
+
+    const kml = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>${name}</name>
+    <description>${addr}${total > 0 ? ' | Fence: ' + total.toFixed(0) + ' ft' : ''}${sqft > 0 ? ' | Parcel: ' + sqft.toFixed(0) + ' sq ft' : ''}</description>
+    <Style id="fence"><LineStyle><color>FF0A53C8</color><width>4</width></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+    <Style id="parcel"><LineStyle><color>CCE87314</color><width>2</width></LineStyle><PolyStyle><color>331A73E8</color></PolyStyle></Style>
+    <Style id="pt"><IconStyle><color>FF0A53C8</color><scale>0.8</scale>
+      <Icon><href>https://maps.google.com/mapfiles/kml/shapes/placemark_circle.png</href></Icon>
+    </IconStyle><LabelStyle><scale>0.7</scale></LabelStyle></Style>
+    ${fencePlacemark}
+    ${propertyPlacemark}
   </Document>
 </kml>`;
     const blob = new Blob([kml], { type: 'application/vnd.google-earth.kml+xml' });
