@@ -482,6 +482,15 @@
     }
     .measure-row:last-child { border-bottom: none; font-weight: 700; }
 
+    /* ── JOB PIPELINE ── */
+    .pipe-tab { padding:6px 18px;border:2px solid var(--border);border-radius:4px;background:#f7f6f2;cursor:pointer;font-size:.85rem;font-weight:600;transition:all .15s; }
+    .pipe-tab.active { background:var(--brand);color:#fff;border-color:var(--brand); }
+    .pipe-stage-hdr { display:flex;align-items:center;gap:8px;padding:7px 12px;color:#fff;border-radius:4px;margin-bottom:8px;font-size:.82rem;font-weight:700;letter-spacing:.3px; }
+    .pipe-job { background:#f9f8f6;border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:5px;padding:10px 12px;margin-bottom:8px; }
+    .pipe-job-name { font-weight:700;font-size:.95rem;color:var(--brand); }
+    .pipe-job-meta { font-size:.78rem;color:var(--muted);margin-top:3px; }
+    .pipe-badge { padding:2px 8px;border-radius:10px;font-size:.75rem;font-weight:700; }
+
     /* ── PRINT INVOICE ── */
     .print-only { display: none; }
     @media print {
@@ -704,6 +713,50 @@
 
   <!-- Print invoice — populated by buildPrintInvoice() before printing -->
   <div id="print-invoice" class="print-only" style="display:none;font-family:Arial,sans-serif;color:#222;max-width:750px;margin:0 auto"></div>
+
+  <!-- Job Pipeline -->
+  <div class="card">
+    <h2>Job Pipeline</h2>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+      <button id="pipe-tab-fence" class="pipe-tab active" onclick="setPipeTab('fence')">&#128296; Fence</button>
+      <button id="pipe-tab-stain" class="pipe-tab" onclick="setPipeTab('stain')">&#129531; Stain</button>
+      <button class="print-btn" onclick="showAddLead()" style="margin-left:auto;background:var(--accent)">+ New Lead</button>
+    </div>
+    <div id="pipeline-form" style="display:none;background:#f7f6f2;border:1px solid var(--border);border-radius:6px;padding:14px;margin-bottom:14px">
+      <div style="font-weight:700;font-size:.9rem;margin-bottom:10px;color:var(--brand)" id="pipe-form-title">New Lead</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <label style="font-size:.75rem;color:var(--muted)">Customer Name *</label>
+          <input id="pipe-name" type="text" placeholder="Full name" style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:4px;font-size:.85rem;margin-top:2px">
+        </div>
+        <div>
+          <label style="font-size:.75rem;color:var(--muted)">Phone</label>
+          <input id="pipe-phone" type="tel" placeholder="417-555-0000" style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:4px;font-size:.85rem;margin-top:2px">
+        </div>
+        <div style="grid-column:1/-1">
+          <label style="font-size:.75rem;color:var(--muted)">Address</label>
+          <input id="pipe-address" type="text" placeholder="Job address" style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:4px;font-size:.85rem;margin-top:2px">
+        </div>
+        <div style="grid-column:1/-1">
+          <label style="font-size:.75rem;color:var(--muted)">Notes / Job Description</label>
+          <textarea id="pipe-notes" rows="2" placeholder="What do they need?" style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:4px;font-size:.85rem;margin-top:2px;resize:vertical"></textarea>
+        </div>
+        <div>
+          <label style="font-size:.75rem;color:var(--muted)">Bid Amount ($)</label>
+          <input id="pipe-bid" type="text" placeholder="0.00" style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:4px;font-size:.85rem;margin-top:2px">
+        </div>
+        <div>
+          <label style="font-size:.75rem;color:var(--muted)">Est. Start Date</label>
+          <input id="pipe-start" type="date" style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:4px;font-size:.85rem;margin-top:2px">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button onclick="saveLead()" class="print-btn" style="background:var(--accent)">Save</button>
+        <button onclick="cancelLead()" class="print-btn" style="background:#5f6368">Cancel</button>
+      </div>
+    </div>
+    <div id="pipeline-board"></div>
+  </div>
 
   <!-- Job Info -->
   <div class="card">
@@ -3357,6 +3410,133 @@
     a.click();
   }
 
+  // ── Job Pipeline ─────────────────────────────────────────────────────────────
+  let _pipeTab = 'fence';
+  let _pipeEditId = null;
+  const PIPE_STAGES = [
+    { id:'lead',        label:'📋 Lead / Needs Bid', color:'#374a5a' },
+    { id:'bid-sent',    label:'📤 Bid Sent',          color:'#1565C0' },
+    { id:'scheduled',   label:'📅 Scheduled',         color:'#6A1B9A' },
+    { id:'in-progress', label:'🔨 In Progress',        color:'#C8530A' },
+    { id:'complete',    label:'✅ Complete',            color:'#2E7D32' },
+  ];
+  function getPipeline() { try { return JSON.parse(localStorage.getItem('fsig-pipeline')||'[]'); } catch { return []; } }
+  function savePipeline(a) { localStorage.setItem('fsig-pipeline', JSON.stringify(a)); }
+  function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function setPipeTab(type) {
+    _pipeTab = type;
+    document.querySelectorAll('.pipe-tab').forEach(b => b.classList.remove('active'));
+    document.getElementById('pipe-tab-'+type)?.classList.add('active');
+    renderPipeline();
+  }
+
+  function renderPipeline() {
+    const all = getPipeline().filter(j => j.type === _pipeTab);
+    let html = '';
+    PIPE_STAGES.forEach(stage => {
+      const jobs = all.filter(j => j.status === stage.id);
+      const si = PIPE_STAGES.findIndex(s => s.id === stage.id);
+      html += `<div style="margin-bottom:14px">
+        <div class="pipe-stage-hdr" style="background:${stage.color}">
+          ${stage.label}
+          ${jobs.length ? `<span style="background:rgba(255,255,255,.25);border-radius:10px;padding:1px 8px">${jobs.length}</span>` : ''}
+        </div>`;
+      if (!jobs.length) {
+        html += `<div style="font-size:.78rem;color:var(--muted);padding:4px 8px;font-style:italic">No jobs</div>`;
+      }
+      jobs.forEach(job => {
+        html += `<div class="pipe-job">
+          <div class="pipe-job-name">${escHtml(job.name)}</div>
+          <div class="pipe-job-meta">
+            ${job.phone ? `📞 ${escHtml(job.phone)}` : ''}
+            ${job.address ? `${job.phone?' · ':''}${escHtml(job.address)}` : ''}
+          </div>
+          ${job.notes ? `<div class="pipe-job-meta" style="margin-top:3px;color:#444">${escHtml(job.notes)}</div>` : ''}
+          <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+            ${job.bidAmount ? `<span class="pipe-badge" style="background:#E8F5E9;color:#2E7D32">$${escHtml(job.bidAmount)}</span>` : ''}
+            ${job.startDate ? `<span class="pipe-badge" style="background:#E3F2FD;color:#1565C0">Start: ${escHtml(job.startDate)}</span>` : ''}
+          </div>
+          <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+            <button onclick="editLead('${job.id}')" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#374a5a">Edit</button>
+            ${si < PIPE_STAGES.length-1 ? `<button onclick="moveLead('${job.id}',1)" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:${PIPE_STAGES[si+1].color}">&#8594; ${escHtml(PIPE_STAGES[si+1].label.replace(/^\S+\s/,''))}</button>` : ''}
+            ${si > 0 ? `<button onclick="moveLead('${job.id}',-1)" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#5f6368">&#8592; Back</button>` : ''}
+            <button onclick="deleteLead('${job.id}')" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#c0392b">Delete</button>
+          </div>
+        </div>`;
+      });
+      html += `</div>`;
+    });
+    document.getElementById('pipeline-board').innerHTML = html;
+  }
+
+  function showAddLead() {
+    _pipeEditId = null;
+    document.getElementById('pipe-form-title').textContent = 'New Lead';
+    ['pipe-name','pipe-phone','pipe-address','pipe-notes','pipe-bid','pipe-start'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    document.getElementById('pipeline-form').style.display = '';
+    document.getElementById('pipe-name').focus();
+  }
+
+  function editLead(id) {
+    const job = getPipeline().find(j => j.id===id);
+    if (!job) return;
+    _pipeEditId = id;
+    document.getElementById('pipe-form-title').textContent = 'Edit Lead';
+    document.getElementById('pipe-name').value = job.name||'';
+    document.getElementById('pipe-phone').value = job.phone||'';
+    document.getElementById('pipe-address').value = job.address||'';
+    document.getElementById('pipe-notes').value = job.notes||'';
+    document.getElementById('pipe-bid').value = job.bidAmount||'';
+    document.getElementById('pipe-start').value = job.startDate||'';
+    document.getElementById('pipeline-form').style.display = '';
+    document.getElementById('pipe-name').focus();
+  }
+
+  function saveLead() {
+    const name = document.getElementById('pipe-name').value.trim();
+    if (!name) { alert('Customer name is required.'); return; }
+    const arr = getPipeline();
+    const entry = {
+      name, updatedAt: Date.now(),
+      phone:     document.getElementById('pipe-phone').value.trim(),
+      address:   document.getElementById('pipe-address').value.trim(),
+      notes:     document.getElementById('pipe-notes').value.trim(),
+      bidAmount: document.getElementById('pipe-bid').value.trim(),
+      startDate: document.getElementById('pipe-start').value.trim(),
+    };
+    if (_pipeEditId) {
+      const idx = arr.findIndex(j => j.id===_pipeEditId);
+      if (idx>=0) arr[idx] = { ...arr[idx], ...entry };
+    } else {
+      arr.push({ id:String(Date.now()), type:_pipeTab, status:'lead', createdAt:Date.now(), ...entry });
+    }
+    savePipeline(arr);
+    document.getElementById('pipeline-form').style.display = 'none';
+    renderPipeline();
+  }
+
+  function cancelLead() { document.getElementById('pipeline-form').style.display='none'; }
+
+  function moveLead(id, dir) {
+    const arr = getPipeline();
+    const job = arr.find(j => j.id===id);
+    if (!job) return;
+    const si = PIPE_STAGES.findIndex(s => s.id===job.status);
+    const ni = si + dir;
+    if (ni<0 || ni>=PIPE_STAGES.length) return;
+    job.status = PIPE_STAGES[ni].id;
+    job.updatedAt = Date.now();
+    savePipeline(arr);
+    renderPipeline();
+  }
+
+  function deleteLead(id) {
+    if (!confirm('Delete this lead?')) return;
+    savePipeline(getPipeline().filter(j => j.id!==id));
+    renderPipeline();
+  }
+
   // ── Customer Contacts Database ──────────────────────────────────────────────
 
   function getContacts() {
@@ -4024,6 +4204,7 @@
   updateStorageMeter();
   toggleStretchesUI();
   partsTypeChange(); // ensure correct panels visible on load
+  renderPipeline();
 </script>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
