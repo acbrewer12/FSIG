@@ -3579,6 +3579,7 @@
           linFt:   (function(){ var sides=st.sides||{}; var lf=0; for(var s in sides){ if(Array.isArray(sides[s])) sides[s].forEach(function(r){ lf+=(parseFloat(r.len)||0); }); } return lf>0?Math.round(lf):0; })(),
           startDate: j.date || '',
           bidAmount: j.bidAmountPipe || '',
+          type: j.jobType || currentMode,
         };
       });
 
