@@ -1108,6 +1108,7 @@
       <button class="print-btn" onclick="closePlanningLine()" style="background:#374a5a">Close Loop</button>
       <button class="print-btn" onclick="undoLastPoint()" style="background:#374a5a">&#8617; Undo</button>
       <button class="print-btn" onclick="clearPlanningMap()" style="background:#c0392b">Clear</button>
+      <button class="print-btn stain-mode-title" onclick="updatePlanStainOverlay()" style="background:#C8530A;font-size:.75rem">&#128396; Update Stain Overlay</button>
     </div>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
       <button class="print-btn" onclick="savePlanSnapshot()" style="background:#27ae60" id="save-plan-btn">&#128190; Save Plan</button>
@@ -4848,6 +4849,7 @@
   let planMap = null;
   let planPoints = []; // always plain {lat, lng}
   let planLayers = [];
+  let _planStainLayers = [];
   let _savedPlanPoints = null;
   let _mapIsGoogle = false;
 
@@ -5019,6 +5021,58 @@ function openInOnX() {
   function _mapRemoveLayer(layer) {
     if (_mapIsGoogle) { try { layer.setMap(null); } catch(e) {} }
     else { try { planMap.removeLayer(layer); } catch(e) {} }
+  }
+
+  // ── Stain/Bleach arrow overlay on site planner map ───────────────────────
+  function clearPlanStainOverlay() {
+    _planStainLayers.forEach(function(l) { _mapRemoveLayer(l); });
+    _planStainLayers = [];
+  }
+
+  function _addPlanArrow(lat1, lng1, lat2, lng2, color) {
+    if (!planMap) return;
+    if (_mapIsGoogle) {
+      var layer = new google.maps.Polyline({
+        path: [{lat:lat1,lng:lng1},{lat:lat2,lng:lng2}],
+        strokeColor: color, strokeWeight: 3, strokeOpacity: 0.95, map: planMap,
+        icons: [{ icon: { path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+          scale: 3, fillColor: color, fillOpacity: 1, strokeColor: color, strokeWeight: 1 },
+          offset: '100%' }]
+      });
+      _planStainLayers.push(layer);
+    } else {
+      var line = L.polyline([[lat1,lng1],[lat2,lng2]], {color:color,weight:3,opacity:0.95}).addTo(planMap);
+      _planStainLayers.push(line);
+      // Simple arrowhead
+      var dlat=lat2-lat1, dlng=lng2-lng1, alen=Math.sqrt(dlat*dlat+dlng*dlng)||1, H=alen*0.45;
+      var h1 = L.polyline([[lat2,lng2],[lat2-(dlat/alen*H*0.7+dlng/alen*H*0.5),lng2-(dlng/alen*H*0.7-dlat/alen*H*0.5)]],{color:color,weight:2,opacity:0.95}).addTo(planMap);
+      var h2 = L.polyline([[lat2,lng2],[lat2-(dlat/alen*H*0.7-dlng/alen*H*0.5),lng2-(dlng/alen*H*0.7+dlat/alen*H*0.5)]],{color:color,weight:2,opacity:0.95}).addTo(planMap);
+      _planStainLayers.push(h1, h2);
+    }
+  }
+
+  function updatePlanStainOverlay() {
+    clearPlanStainOverlay();
+    if (!planMap || !planPoints || planPoints.length < 2) return;
+    if (typeof _fmEnsureSegData === 'function') _fmEnsureSegData();
+    var ARROW = 0.000055; // ~6 meters offset in degrees
+    var segsToRender = planPoints.length - 1;
+    if (fenceMapClosed && planPoints.length > 2) segsToRender = planPoints.length;
+    for (var i = 0; i < segsToRender; i++) {
+      var a = planPoints[i], b = planPoints[(i+1) % planPoints.length];
+      var sd = (typeof fenceMapSegData !== 'undefined' && fenceMapSegData[i]) || {stain:'none',bleach:'none'};
+      if (sd.stain === 'none' && sd.bleach === 'none') continue;
+      var mlat=(a.lat+b.lat)/2, mlng=(a.lng+b.lng)/2;
+      var dlat=b.lat-a.lat, dlng=b.lng-a.lng, dlen=Math.sqrt(dlat*dlat+dlng*dlng)||1;
+      var lLat=-dlng/dlen*ARROW, lLng=dlat/dlen*ARROW; // left perp
+      var bothOff = (sd.stain!=='none' && sd.bleach!=='none') ? 0.35 : 0;
+      // Stain (orange) — shift slightly one way when both are set
+      if (sd.stain==='left'||sd.stain==='both')  _addPlanArrow(mlat-lLat*bothOff, mlng-lLng*bothOff, mlat+lLat-lLat*bothOff, mlng+lLng-lLng*bothOff, '#C8530A');
+      if (sd.stain==='right'||sd.stain==='both') _addPlanArrow(mlat+lLat*bothOff, mlng+lLng*bothOff, mlat-lLat+lLat*bothOff, mlng-lLng+lLng*bothOff, '#C8530A');
+      // Bleach (blue) — shift slightly other way
+      if (sd.bleach==='left'||sd.bleach==='both')  _addPlanArrow(mlat+lLat*bothOff, mlng+lLng*bothOff, mlat+lLat+lLat*bothOff, mlng+lLng+lLng*bothOff, '#1565C0');
+      if (sd.bleach==='right'||sd.bleach==='both') _addPlanArrow(mlat-lLat*bothOff, mlng-lLng*bothOff, mlat-lLat-lLat*bothOff, mlng-lLng-lLng*bothOff, '#1565C0');
+    }
   }
 
   function _mapFitBounds(pts) {
@@ -5383,6 +5437,7 @@ function openInOnX() {
   function clearPlanningMap() {
     planLayers.forEach(l => _mapRemoveLayer(l));
     planLayers = []; planPoints = [];
+    clearPlanStainOverlay();
     document.getElementById('planning-measurements').innerHTML =
       '<div style="color:var(--muted);font-size:.8rem">Trace the fence line on the map to see measurements here.</div>';
   }
@@ -5612,6 +5667,7 @@ ${propPts.map(p => `        ${(+p.lng).toFixed(8)},${(+p.lat).toFixed(8)},0`).jo
     if (_fmSelectedSeg<0 || !fenceMapSegData[_fmSelectedSeg]) return;
     fenceMapSegData[_fmSelectedSeg][field]=val;
     drawFenceMap();
+    if (localStorage.getItem('fsig-app-mode')==='stain') { try { updatePlanStainOverlay(); } catch(e){} }
   }
 
   function _fmSelectSeg(idx) {
@@ -5764,6 +5820,7 @@ ${propPts.map(p => `        ${(+p.lng).toFixed(8)},${(+p.lat).toFixed(8)},0`).jo
     _fmDragIdx = -1; _fmHoverIdx = -1; _fmSelectedSeg = -1;
     var panel = document.getElementById('fmap-seg-panel');
     if (panel) panel.style.display = 'none';
+    try { clearPlanStainOverlay(); } catch(e) {}
     var btn = document.getElementById('fence-close-btn');
     if (btn) btn.style.background = '#6A1B9A';
     drawFenceMap();
