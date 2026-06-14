@@ -3194,6 +3194,7 @@
     renderJobLog();
     renderCalendar();
     updateStorageMeter();
+    renderPipeline();
     const btn = document.getElementById('save-job-btn');
     const orig = btn.textContent;
     btn.textContent = '✓ Saved!';
@@ -3444,7 +3445,27 @@
   }
 
   function renderPipeline() {
-    const all = getPipeline().filter(j => j.type === _pipeTab);
+    const board = document.getElementById('pipeline-board');
+    if (!board) return;
+
+    // Pipeline CRM entries
+    const pipeEntries = getPipeline().filter(j => j.type === _pipeTab);
+
+    // Saved jobs from fsig-jobs mapped into pipeline stages
+    const STATUS_MAP = { pending:'lead', scheduled:'scheduled', 'in-progress':'in-progress', complete:'complete' };
+    const savedJobs = JSON.parse(localStorage.getItem('fsig-jobs') || '[]');
+    const savedAsPipe = savedJobs
+      .filter(j => STATUS_MAP[j.status])
+      .map(j => ({
+        id: 'saved-' + j.id, _isSaved: true, _savedId: j.id,
+        status: STATUS_MAP[j.status],
+        name:    j.label || j.state?.customerName || 'Saved Job',
+        phone:   j.state?.customerPhone || '',
+        address: [j.state?.addr, j.state?.city, j.state?.state].filter(Boolean).join(', '),
+        startDate: j.date || '',
+      }));
+
+    const all = [...pipeEntries, ...savedAsPipe];
     let html = '';
     PIPE_STAGES.forEach(stage => {
       const jobs = all.filter(j => j.status === stage.id);
@@ -3455,11 +3476,14 @@
           ${jobs.length ? `<span style="background:rgba(255,255,255,.25);border-radius:10px;padding:1px 8px">${jobs.length}</span>` : ''}
         </div>`;
       if (!jobs.length) {
-        html += `<div style="font-size:.78rem;color:var(--muted);padding:4px 8px;font-style:italic">No jobs</div>`;
+        html += `<div style="font-size:.78rem;color:var(--muted);padding:6px 10px;font-style:italic">No jobs</div>`;
       }
       jobs.forEach(job => {
-        html += `<div class="pipe-job">
-          <div class="pipe-job-name">${escHtml(job.name)}</div>
+        const isSaved = !!job._isSaved;
+        html += `<div class="pipe-job" style="${isSaved ? 'border-left-color:#1565C0' : ''}">
+          <div class="pipe-job-name">${escHtml(job.name)}
+            ${isSaved ? `<span style="font-size:.7rem;background:#E3F2FD;color:#1565C0;padding:1px 6px;border-radius:8px;font-weight:400;margin-left:6px">saved job</span>` : ''}
+          </div>
           <div class="pipe-job-meta">
             ${job.phone ? `📞 ${escHtml(job.phone)}` : ''}
             ${job.address ? `${job.phone?' · ':''}${escHtml(job.address)}` : ''}
@@ -3470,16 +3494,18 @@
             ${job.startDate ? `<span class="pipe-badge" style="background:#E3F2FD;color:#1565C0">Start: ${escHtml(job.startDate)}</span>` : ''}
           </div>
           <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
-            <button onclick="editLead('${job.id}')" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#374a5a">Edit</button>
-            ${si < PIPE_STAGES.length-1 ? `<button onclick="moveLead('${job.id}',1)" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:${PIPE_STAGES[si+1].color}">&#8594; ${escHtml(PIPE_STAGES[si+1].label.replace(/^\S+\s/,''))}</button>` : ''}
-            ${si > 0 ? `<button onclick="moveLead('${job.id}',-1)" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#5f6368">&#8592; Back</button>` : ''}
-            <button onclick="deleteLead('${job.id}')" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#c0392b">Delete</button>
+            ${isSaved
+              ? `<button onclick="loadJob(${job._savedId})" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#1565C0">Load Job</button>`
+              : `<button onclick="editLead('${job.id}')" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#374a5a">Edit</button>`}
+            ${!isSaved && si < PIPE_STAGES.length-1 ? `<button onclick="moveLead('${job.id}',1)" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:${PIPE_STAGES[si+1].color}">&#8594; ${escHtml(PIPE_STAGES[si+1].label.replace(/^\S+\s/,''))}</button>` : ''}
+            ${!isSaved && si > 0 ? `<button onclick="moveLead('${job.id}',-1)" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#5f6368">&#8592; Back</button>` : ''}
+            ${!isSaved ? `<button onclick="deleteLead('${job.id}')" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#c0392b">Delete</button>` : ''}
           </div>
         </div>`;
       });
       html += `</div>`;
     });
-    document.getElementById('pipeline-board').innerHTML = html;
+    board.innerHTML = html;
   }
 
   function showAddLead() {
@@ -4216,7 +4242,6 @@
   updateStorageMeter();
   toggleStretchesUI();
   partsTypeChange(); // ensure correct panels visible on load
-  renderPipeline();
 
   function setAppMode(mode) {
     const c = document.getElementById('app-container');
