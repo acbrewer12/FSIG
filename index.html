@@ -908,8 +908,7 @@
       <button class="print-btn" onclick="savePlanSnapshot()" style="background:#27ae60" id="save-plan-btn">&#128190; Save Plan</button>
       <button class="print-btn" onclick="printSitePlan()" style="background:#374a5a">&#128424; Print Plan</button>
       <button class="print-btn" onclick="downloadKML()" style="background:#1A73E8" title="Open in Google Earth">&#127758; Download KML</button>
-      <button class="print-btn" id="plss-btn" onclick="togglePLSS()" style="background:#374a5a" title="Toggle free BLM survey section lines">&#9974; Section Lines</button>
-      <button class="print-btn" onclick="openInOnX()" style="background:#E8820C" title="Open current location in onX Hunt">&#128205; Open in onX</button>
+<button class="print-btn" onclick="openInOnX()" style="background:#E8820C" title="Open current location in onX Hunt">&#128205; Open in onX</button>
       <span id="property-area-display" style="font-size:.8rem;color:#1A73E8;font-weight:700;padding:4px 10px;background:#E8F0FE;border-radius:4px;display:none"></span>
     </div>
     <div style="display:flex;flex-direction:column;gap:6px;padding:8px 10px;background:#f7f6f2;border-radius:4px;border:1px solid var(--border);margin-bottom:10px">
@@ -4248,32 +4247,7 @@
     if (btn) { btn.textContent = '✓ Applied'; setTimeout(() => { btn.textContent = 'Apply'; }, 2500); }
   }
 
-  let _plssLayer = null;
-  let _plssVisible = false;
-
-  function togglePLSS() {
-    if (!planMap) initPlanMap();
-    const btn = document.getElementById('plss-btn');
-    if (_mapIsGoogle) {
-      alert('Survey section lines are only available in Leaflet map mode (remove your Google Maps API key to use Leaflet).');
-      return;
-    }
-    if (_plssVisible && _plssLayer) {
-      planMap.removeLayer(_plssLayer);
-      _plssLayer = null;
-      _plssVisible = false;
-      if (btn) btn.style.background = '#374a5a';
-    } else {
-      _plssLayer = L.tileLayer.wms(
-        'https://gis.blm.gov/arcgis/services/Cadastral/BLM_Natl_PLSS_CadNSDI/MapServer/WMSServer',
-        { layers: '1,2', format: 'image/png', transparent: true, opacity: 0.6, attribution: 'BLM PLSS' }
-      ).addTo(planMap);
-      _plssVisible = true;
-      if (btn) btn.style.background = '#27ae60';
-    }
-  }
-
-  function openInOnX() {
+function openInOnX() {
     let url = 'https://app.onxmaps.com/hunt';
     if (planMap) {
       try {
