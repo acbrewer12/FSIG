@@ -939,6 +939,7 @@
     <div id="fence-layout-body">
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
         <button class="print-btn" onclick="syncFenceMapFromPlan()" style="font-size:.76rem;padding:3px 10px;background:#2E7D32">&#128506; Sync from Map</button>
+        <button class="print-btn" onclick="syncFenceMapToPlan()" style="font-size:.76rem;padding:3px 10px;background:#1B5E20">&#128506; Sync to Map</button>
         <button class="print-btn" onclick="squareFenceMap()" style="font-size:.76rem;padding:3px 10px;background:#1565C0">&#9632; Square Up</button>
         <button class="print-btn" id="fence-close-btn" onclick="toggleCloseFence()" style="font-size:.76rem;padding:3px 10px;background:#6A1B9A">Close Shape</button>
         <button class="print-btn" onclick="undoFencePoint()" style="font-size:.76rem;padding:3px 10px;background:#5f6368">&#8617; Undo</button>
@@ -5517,9 +5518,11 @@ ${propPts.map(p => `        ${(+p.lng).toFixed(8)},${(+p.lat).toFixed(8)},0`).jo
   var fenceMapPoints = [];
   var fenceMapClosed = false;
   var fenceMapScale  = 4; // px per foot
-  var _fmDragIdx  = -1;
-  var _fmHoverIdx = -1;
-  var _fmLastTap  = 0; // for double-tap detection on touch
+  var _fmDragIdx    = -1;
+  var _fmHoverIdx   = -1;
+  var _fmLastTap    = 0;
+  var _fmMapOrigin  = null; // {lat, lng} origin stored when syncing from map
+  var _fmMapXform   = null; // {scale, offX, offY, ftPerDegLat, ftPerDegLng}
 
   function _fmDist(ax, ay, bx, by) { var dx=bx-ax, dy=by-ay; return Math.sqrt(dx*dx+dy*dy); }
 
@@ -5813,9 +5816,38 @@ ${propPts.map(p => `        ${(+p.lng).toFixed(8)},${(+p.lat).toFixed(8)},0`).jo
     var si = document.getElementById('fence-map-scale-in');
     if (si) si.value = scale.toFixed(1);
 
+    // Store transform so we can sync back to map
+    _fmMapOrigin = { lat: origin.lat, lng: origin.lng };
+    _fmMapXform  = { scale: scale, offX: offX, offY: offY, ftPerDegLat: ftPerDegLat, ftPerDegLng: ftPerDegLng };
+
     // Scroll layout planner into view
     c.scrollIntoView({ behavior: 'smooth', block: 'center' });
     drawFenceMap();
+  }
+
+  function syncFenceMapToPlan() {
+    if (!_fmMapOrigin || !_fmMapXform) {
+      alert('Use Sync from Map first to establish the coordinate reference, then edit and sync back.');
+      return;
+    }
+    if (fenceMapPoints.length < 2) {
+      alert('No fence points to sync back to the map.');
+      return;
+    }
+    var t = _fmMapXform;
+    var newPts = fenceMapPoints.map(function(p) {
+      var ftX = (p.x - t.offX) / t.scale;
+      var ftY = (p.y - t.offY) / t.scale;
+      return { lat: _fmMapOrigin.lat - ftY / t.ftPerDegLat,
+               lng: _fmMapOrigin.lng + ftX / t.ftPerDegLng };
+    });
+    if (fenceMapClosed && newPts.length > 2) {
+      newPts.push({ lat: newPts[0].lat, lng: newPts[0].lng });
+    }
+    restorePlanPoints(newPts, []);
+    if (typeof updatePlanMeasurements === 'function') updatePlanMeasurements();
+    var mapEl = document.getElementById('planning-map');
+    if (mapEl) mapEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
   // Lazy-init fence map when card scrolls into view
