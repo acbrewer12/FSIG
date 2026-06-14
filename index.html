@@ -736,6 +736,12 @@
     </div>
     <div id="pipeline-form" style="display:none;background:#f7f6f2;border:1px solid var(--border);border-radius:6px;padding:14px;margin-bottom:14px">
       <div style="font-weight:700;font-size:.9rem;margin-bottom:10px;color:var(--brand)" id="pipe-form-title">New Lead</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+        <span style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Job Type:</span>
+        <button type="button" id="pipe-type-fence" onclick="setPipeLeadType('fence')" class="print-btn" style="font-size:.78rem;padding:3px 12px;background:#1B5E20">&#128296; Fence</button>
+        <button type="button" id="pipe-type-stain" onclick="setPipeLeadType('stain')" class="print-btn" style="font-size:.78rem;padding:3px 12px;background:#5f6368">&#129531; Stain</button>
+        <button type="button" id="pipe-type-both"  onclick="setPipeLeadType('both')"  class="print-btn" style="font-size:.78rem;padding:3px 12px;background:#5f6368">&#128296;&#129531; Both</button>
+      </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <div>
           <label style="font-size:.75rem;color:var(--muted)">Customer Name *</label>
@@ -3496,6 +3502,16 @@
 
   // ── Job Pipeline ─────────────────────────────────────────────────────────────
   var _pipeTab = 'fence';
+  var _pipeLeadType = 'fence';
+
+  function setPipeLeadType(t) {
+    _pipeLeadType = t;
+    var colors = { fence:'#1B5E20', stain:'#E65100', both:'#1565C0' };
+    ['fence','stain','both'].forEach(function(k) {
+      var btn = document.getElementById('pipe-type-' + k);
+      if (btn) btn.style.background = k === t ? colors[k] : '#5f6368';
+    });
+  }
   var _pipeEditId = null;
   var _schedLeadId = null;
   var _activeLeadId = null; // lead that was used to fill Job Info
@@ -3571,13 +3587,14 @@
       jobs.forEach(function(job) {
         var isSaved = !!job._isSaved;
         var jobType = job.type || 'fence';
-        var typeBg  = jobType === 'stain' ? '#FFF3E0' : '#E8F5E9';
-        var typeFg  = jobType === 'stain' ? '#E65100' : '#1B5E20';
-        var typeIcon = jobType === 'stain' ? '&#129531;' : '&#128296;';
+        var typeBg  = jobType === 'stain' ? '#FFF3E0' : jobType === 'both' ? '#EDE7F6' : '#E8F5E9';
+        var typeFg  = jobType === 'stain' ? '#E65100' : jobType === 'both' ? '#4527A0' : '#1B5E20';
+        var typeIcon = jobType === 'stain' ? '&#129531;' : jobType === 'both' ? '&#128296;&#129531;' : '&#128296;';
+        var typeLabel = jobType === 'both' ? 'fence + stain' : jobType;
         html += '<div class="pipe-job" style="' + (isSaved ? 'border-left-color:#1565C0' : '') + '">'
           + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px">'
           + '<div class="pipe-job-name">' + escHtml(job.name)
-          + '<span style="font-size:.7rem;background:' + typeBg + ';color:' + typeFg + ';padding:1px 6px;border-radius:8px;font-weight:400;margin-left:6px">' + typeIcon + ' ' + jobType + '</span>'
+          + '<span style="font-size:.7rem;background:' + typeBg + ';color:' + typeFg + ';padding:1px 6px;border-radius:8px;font-weight:400;margin-left:6px">' + typeIcon + ' ' + typeLabel + '</span>'
           + (isSaved && job.jobNum ? '<span style="font-size:.68rem;color:var(--muted);margin-left:5px">' + escHtml(job.jobNum) + '</span>' : '')
           + '</div>'
           + (isSaved ? '<button onclick="hideSavedFromPipeline(' + job._savedId + ')" title="Remove from pipeline" style="background:none;border:none;color:#aaa;font-size:1rem;cursor:pointer;padding:0 2px;line-height:1;flex-shrink:0">&#10005;</button>' : '')
@@ -3808,6 +3825,7 @@
     _pipeEditId = null;
     document.getElementById('pipe-form-title').textContent = 'New Lead';
     ['pipe-name','pipe-phone','pipe-address','pipe-city','pipe-state','pipe-notes','pipe-bid','pipe-start'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+    setPipeLeadType(localStorage.getItem('fsig-app-mode') || 'fence');
     document.getElementById('pipeline-form').style.display = '';
     document.getElementById('pipe-name').focus();
   }
@@ -3825,6 +3843,7 @@
     document.getElementById('pipe-notes').value = job.notes||'';
     document.getElementById('pipe-bid').value = job.bidAmount||'';
     document.getElementById('pipe-start').value = job.startDate||'';
+    setPipeLeadType(job.type || 'fence');
     document.getElementById('pipeline-form').style.display = '';
     document.getElementById('pipe-name').focus();
   }
@@ -3859,8 +3878,7 @@
         arr[idx].startDate = entry.startDate; arr[idx].updatedAt = entry.updatedAt;
       }
     } else {
-      var leadType = localStorage.getItem('fsig-app-mode') || 'fence';
-      arr.push({ id: String(Date.now()), type: leadType, status: 'lead', createdAt: Date.now(),
+      arr.push({ id: String(Date.now()), type: _pipeLeadType, status: 'lead', createdAt: Date.now(),
         name: entry.name, phone: entry.phone, address: entry.address, street: entry.street,
         city: entry.city, state: entry.state, notes: entry.notes,
         bidAmount: entry.bidAmount, startDate: entry.startDate, updatedAt: entry.updatedAt });
