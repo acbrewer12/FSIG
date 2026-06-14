@@ -938,9 +938,10 @@
     <h2 style="cursor:pointer;user-select:none" onclick="var b=document.getElementById('fence-layout-body');b.style.display=b.style.display==='none'?'':'none'">&#128208; Fence Layout Planner</h2>
     <div id="fence-layout-body">
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
-        <button class="print-btn" onclick="undoFencePoint()" style="font-size:.76rem;padding:3px 10px;background:#5f6368">&#8617; Undo</button>
+        <button class="print-btn" onclick="syncFenceMapFromPlan()" style="font-size:.76rem;padding:3px 10px;background:#2E7D32">&#128506; Sync from Map</button>
         <button class="print-btn" onclick="squareFenceMap()" style="font-size:.76rem;padding:3px 10px;background:#1565C0">&#9632; Square Up</button>
         <button class="print-btn" id="fence-close-btn" onclick="toggleCloseFence()" style="font-size:.76rem;padding:3px 10px;background:#6A1B9A">Close Shape</button>
+        <button class="print-btn" onclick="undoFencePoint()" style="font-size:.76rem;padding:3px 10px;background:#5f6368">&#8617; Undo</button>
         <button class="print-btn" onclick="clearFenceMap()" style="font-size:.76rem;padding:3px 10px;background:#c0392b">Clear</button>
         <label style="font-size:.76rem;color:var(--muted);display:flex;align-items:center;gap:4px;margin-left:4px">
           Scale <input id="fence-map-scale-in" type="number" value="4" min="1" max="30" style="width:44px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;font-size:.76rem" oninput="fenceMapScale=parseFloat(this.value)||4;drawFenceMap()"> px/ft
@@ -5754,6 +5755,67 @@ ${propPts.map(p => `        ${(+p.lng).toFixed(8)},${(+p.lat).toFixed(8)},0`).jo
         + ' &nbsp;·&nbsp; ' + pts.length + ' corner' + (pts.length !== 1 ? 's' : '')
         + (fenceMapClosed ? ' &nbsp;·&nbsp; <span style="color:#2E7D32">&#10003; Closed</span>' : '');
     }
+  }
+
+  function syncFenceMapFromPlan() {
+    if (!planPoints || planPoints.length < 2) {
+      alert('Draw the fence on the Site Planner map first, then sync here.');
+      return;
+    }
+    var c = document.getElementById('fence-map-canvas');
+    if (!c) return;
+    if (!c._fmReady) initFenceMap();
+
+    var w = c.width, h = c.height;
+    var PAD = 44;
+
+    // Convert lat/lng to local flat-earth feet (origin = first point)
+    var origin = planPoints[0];
+    var ftPerDegLat = 364000;
+    var ftPerDegLng = 364000 * Math.cos(origin.lat * Math.PI / 180);
+    var local = planPoints.map(function(p) {
+      return { x: (p.lng - origin.lng) * ftPerDegLng,
+               y: -(p.lat - origin.lat) * ftPerDegLat };
+    });
+
+    // Bounding box
+    var minX = local[0].x, maxX = local[0].x, minY = local[0].y, maxY = local[0].y;
+    local.forEach(function(p) {
+      if (p.x < minX) minX = p.x; if (p.x > maxX) maxX = p.x;
+      if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y;
+    });
+    var rngX = maxX - minX || 1, rngY = maxY - minY || 1;
+
+    // Scale to fit canvas
+    var scale = Math.min((w - PAD * 2) / rngX, (h - PAD * 2) / rngY);
+    var offX = PAD + ((w - PAD * 2) - rngX * scale) / 2 - minX * scale;
+    var offY = PAD + ((h - PAD * 2) - rngY * scale) / 2 - minY * scale;
+
+    var newPts = local.map(function(p) {
+      return { x: p.x * scale + offX, y: p.y * scale + offY };
+    });
+
+    // If last point is near first, treat as closed shape and remove duplicate
+    var last = newPts[newPts.length - 1], first = newPts[0];
+    if (newPts.length > 2 && _fmDist(last.x, last.y, first.x, first.y) < 8) {
+      newPts.pop();
+      fenceMapClosed = true;
+      var btn = document.getElementById('fence-close-btn');
+      if (btn) btn.style.background = '#2E7D32';
+    } else {
+      fenceMapClosed = false;
+      var btn2 = document.getElementById('fence-close-btn');
+      if (btn2) btn2.style.background = '#6A1B9A';
+    }
+
+    fenceMapPoints = newPts;
+    fenceMapScale  = scale;
+    var si = document.getElementById('fence-map-scale-in');
+    if (si) si.value = scale.toFixed(1);
+
+    // Scroll layout planner into view
+    c.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    drawFenceMap();
   }
 
   // Lazy-init fence map when card scrolls into view
