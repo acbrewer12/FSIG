@@ -3252,8 +3252,16 @@
     const name = state.customerName || state.addr || currentJobNumber;
     const label = name;
     const entry = { id, label, status: state.jobStatus, date: state.jobStartDate, state };
-    if (existing >= 0) jobs[existing] = entry;
-    else jobs.unshift(entry);
+    if (existing >= 0) {
+      // Preserve pipeline fields set by the pipeline board
+      const prev = jobs[existing];
+      if (prev.pipelineStatus !== undefined) entry.pipelineStatus = prev.pipelineStatus;
+      if (prev.pipelineHidden !== undefined) entry.pipelineHidden = prev.pipelineHidden;
+      if (prev.bidAmountPipe  !== undefined) entry.bidAmountPipe  = prev.bidAmountPipe;
+      jobs[existing] = entry;
+    } else {
+      jobs.unshift(entry);
+    }
     localStorage.setItem('fsig-jobs', JSON.stringify(jobs.slice(0, 50)));
     // If this job was started from a pipeline lead, remove that lead (saved job now represents it)
     if (_activeLeadId) {
