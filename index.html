@@ -722,7 +722,7 @@
 
   <div class="mode-bar">
     <button id="mode-btn-fence" class="mode-btn active" onclick="setAppMode('fence')">&#128296; Fence</button>
-    <button id="mode-btn-stain" class="mode-btn" onclick="setAppMode('stain')">&#129531; Stain</button>
+    <button id="mode-btn-stain" class="mode-btn" onclick="setAppMode('stain')">&#128396; Stain</button>
   </div>
 
   <!-- Print invoice — populated by buildPrintInvoice() before printing -->
@@ -739,8 +739,8 @@
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
         <span style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Job Type:</span>
         <button type="button" id="pipe-type-fence" onclick="setPipeLeadType('fence')" class="print-btn" style="font-size:.78rem;padding:3px 12px;background:#1B5E20">&#128296; Fence</button>
-        <button type="button" id="pipe-type-stain" onclick="setPipeLeadType('stain')" class="print-btn" style="font-size:.78rem;padding:3px 12px;background:#5f6368">&#129531; Stain</button>
-        <button type="button" id="pipe-type-both"  onclick="setPipeLeadType('both')"  class="print-btn" style="font-size:.78rem;padding:3px 12px;background:#5f6368">&#128296;&#129531; Both</button>
+        <button type="button" id="pipe-type-stain" onclick="setPipeLeadType('stain')" class="print-btn" style="font-size:.78rem;padding:3px 12px;background:#5f6368">&#128396; Stain</button>
+        <button type="button" id="pipe-type-both"  onclick="setPipeLeadType('both')"  class="print-btn" style="font-size:.78rem;padding:3px 12px;background:#5f6368">&#128296;&#128396; Both</button>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <div>
@@ -3589,7 +3589,7 @@
         var jobType = job.type || 'fence';
         var typeBg  = jobType === 'stain' ? '#FFF3E0' : jobType === 'both' ? '#EDE7F6' : '#E8F5E9';
         var typeFg  = jobType === 'stain' ? '#E65100' : jobType === 'both' ? '#4527A0' : '#1B5E20';
-        var typeIcon = jobType === 'stain' ? '&#129531;' : jobType === 'both' ? '&#128296;&#129531;' : '&#128296;';
+        var typeIcon = jobType === 'stain' ? '&#128396;' : jobType === 'both' ? '&#128296;&#128396;' : '&#128296;';
         var typeLabel = jobType === 'both' ? 'fence + stain' : jobType;
         html += '<div class="pipe-job" style="' + (isSaved ? 'border-left-color:#1565C0' : '') + '">'
           + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px">'
