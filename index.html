@@ -800,6 +800,30 @@
     </div>
   </div>
 
+  <!-- Send Bid Modal -->
+  <div id="pipe-bid-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center">
+    <div style="background:#fff;border-radius:10px;padding:24px;max-width:380px;width:93%;box-shadow:0 8px 32px rgba(0,0,0,.3)">
+      <div style="font-family:'Oswald',Arial,sans-serif;font-size:1.1rem;font-weight:700;color:var(--brand);margin-bottom:4px">&#128178; Send Bid</div>
+      <div id="pipe-bid-customer" style="font-weight:600;color:var(--accent);margin-bottom:2px;font-size:.95rem"></div>
+      <div id="pipe-bid-contact" style="font-size:.8rem;color:var(--muted);margin-bottom:14px"></div>
+      <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">Bid Amount</label>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px">
+        <span style="font-size:1.3rem;color:var(--muted)">$</span>
+        <input id="pipe-bid-amount" type="number" min="0" step="0.01" placeholder="0.00"
+          style="flex:1;padding:10px;border:2px solid var(--brand);border-radius:6px;font-size:1.2rem;font-weight:700">
+      </div>
+      <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">Message to Customer (optional)</label>
+      <textarea id="pipe-bid-msg" rows="3"
+        style="width:100%;padding:8px;border:1px solid var(--border);border-radius:5px;font-size:.85rem;resize:vertical;margin-bottom:14px;box-sizing:border-box"
+        placeholder="Hi [Name], your estimate is ready..."></textarea>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button onclick="sendBidViaSms()" class="print-btn" style="background:#1565C0;font-size:.9rem">&#128241; Send via Text Message</button>
+        <button onclick="confirmSendBid()" class="print-btn" style="background:#C8530A;font-size:.9rem">&#128178; Mark Bid as Sent</button>
+        <button onclick="closeBidModal()" class="print-btn" style="background:#5f6368;font-size:.88rem">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Job Info -->
   <div class="card" id="job-info-card">
     <h2>Job Info</h2>
@@ -3513,16 +3537,17 @@
     var savedJobs = [];
     try { savedJobs = JSON.parse(localStorage.getItem('fsig-jobs') || '[]'); } catch(e){}
     var savedAsPipe = savedJobs
-      .filter(function(j){ return STATUS_MAP[j.status]; })
+      .filter(function(j){ return j.pipelineStatus || STATUS_MAP[j.status]; })
       .map(function(j) {
         var st = j.state || {};
         return {
           id: 'saved-' + j.id, _isSaved: true, _savedId: j.id,
-          status: STATUS_MAP[j.status],
+          status: j.pipelineStatus || STATUS_MAP[j.status],
           name:    j.label || st.customerName || 'Saved Job',
           phone:   st.customerPhone || '',
           address: [st.addr, st.city, st.state].filter(Boolean).join(', '),
           startDate: j.date || '',
+          bidAmount: j.bidAmountPipe || '',
         };
       });
 
@@ -3606,22 +3631,88 @@
     return getPipeline().find(function(j){ return j.id === id; }) || null;
   }
 
+  var _bidLeadId = null;
+
   function placeBid(id) {
-    if (String(id).indexOf('saved-') === 0) {
-      // For saved jobs, load the job then open the bid amount input via pipeline form
-      var job = _resolveJob(id);
-      if (!job) return;
-      _pipeEditId = null;
-      document.getElementById('pipe-form-title').textContent = 'Send Bid — ' + job.name;
-      ['pipe-name','pipe-phone','pipe-address','pipe-city','pipe-state','pipe-notes','pipe-bid','pipe-start'].forEach(function(fid){ var el=document.getElementById(fid); if(el) el.value=''; });
-      document.getElementById('pipe-name').value = job.name;
-      document.getElementById('pipe-phone').value = job.phone;
-      document.getElementById('pipeline-form').style.display = '';
-      setTimeout(function(){ var el = document.getElementById('pipe-bid'); if(el){ el.focus(); el.select(); } }, 50);
-      return;
+    var job = _resolveJob(id);
+    if (!job) return;
+    _bidLeadId = id;
+    document.getElementById('pipe-bid-customer').textContent = job.name;
+    var contact = [job.phone, job.address].filter(Boolean).join('  ·  ');
+    document.getElementById('pipe-bid-contact').textContent = contact;
+    // Pre-fill bid amount from existing data
+    var existing = job.bidAmount || '';
+    document.getElementById('pipe-bid-amount').value = existing;
+    // Pre-fill default message
+    var msg = 'Hi ' + (job.name.split(' ')[0] || job.name) + ', your estimate from Holliday Welding & Fence is ready.'
+      + (existing ? ' Total: $' + existing + '.' : '')
+      + ' Give us a call if you have any questions!';
+    document.getElementById('pipe-bid-msg').value = msg;
+    var modal = document.getElementById('pipe-bid-modal');
+    if (modal) { modal.style.display = 'flex'; }
+    setTimeout(function(){ var el = document.getElementById('pipe-bid-amount'); if(el){ el.focus(); el.select(); } }, 80);
+  }
+
+  function _setSavedJobPipeStatus(savedId, pipeStatus, extra) {
+    var sj = [];
+    try { sj = JSON.parse(localStorage.getItem('fsig-jobs')||'[]'); } catch(e){}
+    var idx = sj.findIndex(function(j){ return j.id === savedId; });
+    if (idx >= 0) {
+      sj[idx].pipelineStatus = pipeStatus;
+      if (extra) { for (var k in extra) sj[idx][k] = extra[k]; }
+      localStorage.setItem('fsig-jobs', JSON.stringify(sj));
     }
-    editLead(id);
-    setTimeout(function(){ var el = document.getElementById('pipe-bid'); if(el){ el.focus(); el.select(); } }, 50);
+  }
+
+  function _moveToBidSent(id, bidAmount) {
+    if (String(id).indexOf('saved-') === 0) {
+      var savedId = parseInt(String(id).replace('saved-',''), 10);
+      _setSavedJobPipeStatus(savedId, 'bid-sent', { bidAmountPipe: bidAmount });
+    } else {
+      var arr = getPipeline();
+      var pjob = arr.find(function(j){ return j.id === id; });
+      if (pjob) {
+        pjob.status = 'bid-sent';
+        pjob.bidAmount = bidAmount;
+        pjob.updatedAt = Date.now();
+        savePipeline(arr);
+      }
+    }
+  }
+
+  function sendBidViaSms() {
+    var amount = document.getElementById('pipe-bid-amount').value.trim();
+    var msg    = document.getElementById('pipe-bid-msg').value.trim();
+    var job    = _resolveJob(_bidLeadId);
+    var phone  = job ? job.phone.replace(/\D/g,'') : '';
+    if (amount) {
+      // Update message to include final amount
+      msg = msg.replace(/Total: \$[\d.]+\./, 'Total: $' + amount + '.');
+      if (!msg.includes(amount)) {
+        msg += ' Total: $' + amount + '.';
+      }
+    }
+    _moveToBidSent(_bidLeadId, amount);
+    closeBidModal();
+    renderPipeline();
+    if (phone) {
+      window.location.href = 'sms:' + phone + '?body=' + encodeURIComponent(msg);
+    } else {
+      alert('No phone number on file — bid marked as sent.');
+    }
+  }
+
+  function confirmSendBid() {
+    var amount = document.getElementById('pipe-bid-amount').value.trim();
+    _moveToBidSent(_bidLeadId, amount);
+    closeBidModal();
+    renderPipeline();
+  }
+
+  function closeBidModal() {
+    var modal = document.getElementById('pipe-bid-modal');
+    if (modal) modal.style.display = 'none';
+    _bidLeadId = null;
   }
 
   function scheduleLead(id) {
@@ -3651,12 +3742,8 @@
     var job = _resolveJob(_schedLeadId);
     if (!job) { closeScheduleModal(); return; }
     if (String(_schedLeadId).indexOf('saved-') === 0) {
-      // Update the saved job's status so it moves to Scheduled stage
-      var savedId = parseInt(String(_schedLeadId).replace('saved-',''), 10);
-      var sj = [];
-      try { sj = JSON.parse(localStorage.getItem('fsig-jobs')||'[]'); } catch(e){}
-      var si2 = sj.findIndex(function(j){ return j.id === savedId; });
-      if (si2 >= 0) { sj[si2].status = 'scheduled'; sj[si2].date = dateVal; localStorage.setItem('fsig-jobs', JSON.stringify(sj)); }
+      var savedId2 = parseInt(String(_schedLeadId).replace('saved-',''), 10);
+      _setSavedJobPipeStatus(savedId2, 'scheduled', { date: dateVal });
     } else {
       var arr = getPipeline();
       var pjob = arr.find(function(j){ return j.id === _schedLeadId; });
