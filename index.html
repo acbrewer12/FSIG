@@ -3427,7 +3427,7 @@
   let _pipeTab = 'fence';
   let _pipeEditId = null;
   const PIPE_STAGES = [
-    { id:'lead',        label:'📋 Lead / Needs Bid', color:'#374a5a' },
+    { id:'lead',        label:'📋 Lead / Needs Bid', color:'#C8530A' },
     { id:'bid-sent',    label:'📤 Bid Sent',          color:'#1565C0' },
     { id:'scheduled',   label:'📅 Scheduled',         color:'#6A1B9A' },
     { id:'in-progress', label:'🔨 In Progress',        color:'#C8530A' },
@@ -3452,7 +3452,7 @@
     var pipeEntries = getPipeline().filter(function(j){ return j.type === _pipeTab; });
 
     // Saved jobs merged in
-    var STATUS_MAP = { pending:'lead', scheduled:'scheduled', 'in-progress':'in-progress', complete:'complete' };
+    var STATUS_MAP = { pending:'bid-sent', scheduled:'scheduled', 'in-progress':'in-progress', complete:'complete' };
     var savedJobs = [];
     try { savedJobs = JSON.parse(localStorage.getItem('fsig-jobs') || '[]'); } catch(e){}
     var savedAsPipe = savedJobs
@@ -4274,6 +4274,8 @@
   var _savedMode = localStorage.getItem('fsig-app-mode') || 'fence';
   setAppMode(_savedMode);
   renderPipeline();
+
+  window.addEventListener('load', function() { renderPipeline(); });
 </script>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
