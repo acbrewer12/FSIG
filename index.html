@@ -990,8 +990,30 @@
           Scale <input id="fence-map-scale-in" type="number" value="4" min="1" max="30" style="width:44px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;font-size:.76rem" oninput="fenceMapScale=parseFloat(this.value)||4;drawFenceMap()"> px/ft
         </label>
       </div>
-      <div style="font-size:.7rem;color:var(--muted);margin-bottom:4px">Tap/click to add corners &nbsp;·&nbsp; Drag to move &nbsp;·&nbsp; Double-tap to remove</div>
+      <div style="font-size:.7rem;color:var(--muted);margin-bottom:4px">Tap/click to add corners &nbsp;·&nbsp; Drag to move &nbsp;·&nbsp; Double-tap to remove &nbsp;·&nbsp; <strong>Tap a segment</strong> to set stain/bleach arrows</div>
       <canvas id="fence-map-canvas" style="border:1.5px solid var(--border);border-radius:5px;cursor:crosshair;touch-action:none;width:100%;display:block;background:#f9f8f5"></canvas>
+      <div id="fmap-seg-panel" style="display:none;background:#f0ede8;border:1px solid var(--border);border-radius:5px;padding:8px 12px;margin-top:6px;gap:14px;align-items:center;flex-wrap:wrap;font-size:.8rem">
+        <span style="font-weight:700;color:var(--muted)">Segment <span id="fmap-seg-num">1</span></span>
+        <label style="display:flex;align-items:center;gap:5px">
+          <span style="color:#C8530A;font-weight:700">&#9632; Stain</span>
+          <select id="fmap-seg-stain" onchange="setFmSegField('stain',this.value)" style="padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:.8rem">
+            <option value="none">—</option>
+            <option value="left">&#8592; In (left)</option>
+            <option value="right">Out (right) &#8594;</option>
+            <option value="both">Both sides</option>
+          </select>
+        </label>
+        <label style="display:flex;align-items:center;gap:5px">
+          <span style="color:#1565C0;font-weight:700">&#9632; Bleach</span>
+          <select id="fmap-seg-bleach" onchange="setFmSegField('bleach',this.value)" style="padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:.8rem">
+            <option value="none">—</option>
+            <option value="left">&#8592; In (left)</option>
+            <option value="right">Out (right) &#8594;</option>
+            <option value="both">Both sides</option>
+          </select>
+        </label>
+        <button onclick="_fmSelectedSeg=-1;document.getElementById(\'fmap-seg-panel\').style.display=\'none\';drawFenceMap();" style="padding:2px 8px;border:1px solid #ccc;border-radius:4px;background:#fff;cursor:pointer;font-size:.75rem">Done</button>
+      </div>
       <div id="fence-map-info" style="margin-top:8px;font-size:.83rem;color:var(--text);font-weight:500"></div>
     </div>
   </div>
@@ -5551,11 +5573,58 @@ ${propPts.map(p => `        ${(+p.lng).toFixed(8)},${(+p.lat).toFixed(8)},0`).jo
   var fenceMapPoints = [];
   var fenceMapClosed = false;
   var fenceMapScale  = 4; // px per foot
-  var _fmDragIdx    = -1;
-  var _fmHoverIdx   = -1;
-  var _fmLastTap    = 0;
-  var _fmMapOrigin  = null; // {lat, lng} origin stored when syncing from map
-  var _fmMapXform   = null; // {scale, offX, offY, ftPerDegLat, ftPerDegLng}
+  var _fmDragIdx     = -1;
+  var _fmHoverIdx    = -1;
+  var _fmLastTap     = 0;
+  var _fmMapOrigin   = null;
+  var _fmMapXform    = null;
+  var _fmSelectedSeg = -1;
+  var fenceMapSegData = [];
+
+  function _fmEnsureSegData() {
+    var needed = fenceMapPoints.length > 1 ? fenceMapPoints.length - 1 : 0;
+    if (fenceMapClosed && fenceMapPoints.length > 2) needed = fenceMapPoints.length;
+    while (fenceMapSegData.length < needed) fenceMapSegData.push({ stain:'none', bleach:'none' });
+    if (fenceMapSegData.length > needed) fenceMapSegData.length = needed;
+  }
+
+  function _fmDistToSeg(px, py, ax, ay, bx, by) {
+    var dx=bx-ax, dy=by-ay, lenSq=dx*dx+dy*dy;
+    if (!lenSq) return _fmDist(px, py, ax, ay);
+    var t = Math.max(0, Math.min(1, ((px-ax)*dx+(py-ay)*dy)/lenSq));
+    return _fmDist(px, py, ax+t*dx, ay+t*dy);
+  }
+
+  function _fmNearSeg(x, y) {
+    var THRESH=14, best=-1, bestD=THRESH, pts=fenceMapPoints;
+    for (var i=0; i<pts.length-1; i++) {
+      var d=_fmDistToSeg(x,y,pts[i].x,pts[i].y,pts[i+1].x,pts[i+1].y);
+      if (d<bestD) { bestD=d; best=i; }
+    }
+    if (fenceMapClosed && pts.length>2) {
+      var d2=_fmDistToSeg(x,y,pts[pts.length-1].x,pts[pts.length-1].y,pts[0].x,pts[0].y);
+      if (d2<bestD) best=pts.length-1;
+    }
+    return best;
+  }
+
+  function setFmSegField(field, val) {
+    if (_fmSelectedSeg<0 || !fenceMapSegData[_fmSelectedSeg]) return;
+    fenceMapSegData[_fmSelectedSeg][field]=val;
+    drawFenceMap();
+  }
+
+  function _fmSelectSeg(idx) {
+    _fmSelectedSeg=idx; _fmEnsureSegData();
+    var seg=fenceMapSegData[idx]||{stain:'none',bleach:'none'};
+    var panel=document.getElementById('fmap-seg-panel');
+    if (panel) panel.style.display='flex';
+    var numEl=document.getElementById('fmap-seg-num');
+    if (numEl) numEl.textContent=idx+1;
+    var ss=document.getElementById('fmap-seg-stain'); if (ss) ss.value=seg.stain||'none';
+    var sb=document.getElementById('fmap-seg-bleach'); if (sb) sb.value=seg.bleach||'none';
+    drawFenceMap();
+  }
 
   function _fmDist(ax, ay, bx, by) { var dx=bx-ax, dy=by-ay; return Math.sqrt(dx*dx+dy*dy); }
 
@@ -5602,7 +5671,18 @@ ${propPts.map(p => `        ${(+p.lng).toFixed(8)},${(+p.lat).toFixed(8)},0`).jo
     var hit = _fmNear(pos.x, pos.y);
     if (hit >= 0) {
       _fmDragIdx = hit;
+      _fmSelectedSeg = -1;
+      var panel = document.getElementById('fmap-seg-panel');
+      if (panel) panel.style.display = 'none';
     } else {
+      var segHit = _fmNearSeg(pos.x, pos.y);
+      if (segHit >= 0) {
+        _fmSelectSeg(segHit);
+        return; // don't add a point
+      }
+      _fmSelectedSeg = -1;
+      var panel2 = document.getElementById('fmap-seg-panel');
+      if (panel2) panel2.style.display = 'none';
       fenceMapPoints.push({ x: pos.x, y: pos.y });
       _fmDragIdx = fenceMapPoints.length - 1;
     }
@@ -5649,6 +5729,8 @@ ${propPts.map(p => `        ${(+p.lng).toFixed(8)},${(+p.lat).toFixed(8)},0`).jo
     if (hit2 >= 0) {
       _fmDragIdx = hit2;
     } else {
+      var segHit2 = _fmNearSeg(pos.x, pos.y);
+      if (segHit2 >= 0) { _fmSelectSeg(segHit2); return; }
       fenceMapPoints.push({ x: pos.x, y: pos.y });
       _fmDragIdx = fenceMapPoints.length - 1;
     }
@@ -5678,7 +5760,10 @@ ${propPts.map(p => `        ${(+p.lng).toFixed(8)},${(+p.lat).toFixed(8)},0`).jo
   }
 
   function clearFenceMap() {
-    fenceMapPoints = []; fenceMapClosed = false; _fmDragIdx = -1; _fmHoverIdx = -1;
+    fenceMapPoints = []; fenceMapClosed = false; fenceMapSegData = [];
+    _fmDragIdx = -1; _fmHoverIdx = -1; _fmSelectedSeg = -1;
+    var panel = document.getElementById('fmap-seg-panel');
+    if (panel) panel.style.display = 'none';
     var btn = document.getElementById('fence-close-btn');
     if (btn) btn.style.background = '#6A1B9A';
     drawFenceMap();
@@ -5765,6 +5850,47 @@ ${propPts.map(p => `        ${(+p.lng).toFixed(8)},${(+p.lat).toFixed(8)},0`).jo
       ctx.textAlign = 'center';
       ctx.fillText(label, 0, 2);
       ctx.restore();
+    }
+
+    // Draw stain/bleach arrows per segment
+    _fmEnsureSegData();
+    var ARROW_LEN = 18, HEAD = 7;
+    function _drawArrow(ctx, mx, my, nx, ny, color) {
+      var ex = mx + nx * ARROW_LEN, ey = my + ny * ARROW_LEN;
+      ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(ex, ey);
+      ctx.strokeStyle = color; ctx.lineWidth = 2.5; ctx.stroke();
+      var ang = Math.atan2(ey - my, ex - mx);
+      ctx.beginPath();
+      ctx.moveTo(ex, ey);
+      ctx.lineTo(ex - HEAD*Math.cos(ang-Math.PI/5), ey - HEAD*Math.sin(ang-Math.PI/5));
+      ctx.moveTo(ex, ey);
+      ctx.lineTo(ex - HEAD*Math.cos(ang+Math.PI/5), ey - HEAD*Math.sin(ang+Math.PI/5));
+      ctx.lineWidth = 2; ctx.stroke();
+    }
+    for (var i = 0; i < segs.length - 1; i++) {
+      var a = segs[i], b = segs[i + 1];
+      var sdx = b.x - a.x, sdy = b.y - a.y;
+      var slen = Math.sqrt(sdx*sdx + sdy*sdy) || 1;
+      var mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+      // left perp = (-sdy, sdx)/len, right perp = (sdy, -sdx)/len
+      var lx = -sdy/slen, ly = sdx/slen;
+      var rx = sdy/slen, ry = -sdx/slen;
+      var sd = fenceMapSegData[i] || { stain:'none', bleach:'none' };
+      // Highlight selected segment
+      if (i === _fmSelectedSeg) {
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+        ctx.strokeStyle = 'rgba(255,200,0,.5)'; ctx.lineWidth = 8; ctx.stroke();
+      }
+      // Stain arrows (orange) — offset slightly left of center
+      var stainOff = sd.bleach !== 'none' ? -6 : 0;
+      var smx = mx + lx * stainOff, smy = my + ly * stainOff;
+      if (sd.stain === 'left' || sd.stain === 'both')  _drawArrow(ctx, smx, smy, lx, ly, '#C8530A');
+      if (sd.stain === 'right' || sd.stain === 'both') _drawArrow(ctx, smx, smy, rx, ry, '#C8530A');
+      // Bleach arrows (blue) — offset slightly right of center
+      var bleachOff = sd.stain !== 'none' ? 6 : 0;
+      var bmx = mx + rx * bleachOff, bmy = my + ry * bleachOff;
+      if (sd.bleach === 'left' || sd.bleach === 'both')  _drawArrow(ctx, bmx, bmy, lx, ly, '#1565C0');
+      if (sd.bleach === 'right' || sd.bleach === 'both') _drawArrow(ctx, bmx, bmy, rx, ry, '#1565C0');
     }
 
     // Draw corner points
