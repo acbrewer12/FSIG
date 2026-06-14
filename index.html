@@ -3251,7 +3251,7 @@
     const id = existing >= 0 ? jobs[existing].id : Date.now();
     const name = state.customerName || state.addr || currentJobNumber;
     const label = name;
-    const entry = { id, label, status: state.jobStatus, date: state.jobStartDate, state };
+    const entry = { id, label, status: state.jobStatus, date: state.jobStartDate, jobType: localStorage.getItem('fsig-app-mode') || 'fence', state };
     if (existing >= 0) {
       // Preserve pipeline fields set by the pipeline board
       const prev = jobs[existing];
@@ -3547,15 +3547,25 @@
     var board = document.getElementById('pipeline-board');
     if (!board) { setTimeout(renderPipeline, 200); return; }
 
-    // Pipeline CRM entries — show all (fence and stain combined)
-    var pipeEntries = getPipeline();
+    var currentMode = localStorage.getItem('fsig-app-mode') || 'fence';
+
+    // Filter pipeline leads to current mode (or 'both')
+    var pipeEntries = getPipeline().filter(function(j) {
+      var t = j.type || 'fence';
+      return t === currentMode || t === 'both';
+    });
 
     // Saved jobs merged in
     var STATUS_MAP = { pending:'lead', scheduled:'scheduled', 'in-progress':'in-progress', complete:'complete' };
     var savedJobs = [];
     try { savedJobs = JSON.parse(localStorage.getItem('fsig-jobs') || '[]'); } catch(e){}
     var savedAsPipe = savedJobs
-      .filter(function(j){ return !j.pipelineHidden && (j.pipelineStatus || STATUS_MAP[j.status]); })
+      .filter(function(j){
+        if (j.pipelineHidden) return false;
+        if (!(j.pipelineStatus || STATUS_MAP[j.status])) return false;
+        var jt = j.jobType || currentMode;
+        return jt === currentMode || jt === 'both';
+      })
       .map(function(j) {
         var st = j.state || {};
         return {
