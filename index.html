@@ -3674,7 +3674,7 @@
       if (!s) return null;
       var st = s.state || {};
       return { id: id, _isSaved: true, _savedId: savedId,
-        type: localStorage.getItem('fsig-app-mode') || 'fence',
+        type: s.jobType || localStorage.getItem('fsig-app-mode') || 'fence',
         jobNum: st.jobNumber || '',
         name: st.customerName || s.label || 'Saved Job',
         phone: st.customerPhone || '',
@@ -3803,23 +3803,31 @@
       var pjob = arr.find(function(j){ return j.id === _schedLeadId; });
       if (pjob) { pjob.startDate = dateVal; pjob.status = 'scheduled'; pjob.updatedAt = Date.now(); savePipeline(arr); }
     }
-    // Build Google Calendar event URL
+    // Build Google Calendar timed event URL
+    var rawTime = document.getElementById('pipe-sched-time').value || '08:00';
+    var timeParts = rawTime.split(':');
+    var startH = parseInt(timeParts[0], 10) || 8;
+    var startM = parseInt(timeParts[1], 10) || 0;
+    var endH = startH + 8; // 8-hour work day
+    if (endH > 23) endH = 23;
+    var pad = function(n) { return (n < 10 ? '0' : '') + n; };
     var ds = dateVal.replace(/-/g,'');
-    var endD = new Date(dateVal + 'T12:00:00');
-    endD.setDate(endD.getDate() + 1);
-    var de = endD.toISOString().slice(0,10).replace(/-/g,'');
-    var jobType = (job.type || 'fence') === 'stain' ? 'Stain' : 'Fence';
-    var colorId = (job.type || 'fence') === 'stain' ? 2 : 6; // sage or tangerine
-    var title = encodeURIComponent(jobType + ' Job – ' + job.name);
+    var startStr = ds + 'T' + pad(startH) + pad(startM) + '00';
+    var endStr   = ds + 'T' + pad(endH)   + pad(startM) + '00';
+    var jt = job.type || localStorage.getItem('fsig-app-mode') || 'fence';
+    var jobTypeLabel = jt === 'stain' ? 'Stain' : jt === 'both' ? 'Fence + Stain' : 'Fence';
+    var colorId = jt === 'stain' ? 2 : jt === 'both' ? 9 : 6; // sage / blueberry / tangerine
+    var title = encodeURIComponent(jobTypeLabel + ' Job – ' + job.name);
     var loc   = encodeURIComponent(job.address || '');
     var det   = encodeURIComponent(
-      (job.notes ? job.notes + '\n' : '') +
+      (job.phone ? 'Phone: ' + job.phone + '\n' : '') +
       (job.bidAmount ? 'Bid: $' + job.bidAmount + '\n' : '') +
+      (job.notes ? job.notes + '\n' : '') +
       'Holliday Welding & Fence'
     );
     var calUrl = 'https://calendar.google.com/calendar/r/eventedit'
       + '?text=' + title + '&location=' + loc + '&details=' + det
-      + '&dates=' + ds + '/' + de + '&colorid=' + colorId;
+      + '&dates=' + startStr + '/' + endStr + '&colorid=' + colorId;
     window.open(calUrl, '_blank');
     closeScheduleModal();
     renderPipeline();
