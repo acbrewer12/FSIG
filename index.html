@@ -919,11 +919,21 @@
       <button class="print-btn" onclick="downloadKML()" style="background:#1A73E8" title="Open in Google Earth">&#127758; Download KML</button>
       <span id="property-area-display" style="font-size:.8rem;color:#1A73E8;font-weight:700;padding:4px 10px;background:#E8F0FE;border-radius:4px;display:none"></span>
     </div>
-    <div style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:#f7f6f2;border-radius:4px;border:1px solid var(--border);margin-bottom:10px">
-      <span style="font-size:.72rem;color:var(--muted);white-space:nowrap">Google Maps API Key</span>
-      <input id="gmaps-api-key" type="text" placeholder="Paste key → enables Google Maps &amp; Google Earth snapshots (optional)"
-        style="flex:1;padding:4px 7px;border:1px solid var(--border);border-radius:3px;font-size:.75rem;background:white" />
-      <button id="gmaps-key-save" onclick="saveGmapsKey()" class="print-btn" style="padding:5px 12px;font-size:.72rem;white-space:nowrap">Apply</button>
+    <div style="display:flex;flex-direction:column;gap:6px;padding:8px 10px;background:#f7f6f2;border-radius:4px;border:1px solid var(--border);margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:.72rem;color:var(--muted);white-space:nowrap;width:130px">Google Maps API Key</span>
+        <input id="gmaps-api-key" type="text" placeholder="Enables Google Maps satellite &amp; snapshots (optional)"
+          style="flex:1;padding:4px 7px;border:1px solid var(--border);border-radius:3px;font-size:.75rem;background:white" />
+        <button id="gmaps-key-save" onclick="saveGmapsKey()" class="print-btn" style="padding:5px 12px;font-size:.72rem;white-space:nowrap">Apply</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:.72rem;color:var(--muted);white-space:nowrap;width:130px">Regrid Parcel Key</span>
+        <input id="regrid-api-key" type="text" placeholder="Free key from app.regrid.com → auto-loads property boundaries"
+          style="flex:1;padding:4px 7px;border:1px solid var(--border);border-radius:3px;font-size:.75rem;background:white" />
+        <button onclick="saveRegridKey()" class="print-btn" style="padding:5px 12px;font-size:.72rem;white-space:nowrap">Apply</button>
+        <button id="fetch-parcel-btn" onclick="fetchParcelBoundary()" class="print-btn"
+          style="padding:5px 12px;font-size:.72rem;white-space:nowrap;background:#1A73E8">&#127968; Load Parcel</button>
+      </div>
     </div>
     <div class="planner-wrap">
       <div id="planning-map"></div>
@@ -3943,48 +3953,37 @@
   }
 
   // Auto-calculate terminal posts from site planner trace or stretches
+  // Every plotted point = one terminal post; gates pulled from the gates list
   function autoCalcTerminals() {
-    const gatesNum = parseInt(document.getElementById('parts-gates')?.value) || 0;
-    const termEl = document.getElementById('parts-terminals');
+    const termEl  = document.getElementById('parts-terminals');
+    const gatesEl = document.getElementById('parts-gates');
     if (!termEl) return;
 
-    // Prefer stretches data if available and active
+    // If Hoover Stretches are active and filled, use that calculation
     const useStretches = document.getElementById('parts-use-stretches')?.checked;
     if (useStretches && stretches.some(s => parseFloat(s.length) > 0)) {
       const sc = recalcStretches();
       termEl.value = sc.terminals;
+      if (gatesEl) gatesEl.value = sc.totalGates;
       return;
     }
 
-    // Fall back to site planner bearing-change detection
-    const segs = (typeof _planSegments !== 'undefined') ? _planSegments : [];
-    const pts  = (typeof planPoints !== 'undefined') ? planPoints : [];
-    if (segs.length === 0) {
-      alert('Trace the fence on the Site Planner first, or enter stretch lengths in the Hoover Stretches section.');
+    // Otherwise: every plotted point = 1 terminal post
+    const pts = (typeof planPoints !== 'undefined') ? planPoints : [];
+    if (pts.length < 2) {
+      alert('Trace the fence on the Site Planner first, or enter Hoover Stretches above.');
       return;
     }
-
-    const CORNER_DEG = 20; // bearing change threshold for a "corner" post
     const isClosedLoop = pts.length >= 2 &&
       Math.abs(pts[0].lat - pts[pts.length - 1].lat) < 0.00001 &&
       Math.abs(pts[0].lng - pts[pts.length - 1].lng) < 0.00001;
 
-    let corners = 0;
-    if (isClosedLoop) {
-      for (let i = 0; i < segs.length; i++) {
-        const a = segs[(i - 1 + segs.length) % segs.length].bearing;
-        const b = segs[i].bearing;
-        if (Math.abs(((b - a + 540) % 360) - 180) >= CORNER_DEG) corners++;
-      }
-    } else {
-      corners = 2; // start + end posts
-      for (let i = 1; i < segs.length; i++) {
-        const a = segs[i - 1].bearing, b = segs[i].bearing;
-        if (Math.abs(((b - a + 540) % 360) - 180) >= CORNER_DEG) corners++;
-      }
-    }
-
-    termEl.value = corners + gatesNum * 2;
+    // Plotted corners/ends as terminal posts
+    const cornerTerminals = isClosedLoop ? pts.length - 1 : pts.length;
+    // Pull gate count from the gates list (each gate = 2 additional terminal posts)
+    const gateCount = (typeof gates !== 'undefined') ? gates.length : 0;
+    if (gatesEl) gatesEl.value = gateCount;
+    termEl.value = cornerTerminals + gateCount * 2;
   }
 
   function calcParts() {
@@ -4263,6 +4262,86 @@
     if (btn) { btn.textContent = '✓ Applied'; setTimeout(() => { btn.textContent = 'Apply'; }, 2500); }
   }
 
+  function getRegridKey() { return localStorage.getItem('fsig-regrid-key') || ''; }
+  function saveRegridKey() {
+    const key = (document.getElementById('regrid-api-key')?.value || '').trim();
+    localStorage.setItem('fsig-regrid-key', key);
+    const el = document.getElementById('regrid-api-key');
+    if (el) { const old = el.placeholder; el.placeholder = '✓ Saved!'; setTimeout(() => { el.placeholder = old; }, 2000); }
+  }
+
+  // Fetch property parcel boundary from Regrid (free at app.regrid.com)
+  // and draw it on the map automatically
+  function fetchParcelBoundary() {
+    const key = getRegridKey();
+    if (!key) {
+      alert('Add a free Regrid API key first.\n\n1. Go to app.regrid.com and sign up (free)\n2. Go to Account → API\n3. Paste the token in the Regrid Parcel Key field and click Apply\n\nRegrid gives 1,000 free lookups/month.');
+      return;
+    }
+    const addr = ['addr','city','state','zip']
+      .map(id => document.getElementById(id)?.value || '').filter(Boolean).join(', ');
+    if (!addr) { alert('Enter a job address in Job Info first.'); return; }
+
+    const btn = document.getElementById('fetch-parcel-btn');
+    const orig = btn.textContent;
+    btn.textContent = 'Loading…'; btn.disabled = true;
+    const done = () => { btn.textContent = orig; btn.disabled = false; };
+
+    initPlanMap();
+
+    fetch(`https://app.regrid.com/api/v1/search.json?query=${encodeURIComponent(addr)}&limit=1&token=${encodeURIComponent(key)}`)
+      .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(data => {
+        done();
+        const features = data?.results?.features;
+        if (!features || !features.length) {
+          alert('Parcel not found for this address. Check the address in Job Info or draw the boundary manually using the Property mode.');
+          return;
+        }
+        const geom = features[0]?.geometry;
+        const props = features[0]?.properties || {};
+        if (!geom || (geom.type !== 'Polygon' && geom.type !== 'MultiPolygon')) {
+          alert('No polygon returned for this parcel.');
+          return;
+        }
+        // Handle both Polygon and MultiPolygon (take largest ring)
+        let ring;
+        if (geom.type === 'Polygon') {
+          ring = geom.coordinates[0];
+        } else {
+          ring = geom.coordinates.reduce((best, poly) => poly[0].length > best.length ? poly[0] : best, geom.coordinates[0][0]);
+        }
+        const pts = ring.map(([lng, lat]) => ({ lat, lng }));
+        clearPropertyBoundary();
+        propertyPoints = pts.slice(0, -1); // drop duplicate closing point
+        propertyPolygonClosed = true;
+        // Draw on map
+        propertyPoints.forEach(ll => _mapAddPropertyDot(ll));
+        _mapAddPropertyLine([...propertyPoints, propertyPoints[0]]);
+        _mapFitBounds(propertyPoints);
+        updatePropertyArea();
+        // Show owner/acreage info if available
+        const owner = props.owner || props.mailadd || '';
+        const acres = props.ll_gisacre || props.gisacre || '';
+        if (owner || acres) {
+          const el = document.getElementById('property-area-display');
+          if (el) {
+            const { sqft, acres: calcAcres } = calcPropertyArea(propertyPoints);
+            el.textContent = `Parcel: ${sqft.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,',')} sq ft (${calcAcres.toFixed(2)} ac)${owner ? ' · ' + owner : ''}`;
+            el.style.display = '';
+          }
+        }
+      })
+      .catch(err => {
+        done();
+        if (String(err).includes('401') || String(err).includes('403')) {
+          alert('Invalid Regrid API key. Check your token at app.regrid.com → Account → API.');
+        } else {
+          alert('Could not load parcel data. Check your internet connection or try again.\n\nError: ' + err);
+        }
+      });
+  }
+
   function _mapAddDot(ll) {
     if (_mapIsGoogle) {
       const m = new google.maps.Marker({
@@ -4535,6 +4614,8 @@
 
   function initPlanMap() {
     if (planMap) return;
+    const regridKey = getRegridKey();
+    if (regridKey) { const el = document.getElementById('regrid-api-key'); if (el) el.value = regridKey; }
     const key = getGmapsKey();
     if (key) {
       document.getElementById('gmaps-api-key').value = key;
