@@ -3526,7 +3526,7 @@
   });
   var PIPE_STAGES = [
     { id:'lead',        label:'Lead / Needs Bid', color:'#C8530A' },
-    { id:'bid-sent',    label:'Send Bid',          color:'#1565C0' },
+    { id:'bid-sent',    label:'Sent Bid',           color:'#1565C0' },
     { id:'scheduled',   label:'Scheduled',         color:'#6A1B9A' },
     { id:'in-progress', label:'In Progress',        color:'#E65100' },
     { id:'complete',    label:'Complete',           color:'#2E7D32' },
@@ -3624,6 +3624,10 @@
           html += '<button onclick="loadJob(' + job._savedId + ')" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#1565C0">Load Job</button>';
         } else {
           html += '<button onclick="fillJobInfo(\'' + job.id + '\')" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#374a5a">Fill Job Info</button>';
+        }
+        // Edit button for pipeline leads in lead/bid-sent stages
+        if (!isSaved && (stage.id === 'lead' || stage.id === 'bid-sent')) {
+          html += '<button onclick="editLead(\'' + job.id + '\')" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#5f6368">&#9998; Edit</button>';
         }
         // Action buttons for current stage (all jobs — saved and unsaved)
         if (stage.id === 'lead') {
