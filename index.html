@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>FSIG · Holliday Welding &amp; Fence</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
@@ -770,8 +773,24 @@
     <div id="pipeline-board"></div>
   </div>
 
+  <!-- Schedule Modal -->
+  <div id="pipe-schedule-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center">
+    <div style="background:#fff;border-radius:10px;padding:28px;max-width:340px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.3)">
+      <div style="font-family:'Oswald',Arial,sans-serif;font-size:1.1rem;font-weight:700;color:var(--brand);margin-bottom:16px">&#128197; Schedule Job</div>
+      <div id="pipe-sched-job-name" style="font-weight:600;margin-bottom:14px;color:var(--accent)"></div>
+      <label style="font-size:.8rem;color:var(--muted);display:block;margin-bottom:4px">Start Date</label>
+      <input id="pipe-sched-date" type="date" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:5px;font-size:1rem;margin-bottom:12px">
+      <label style="font-size:.8rem;color:var(--muted);display:block;margin-bottom:4px">Start Time</label>
+      <input id="pipe-sched-time" type="time" value="08:00" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:5px;font-size:1rem;margin-bottom:18px">
+      <div style="display:flex;gap:8px">
+        <button onclick="confirmSchedule()" class="print-btn" style="flex:1;background:#6A1B9A;font-size:.88rem">&#128197; Schedule &amp; Add to Calendar</button>
+        <button onclick="closeScheduleModal()" class="print-btn" style="background:#5f6368;font-size:.88rem">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Job Info -->
-  <div class="card">
+  <div class="card" id="job-info-card">
     <h2>Job Info</h2>
 
     <!-- Job number / status / date row -->
@@ -3424,29 +3443,31 @@
   }
 
   // ── Job Pipeline ─────────────────────────────────────────────────────────────
-  let _pipeTab = 'fence';
-  let _pipeEditId = null;
-  const PIPE_STAGES = [
-    { id:'lead',        label:'📋 Lead / Needs Bid', color:'#C8530A' },
-    { id:'bid-sent',    label:'📤 Bid Sent',          color:'#1565C0' },
-    { id:'scheduled',   label:'📅 Scheduled',         color:'#6A1B9A' },
-    { id:'in-progress', label:'🔨 In Progress',        color:'#C8530A' },
-    { id:'complete',    label:'✅ Complete',            color:'#2E7D32' },
+  var _pipeTab = 'fence';
+  var _pipeEditId = null;
+  var _schedLeadId = null;
+  var PIPE_STAGES = [
+    { id:'lead',        label:'Lead / Needs Bid', color:'#C8530A' },
+    { id:'bid-sent',    label:'Send Bid',          color:'#1565C0' },
+    { id:'scheduled',   label:'Scheduled',         color:'#6A1B9A' },
+    { id:'in-progress', label:'In Progress',        color:'#E65100' },
+    { id:'complete',    label:'Complete',           color:'#2E7D32' },
   ];
-  function getPipeline() { try { return JSON.parse(localStorage.getItem('fsig-pipeline')||'[]'); } catch { return []; } }
+  function getPipeline() { try { return JSON.parse(localStorage.getItem('fsig-pipeline')||'[]'); } catch(e) { return []; } }
   function savePipeline(a) { localStorage.setItem('fsig-pipeline', JSON.stringify(a)); }
   function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
   function setPipeTab(type) {
     _pipeTab = type;
-    document.querySelectorAll('.pipe-tab').forEach(b => b.classList.remove('active'));
-    document.getElementById('pipe-tab-'+type)?.classList.add('active');
+    document.querySelectorAll('.pipe-tab').forEach(function(b){ b.classList.remove('active'); });
+    var tabEl = document.getElementById('pipe-tab-'+type);
+    if (tabEl) tabEl.classList.add('active');
     renderPipeline();
   }
 
   function renderPipeline() {
     var board = document.getElementById('pipeline-board');
-    if (!board) return;
+    if (!board) { setTimeout(renderPipeline, 200); return; }
 
     // Pipeline CRM entries
     var pipeEntries = getPipeline().filter(function(j){ return j.type === _pipeTab; });
@@ -3501,12 +3522,14 @@
         if (isSaved) {
           html += '<button onclick="loadJob(' + job._savedId + ')" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#1565C0">Load Job</button>';
         } else {
+          // Fill Job Info button on all non-saved cards
+          html += '<button onclick="fillJobInfo(\'' + job.id + '\')" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#374a5a">Fill Job Info</button>';
           if (stage.id === 'lead') {
-            html += '<button onclick="placeBid(\'' + job.id + '\')" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#27ae60">&#128178; Place Bid</button>';
-          }
-          html += '<button onclick="editLead(\'' + job.id + '\')" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#374a5a">Edit</button>';
-          if (si < PIPE_STAGES.length - 1) {
-            html += '<button onclick="moveLead(\'' + job.id + '\',1)" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:' + PIPE_STAGES[si+1].color + '">&#8594; ' + escHtml(PIPE_STAGES[si+1].label.replace(/^\S+\s/,'')) + '</button>';
+            html += '<button onclick="placeBid(\'' + job.id + '\')" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#1565C0">&#128178; Send Bid</button>';
+          } else if (stage.id === 'bid-sent') {
+            html += '<button onclick="scheduleLead(\'' + job.id + '\')" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#6A1B9A">&#128197; Schedule</button>';
+          } else if (si < PIPE_STAGES.length - 1) {
+            html += '<button onclick="moveLead(\'' + job.id + '\',1)" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:' + PIPE_STAGES[si+1].color + '">&#8594; ' + escHtml(PIPE_STAGES[si+1].label) + '</button>';
           }
           if (si > 0) {
             html += '<button onclick="moveLead(\'' + job.id + '\',-1)" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#5f6368">&#8592; Back</button>';
@@ -3525,16 +3548,84 @@
     setTimeout(function(){ var el = document.getElementById('pipe-bid'); if(el){ el.focus(); el.select(); } }, 50);
   }
 
+  function scheduleLead(id) {
+    var arr = getPipeline();
+    var job = arr.find(function(j){ return j.id === id; });
+    if (!job) return;
+    _schedLeadId = id;
+    var nm = document.getElementById('pipe-sched-job-name');
+    if (nm) nm.textContent = job.name + (job.address ? ' · ' + job.address : '');
+    var d = document.getElementById('pipe-sched-date');
+    if (d) d.value = job.startDate || '';
+    var t = document.getElementById('pipe-sched-time');
+    if (t) t.value = '08:00';
+    var modal = document.getElementById('pipe-schedule-modal');
+    if (modal) { modal.style.display = 'flex'; }
+  }
+
+  function closeScheduleModal() {
+    var modal = document.getElementById('pipe-schedule-modal');
+    if (modal) modal.style.display = 'none';
+    _schedLeadId = null;
+  }
+
+  function confirmSchedule() {
+    var dateVal = document.getElementById('pipe-sched-date').value;
+    if (!dateVal) { alert('Please pick a date.'); return; }
+    var timeVal = (document.getElementById('pipe-sched-time').value || '08:00').replace(':','');
+    var arr = getPipeline();
+    var job = arr.find(function(j){ return j.id === _schedLeadId; });
+    if (!job) { closeScheduleModal(); return; }
+    job.startDate = dateVal;
+    job.status = 'scheduled';
+    job.updatedAt = Date.now();
+    savePipeline(arr);
+    // Build Google Calendar event URL
+    var ds = dateVal.replace(/-/g,'');
+    var endD = new Date(dateVal + 'T12:00:00');
+    endD.setDate(endD.getDate() + 1);
+    var de = endD.toISOString().slice(0,10).replace(/-/g,'');
+    var jobType = _pipeTab === 'fence' ? 'Fence' : 'Stain';
+    var colorId = _pipeTab === 'fence' ? 6 : 2; // tangerine or sage
+    var title = encodeURIComponent(jobType + ' Job – ' + job.name);
+    var loc   = encodeURIComponent(job.address || '');
+    var det   = encodeURIComponent(
+      (job.notes ? job.notes + '\n' : '') +
+      (job.bidAmount ? 'Bid: $' + job.bidAmount + '\n' : '') +
+      'Holliday Welding & Fence'
+    );
+    var calUrl = 'https://calendar.google.com/calendar/r/eventedit'
+      + '?text=' + title + '&location=' + loc + '&details=' + det
+      + '&dates=' + ds + '/' + de + '&colorid=' + colorId;
+    window.open(calUrl, '_blank');
+    closeScheduleModal();
+    renderPipeline();
+  }
+
+  function fillJobInfo(id) {
+    var arr = getPipeline();
+    var job = arr.find(function(j){ return j.id === id; });
+    if (!job) return;
+    var nameEl  = document.getElementById('customer-name');
+    var phoneEl = document.getElementById('customer-phone');
+    var addrEl  = document.getElementById('addr');
+    if (nameEl)  nameEl.value  = job.name    || '';
+    if (phoneEl) phoneEl.value = job.phone   || '';
+    if (addrEl && job.address)  addrEl.value = job.address;
+    var card = document.getElementById('job-info-card');
+    if (card) card.scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+
   function showAddLead() {
     _pipeEditId = null;
     document.getElementById('pipe-form-title').textContent = 'New Lead';
-    ['pipe-name','pipe-phone','pipe-address','pipe-notes','pipe-bid','pipe-start'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    ['pipe-name','pipe-phone','pipe-address','pipe-notes','pipe-bid','pipe-start'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
     document.getElementById('pipeline-form').style.display = '';
     document.getElementById('pipe-name').focus();
   }
 
   function editLead(id) {
-    const job = getPipeline().find(j => j.id===id);
+    var job = getPipeline().find(function(j){ return j.id===id; });
     if (!job) return;
     _pipeEditId = id;
     document.getElementById('pipe-form-title').textContent = 'Edit Lead';
@@ -3549,11 +3640,12 @@
   }
 
   function saveLead() {
-    const name = document.getElementById('pipe-name').value.trim();
+    var name = document.getElementById('pipe-name').value.trim();
     if (!name) { alert('Customer name is required.'); return; }
-    const arr = getPipeline();
-    const entry = {
-      name, updatedAt: Date.now(),
+    var arr = getPipeline();
+    var entry = {
+      name:      name,
+      updatedAt: Date.now(),
       phone:     document.getElementById('pipe-phone').value.trim(),
       address:   document.getElementById('pipe-address').value.trim(),
       notes:     document.getElementById('pipe-notes').value.trim(),
@@ -3561,12 +3653,26 @@
       startDate: document.getElementById('pipe-start').value.trim(),
     };
     if (_pipeEditId) {
-      const idx = arr.findIndex(j => j.id===_pipeEditId);
-      if (idx>=0) arr[idx] = { ...arr[idx], ...entry };
+      var idx = arr.findIndex(function(j){ return j.id === _pipeEditId; });
+      if (idx >= 0) {
+        arr[idx].name = entry.name; arr[idx].phone = entry.phone;
+        arr[idx].address = entry.address; arr[idx].notes = entry.notes;
+        arr[idx].bidAmount = entry.bidAmount; arr[idx].startDate = entry.startDate;
+        arr[idx].updatedAt = entry.updatedAt;
+      }
     } else {
-      arr.push({ id:String(Date.now()), type:_pipeTab, status:'lead', createdAt:Date.now(), ...entry });
+      arr.push({ id: String(Date.now()), type: _pipeTab, status: 'lead', createdAt: Date.now(),
+        name: entry.name, phone: entry.phone, address: entry.address, notes: entry.notes,
+        bidAmount: entry.bidAmount, startDate: entry.startDate, updatedAt: entry.updatedAt });
     }
     savePipeline(arr);
+    // Auto-populate Job Info if empty
+    var nameEl = document.getElementById('customer-name');
+    var phoneEl = document.getElementById('customer-phone');
+    var addrEl  = document.getElementById('addr');
+    if (nameEl  && !nameEl.value)  nameEl.value  = entry.name;
+    if (phoneEl && !phoneEl.value) phoneEl.value = entry.phone;
+    if (addrEl  && !addrEl.value && entry.address) addrEl.value = entry.address;
     document.getElementById('pipeline-form').style.display = 'none';
     renderPipeline();
   }
@@ -3574,11 +3680,11 @@
   function cancelLead() { document.getElementById('pipeline-form').style.display='none'; }
 
   function moveLead(id, dir) {
-    const arr = getPipeline();
-    const job = arr.find(j => j.id===id);
+    var arr = getPipeline();
+    var job = arr.find(function(j){ return j.id===id; });
     if (!job) return;
-    const si = PIPE_STAGES.findIndex(s => s.id===job.status);
-    const ni = si + dir;
+    var si = PIPE_STAGES.findIndex(function(s){ return s.id===job.status; });
+    var ni = si + dir;
     if (ni<0 || ni>=PIPE_STAGES.length) return;
     job.status = PIPE_STAGES[ni].id;
     job.updatedAt = Date.now();
@@ -3588,7 +3694,7 @@
 
   function deleteLead(id) {
     if (!confirm('Delete this lead?')) return;
-    savePipeline(getPipeline().filter(j => j.id!==id));
+    savePipeline(getPipeline().filter(function(j){ return j.id!==id; }));
     renderPipeline();
   }
 
