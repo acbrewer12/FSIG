@@ -3513,6 +3513,7 @@
     if (btn) btn.style.background = _pipeLeadBoth ? '#1565C0' : '#5f6368';
   }
   var _pipeEditId = null;
+  var _pipeEditSavedId = null;
   var _schedLeadId = null;
   var _activeLeadId = null; // lead that was used to fill Job Info
 
@@ -3625,9 +3626,13 @@
         } else {
           html += '<button onclick="fillJobInfo(\'' + job.id + '\')" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#374a5a">Fill Job Info</button>';
         }
-        // Edit button for pipeline leads in lead/bid-sent stages
-        if (!isSaved && (stage.id === 'lead' || stage.id === 'bid-sent')) {
-          html += '<button onclick="editLead(\'' + job.id + '\')" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#5f6368">&#9998; Edit</button>';
+        // Edit button for all cards in lead/bid-sent stages
+        if (stage.id === 'lead' || stage.id === 'bid-sent') {
+          if (isSaved) {
+            html += '<button onclick="editSavedPipe(' + job._savedId + ')" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#5f6368">&#9998; Edit</button>';
+          } else {
+            html += '<button onclick="editLead(\'' + job.id + '\')" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#5f6368">&#9998; Edit</button>';
+          }
         }
         // Action buttons for current stage (all jobs — saved and unsaved)
         if (stage.id === 'lead') {
@@ -3837,9 +3842,32 @@
 
   function showAddLead() {
     _pipeEditId = null;
+    _pipeEditSavedId = null;
     document.getElementById('pipe-form-title').textContent = 'New Lead';
     ['pipe-name','pipe-phone','pipe-address','pipe-city','pipe-state','pipe-notes','pipe-bid','pipe-start'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
     _setPipeLeadBoth(false);
+    document.getElementById('pipeline-form').style.display = '';
+    document.getElementById('pipe-name').focus();
+  }
+
+  function editSavedPipe(savedId) {
+    var sj = [];
+    try { sj = JSON.parse(localStorage.getItem('fsig-jobs')||'[]'); } catch(e){}
+    var j = sj.find(function(x){ return x.id === savedId; });
+    if (!j) return;
+    var st = j.state || {};
+    _pipeEditId = null;
+    _pipeEditSavedId = savedId;
+    document.getElementById('pipe-form-title').textContent = 'Edit Job Info';
+    document.getElementById('pipe-name').value = st.customerName || j.label || '';
+    document.getElementById('pipe-phone').value = st.customerPhone || '';
+    document.getElementById('pipe-address').value = st.addr || '';
+    document.getElementById('pipe-city').value = st.city || '';
+    document.getElementById('pipe-state').value = st.state || '';
+    document.getElementById('pipe-notes').value = j.pipeNotes || '';
+    document.getElementById('pipe-bid').value = j.bidAmountPipe || '';
+    document.getElementById('pipe-start').value = j.date || '';
+    _setPipeLeadBoth(j.jobType === 'both');
     document.getElementById('pipeline-form').style.display = '';
     document.getElementById('pipe-name').focus();
   }
@@ -3882,7 +3910,23 @@
       bidAmount: document.getElementById('pipe-bid').value.trim(),
       startDate: document.getElementById('pipe-start').value.trim(),
     };
-    if (_pipeEditId) {
+    if (_pipeEditSavedId) {
+      // Editing a saved job's pipeline info
+      var sj2 = [];
+      try { sj2 = JSON.parse(localStorage.getItem('fsig-jobs')||'[]'); } catch(e){}
+      var si2 = sj2.findIndex(function(j){ return j.id === _pipeEditSavedId; });
+      if (si2 >= 0) {
+        sj2[si2].bidAmountPipe = entry.bidAmount;
+        sj2[si2].date = entry.startDate;
+        sj2[si2].pipeNotes = entry.notes;
+        sj2[si2].jobType = _pipeLeadBoth ? 'both' : (localStorage.getItem('fsig-app-mode') || 'fence');
+        localStorage.setItem('fsig-jobs', JSON.stringify(sj2));
+      }
+      _pipeEditSavedId = null;
+      document.getElementById('pipeline-form').style.display = 'none';
+      renderPipeline();
+      return;
+    } else if (_pipeEditId) {
       var idx = arr.findIndex(function(j){ return j.id === _pipeEditId; });
       if (idx >= 0) {
         arr[idx].name = entry.name; arr[idx].phone = entry.phone;
@@ -3915,7 +3959,7 @@
     renderPipeline();
   }
 
-  function cancelLead() { document.getElementById('pipeline-form').style.display='none'; }
+  function cancelLead() { _pipeEditSavedId = null; document.getElementById('pipeline-form').style.display='none'; }
 
   function moveLead(id, dir) {
     var arr = getPipeline();
