@@ -492,6 +492,10 @@
     .container.mode-fence .card[data-section="stain"] { display:none !important; }
     .container.mode-stain .card[data-section="fence"] { display:none !important; }
     .container.mode-fence .stain-cols { display:none !important; }
+    .container.mode-fence .ch-pan,
+    .container.mode-fence .ch-type { display:none !important; }
+    .container.mode-stain .scope-fence-only { display:none !important; }
+    .container.mode-fence .scope-stain-only { display:none !important; }
 
     /* ── JOB PIPELINE ── */
     .pipe-tab { padding:6px 18px;border:2px solid var(--border);border-radius:4px;background:#f7f6f2;cursor:pointer;font-size:.85rem;font-weight:600;transition:all .15s; }
@@ -505,7 +509,7 @@
     /* ── PRINT INVOICE ── */
     .print-only { display: none; }
     @media print {
-      header, .card { display: none !important; }
+      header, .card, .mode-bar { display: none !important; }
       #print-invoice { display: block !important; }
       body { background: white; margin: 0; padding: 12px; font-size: 10pt; font-family: Arial, sans-serif; }
       * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
@@ -734,9 +738,7 @@
   <div class="card">
     <h2>Job Pipeline</h2>
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
-      <button id="pipe-tab-fence" class="pipe-tab active" onclick="setPipeTab('fence')">&#128296; Fence</button>
-      <button id="pipe-tab-stain" class="pipe-tab" onclick="setPipeTab('stain')">&#129531; Stain</button>
-      <button class="print-btn" onclick="showAddLead()" style="margin-left:auto;background:var(--accent)">+ New Lead</button>
+      <button class="print-btn" onclick="showAddLead()" style="background:var(--accent)">+ New Lead</button>
     </div>
     <div id="pipeline-form" style="display:none;background:#f7f6f2;border:1px solid var(--border);border-radius:6px;padding:14px;margin-bottom:14px">
       <div style="font-weight:700;font-size:.9rem;margin-bottom:10px;color:var(--brand)" id="pipe-form-title">New Lead</div>
@@ -848,12 +850,16 @@
       </div>
       <div style="flex:1;min-width:280px">
         <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Job Scope</div>
-        <div class="scope-grid">
+        <div class="scope-grid scope-fence-only">
           <label class="scope-item"><input type="checkbox" id="scope-demo" /> Demo / Remove Existing</label>
           <label class="scope-item"><input type="checkbox" id="scope-haul" /> Haul-Away</label>
           <label class="scope-item"><input type="checkbox" id="scope-811" /> 811 Call Made</label>
           <label class="scope-item"><input type="checkbox" id="scope-permit" /> Dig Permit Required</label>
           <label class="scope-item"><input type="checkbox" id="scope-cusmat" /> Customer-Supplied Materials</label>
+        </div>
+        <div class="scope-grid scope-stain-only">
+          <label class="scope-item"><input type="checkbox" id="scope-soft-wash" /> Soft Wash</label>
+          <label class="scope-item"><input type="checkbox" id="scope-stain-work" /> Stain</label>
         </div>
       </div>
     </div>
@@ -2621,13 +2627,15 @@
     const phoneLine = [customerPhone, customerPhone2].filter(Boolean).join(' / ');
 
     const scopeChecks = [
-      { id:'scope-demo',   label:'Demo / Remove Existing' },
-      { id:'scope-haul',   label:'Haul-Away' },
-      { id:'scope-811',    label:'811 Call Made' },
-      { id:'scope-permit', label:'Dig Permit Required' },
-      { id:'scope-cusmat', label:'Customer-Supplied Materials' },
+      { id:'scope-demo',       label:'Demo / Remove Existing' },
+      { id:'scope-haul',       label:'Haul-Away' },
+      { id:'scope-811',        label:'811 Call Made' },
+      { id:'scope-permit',     label:'Dig Permit Required' },
+      { id:'scope-cusmat',     label:'Customer-Supplied Materials' },
+      { id:'scope-soft-wash',  label:'Soft Wash' },
+      { id:'scope-stain-work', label:'Stain' },
     ];
-    const activeScope = scopeChecks.filter(c => document.getElementById(c.id)?.checked).map(c => c.label);
+    const activeScope = scopeChecks.filter(c => { const el=document.getElementById(c.id); return el && el.checked; }).map(c => c.label);
 
     const gateRows = gates.filter(g => g.type || g.width || g.height || g.notes);
     const gatesHtml = gateRows.length ? `
@@ -2952,11 +2960,13 @@
     const terrainLabel  = { normal:'Normal', rocky:'Rocky', clay:'Heavy Clay', hillside:'Hillside/Slope', wooded:'Wooded' }[terrain] || terrain;
 
     const scopeChecks = [
-      { id:'scope-demo', label:'Demolition / Removal' },
-      { id:'scope-haul', label:'Haul-Away' },
-      { id:'scope-811',  label:'811 Utility Locate' },
+      { id:'scope-demo',       label:'Demolition / Removal' },
+      { id:'scope-haul',       label:'Haul-Away' },
+      { id:'scope-811',        label:'811 Utility Locate' },
+      { id:'scope-soft-wash',  label:'Soft Wash' },
+      { id:'scope-stain-work', label:'Stain' },
     ];
-    const activeScope = scopeChecks.filter(c => document.getElementById(c.id)?.checked).map(c => c.label);
+    const activeScope = scopeChecks.filter(c => { const el=document.getElementById(c.id); return el && el.checked; }).map(c => c.label);
 
     // Build line items — customer-facing (prices, no cost breakdown)
     const stainLF   = totalLinFtByType('stain');
@@ -3135,9 +3145,9 @@
      'tl-rate','tl-crew','tl-labor-rate'].forEach(id => {
       rates[id] = document.getElementById(id).value;
     });
-    const scopeIds = ['scope-demo','scope-haul','scope-811','scope-permit','scope-cusmat'];
+    const scopeIds = ['scope-demo','scope-haul','scope-811','scope-permit','scope-cusmat','scope-soft-wash','scope-stain-work'];
     const scope = {};
-    scopeIds.forEach(id => { scope[id] = document.getElementById(id)?.checked || false; });
+    scopeIds.forEach(id => { const el = document.getElementById(id); scope[id] = el ? el.checked : false; });
     return {
       jobNumber:     currentJobNumber,
       jobStatus:     document.getElementById('job-status').value,
@@ -3251,7 +3261,7 @@
     document.getElementById('crew-lead').value       = s.crewLead      || '';
     document.getElementById('job-terrain').value     = s.terrain       || 'normal';
     document.getElementById('change-order').value    = s.changeOrder   || '';
-    const scopeIds = ['scope-demo','scope-haul','scope-811','scope-permit','scope-cusmat'];
+    const scopeIds = ['scope-demo','scope-haul','scope-811','scope-permit','scope-cusmat','scope-soft-wash','scope-stain-work'];
     scopeIds.forEach(id => {
       const el = document.getElementById(id);
       if (el) el.checked = (s.scope || {})[id] || false;
@@ -3495,8 +3505,8 @@
     var board = document.getElementById('pipeline-board');
     if (!board) { setTimeout(renderPipeline, 200); return; }
 
-    // Pipeline CRM entries
-    var pipeEntries = getPipeline().filter(function(j){ return j.type === _pipeTab; });
+    // Pipeline CRM entries — show all (fence and stain combined)
+    var pipeEntries = getPipeline();
 
     // Saved jobs merged in
     var STATUS_MAP = { pending:'bid-sent', scheduled:'scheduled', 'in-progress':'in-progress', complete:'complete' };
@@ -3531,9 +3541,14 @@
       }
       jobs.forEach(function(job) {
         var isSaved = !!job._isSaved;
+        var jobType = job.type || 'fence';
+        var typeBg  = jobType === 'stain' ? '#FFF3E0' : '#E8F5E9';
+        var typeFg  = jobType === 'stain' ? '#E65100' : '#1B5E20';
+        var typeIcon = jobType === 'stain' ? '&#129531;' : '&#128296;';
         html += '<div class="pipe-job" style="' + (isSaved ? 'border-left-color:#1565C0' : '') + '">'
           + '<div class="pipe-job-name">' + escHtml(job.name)
-          + (isSaved ? '<span style="font-size:.7rem;background:#E3F2FD;color:#1565C0;padding:1px 6px;border-radius:8px;font-weight:400;margin-left:6px">saved job</span>' : '')
+          + '<span style="font-size:.7rem;background:' + typeBg + ';color:' + typeFg + ';padding:1px 6px;border-radius:8px;font-weight:400;margin-left:6px">' + typeIcon + ' ' + jobType + '</span>'
+          + (isSaved ? '<span style="font-size:.7rem;background:#E3F2FD;color:#1565C0;padding:1px 6px;border-radius:8px;font-weight:400;margin-left:4px">saved</span>' : '')
           + '</div>'
           + '<div class="pipe-job-meta">'
           + (job.phone ? '&#128222; ' + escHtml(job.phone) : '')
@@ -3611,8 +3626,8 @@
     var endD = new Date(dateVal + 'T12:00:00');
     endD.setDate(endD.getDate() + 1);
     var de = endD.toISOString().slice(0,10).replace(/-/g,'');
-    var jobType = _pipeTab === 'fence' ? 'Fence' : 'Stain';
-    var colorId = _pipeTab === 'fence' ? 6 : 2; // tangerine or sage
+    var jobType = (job.type || 'fence') === 'stain' ? 'Stain' : 'Fence';
+    var colorId = (job.type || 'fence') === 'stain' ? 2 : 6; // sage or tangerine
     var title = encodeURIComponent(jobType + ' Job – ' + job.name);
     var loc   = encodeURIComponent(job.address || '');
     var det   = encodeURIComponent(
@@ -3702,7 +3717,8 @@
         arr[idx].startDate = entry.startDate; arr[idx].updatedAt = entry.updatedAt;
       }
     } else {
-      arr.push({ id: String(Date.now()), type: _pipeTab, status: 'lead', createdAt: Date.now(),
+      var leadType = localStorage.getItem('fsig-app-mode') || 'fence';
+      arr.push({ id: String(Date.now()), type: leadType, status: 'lead', createdAt: Date.now(),
         name: entry.name, phone: entry.phone, address: entry.address, street: entry.street,
         city: entry.city, state: entry.state, notes: entry.notes,
         bidAmount: entry.bidAmount, startDate: entry.startDate, updatedAt: entry.updatedAt });
@@ -3989,7 +4005,7 @@
      'addr','city','state','zip'].forEach(id => {
       const el = document.getElementById(id); if (el) el.value = '';
     });
-    ['scope-demo','scope-haul','scope-811','scope-permit','scope-cusmat'].forEach(id => {
+    ['scope-demo','scope-haul','scope-811','scope-permit','scope-cusmat','scope-soft-wash','scope-stain-work'].forEach(id => {
       const el = document.getElementById(id); if (el) el.checked = false;
     });
     document.getElementById('stain-product').value = '';
@@ -4419,7 +4435,7 @@
     document.getElementById('mode-btn-fence').classList.toggle('active', mode === 'fence');
     document.getElementById('mode-btn-stain').classList.toggle('active', mode === 'stain');
     localStorage.setItem('fsig-app-mode', mode);
-    setPipeTab(mode);
+    try { renderPipeline(); } catch(e) {}
   }
 
   // Restore mode on load
