@@ -908,6 +908,8 @@
       <button class="print-btn" onclick="savePlanSnapshot()" style="background:#27ae60" id="save-plan-btn">&#128190; Save Plan</button>
       <button class="print-btn" onclick="printSitePlan()" style="background:#374a5a">&#128424; Print Plan</button>
       <button class="print-btn" onclick="downloadKML()" style="background:#1A73E8" title="Open in Google Earth">&#127758; Download KML</button>
+      <button class="print-btn" id="plss-btn" onclick="togglePLSS()" style="background:#374a5a" title="Toggle free BLM survey section lines">&#9974; Section Lines</button>
+      <button class="print-btn" onclick="openInOnX()" style="background:#E8820C" title="Open current location in onX Hunt">&#128205; Open in onX</button>
       <span id="property-area-display" style="font-size:.8rem;color:#1A73E8;font-weight:700;padding:4px 10px;background:#E8F0FE;border-radius:4px;display:none"></span>
     </div>
     <div style="display:flex;flex-direction:column;gap:6px;padding:8px 10px;background:#f7f6f2;border-radius:4px;border:1px solid var(--border);margin-bottom:10px">
@@ -916,14 +918,6 @@
         <input id="gmaps-api-key" type="text" placeholder="Enables Google Maps satellite &amp; snapshots (optional)"
           style="flex:1;padding:4px 7px;border:1px solid var(--border);border-radius:3px;font-size:.75rem;background:white" />
         <button id="gmaps-key-save" onclick="saveGmapsKey()" class="print-btn" style="padding:5px 12px;font-size:.72rem;white-space:nowrap">Apply</button>
-      </div>
-      <div style="display:flex;align-items:center;gap:6px">
-        <span style="font-size:.72rem;color:var(--muted);white-space:nowrap;width:130px">Regrid Parcel Key</span>
-        <input id="regrid-api-key" type="text" placeholder="Free key from app.regrid.com → auto-loads property boundaries"
-          style="flex:1;padding:4px 7px;border:1px solid var(--border);border-radius:3px;font-size:.75rem;background:white" />
-        <button onclick="saveRegridKey()" class="print-btn" style="padding:5px 12px;font-size:.72rem;white-space:nowrap">Apply</button>
-        <button id="fetch-parcel-btn" onclick="fetchParcelBoundary()" class="print-btn"
-          style="padding:5px 12px;font-size:.72rem;white-space:nowrap;background:#1A73E8">&#127968; Load Parcel</button>
       </div>
     </div>
     <div class="planner-wrap">
@@ -4254,84 +4248,49 @@
     if (btn) { btn.textContent = '✓ Applied'; setTimeout(() => { btn.textContent = 'Apply'; }, 2500); }
   }
 
-  function getRegridKey() { return localStorage.getItem('fsig-regrid-key') || ''; }
-  function saveRegridKey() {
-    const key = (document.getElementById('regrid-api-key')?.value || '').trim();
-    localStorage.setItem('fsig-regrid-key', key);
-    const el = document.getElementById('regrid-api-key');
-    if (el) { const old = el.placeholder; el.placeholder = '✓ Saved!'; setTimeout(() => { el.placeholder = old; }, 2000); }
-  }
+  let _plssLayer = null;
+  let _plssVisible = false;
 
-  // Fetch property parcel boundary from Regrid (free at app.regrid.com)
-  // and draw it on the map automatically
-  function fetchParcelBoundary() {
-    const key = getRegridKey();
-    if (!key) {
-      alert('Add a free Regrid API key first.\n\n1. Go to app.regrid.com and sign up (free)\n2. Go to Account → API\n3. Paste the token in the Regrid Parcel Key field and click Apply\n\nRegrid gives 1,000 free lookups/month.');
+  function togglePLSS() {
+    if (!planMap) initPlanMap();
+    const btn = document.getElementById('plss-btn');
+    if (_mapIsGoogle) {
+      alert('Survey section lines are only available in Leaflet map mode (remove your Google Maps API key to use Leaflet).');
       return;
     }
-    const addr = ['addr','city','state','zip']
-      .map(id => document.getElementById(id)?.value || '').filter(Boolean).join(', ');
-    if (!addr) { alert('Enter a job address in Job Info first.'); return; }
+    if (_plssVisible && _plssLayer) {
+      planMap.removeLayer(_plssLayer);
+      _plssLayer = null;
+      _plssVisible = false;
+      if (btn) btn.style.background = '#374a5a';
+    } else {
+      _plssLayer = L.tileLayer.wms(
+        'https://gis.blm.gov/arcgis/services/Cadastral/BLM_Natl_PLSS_CadNSDI/MapServer/WMSServer',
+        { layers: '1,2', format: 'image/png', transparent: true, opacity: 0.6, attribution: 'BLM PLSS' }
+      ).addTo(planMap);
+      _plssVisible = true;
+      if (btn) btn.style.background = '#27ae60';
+    }
+  }
 
-    const btn = document.getElementById('fetch-parcel-btn');
-    const orig = btn.textContent;
-    btn.textContent = 'Loading…'; btn.disabled = true;
-    const done = () => { btn.textContent = orig; btn.disabled = false; };
-
-    initPlanMap();
-
-    fetch(`https://app.regrid.com/api/v1/search.json?query=${encodeURIComponent(addr)}&limit=1&token=${encodeURIComponent(key)}`)
-      .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
-      .then(data => {
-        done();
-        const features = data?.results?.features;
-        if (!features || !features.length) {
-          alert('Parcel not found for this address. Check the address in Job Info or draw the boundary manually using the Property mode.');
-          return;
-        }
-        const geom = features[0]?.geometry;
-        const props = features[0]?.properties || {};
-        if (!geom || (geom.type !== 'Polygon' && geom.type !== 'MultiPolygon')) {
-          alert('No polygon returned for this parcel.');
-          return;
-        }
-        // Handle both Polygon and MultiPolygon (take largest ring)
-        let ring;
-        if (geom.type === 'Polygon') {
-          ring = geom.coordinates[0];
+  function openInOnX() {
+    let url = 'https://app.onxmaps.com/hunt';
+    if (planMap) {
+      try {
+        let lat, lng, zoom;
+        if (_mapIsGoogle) {
+          const c = planMap.getCenter();
+          lat = c.lat().toFixed(6); lng = c.lng().toFixed(6);
+          zoom = Math.round(planMap.getZoom());
         } else {
-          ring = geom.coordinates.reduce((best, poly) => poly[0].length > best.length ? poly[0] : best, geom.coordinates[0][0]);
+          const c = planMap.getCenter();
+          lat = c.lat.toFixed(6); lng = c.lng.toFixed(6);
+          zoom = Math.round(planMap.getZoom());
         }
-        const pts = ring.map(([lng, lat]) => ({ lat, lng }));
-        clearPropertyBoundary();
-        propertyPoints = pts.slice(0, -1); // drop duplicate closing point
-        propertyPolygonClosed = true;
-        // Draw on map
-        propertyPoints.forEach(ll => _mapAddPropertyDot(ll));
-        _mapAddPropertyLine([...propertyPoints, propertyPoints[0]]);
-        _mapFitBounds(propertyPoints);
-        updatePropertyArea();
-        // Show owner/acreage info if available
-        const owner = props.owner || props.mailadd || '';
-        const acres = props.ll_gisacre || props.gisacre || '';
-        if (owner || acres) {
-          const el = document.getElementById('property-area-display');
-          if (el) {
-            const { sqft, acres: calcAcres } = calcPropertyArea(propertyPoints);
-            el.textContent = `Parcel: ${sqft.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,',')} sq ft (${calcAcres.toFixed(2)} ac)${owner ? ' · ' + owner : ''}`;
-            el.style.display = '';
-          }
-        }
-      })
-      .catch(err => {
-        done();
-        if (String(err).includes('401') || String(err).includes('403')) {
-          alert('Invalid Regrid API key. Check your token at app.regrid.com → Account → API.');
-        } else {
-          alert('Could not load parcel data. Check your internet connection or try again.\n\nError: ' + err);
-        }
-      });
+        url = `https://app.onxmaps.com/hunt/map#${zoom}/${lat}/${lng}`;
+      } catch(e) {}
+    }
+    window.open(url, '_blank');
   }
 
   function _mapAddDot(ll) {
@@ -4606,8 +4565,6 @@
 
   function initPlanMap() {
     if (planMap) return;
-    const regridKey = getRegridKey();
-    if (regridKey) { const el = document.getElementById('regrid-api-key'); if (el) el.value = regridKey; }
     const key = getGmapsKey();
     if (key) {
       document.getElementById('gmaps-api-key').value = key;
