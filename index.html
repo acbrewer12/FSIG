@@ -3509,7 +3509,7 @@
     var pipeEntries = getPipeline();
 
     // Saved jobs merged in
-    var STATUS_MAP = { pending:'bid-sent', scheduled:'scheduled', 'in-progress':'in-progress', complete:'complete' };
+    var STATUS_MAP = { pending:'lead', scheduled:'scheduled', 'in-progress':'in-progress', complete:'complete' };
     var savedJobs = [];
     try { savedJobs = JSON.parse(localStorage.getItem('fsig-jobs') || '[]'); } catch(e){}
     var savedAsPipe = savedJobs
@@ -3560,21 +3560,24 @@
           + (job.startDate ? '<span class="pipe-badge" style="background:#E3F2FD;color:#1565C0">Start: ' + escHtml(job.startDate) + '</span>' : '')
           + '</div>'
           + '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">';
+        // Load Job button for saved jobs
         if (isSaved) {
           html += '<button onclick="loadJob(' + job._savedId + ')" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#1565C0">Load Job</button>';
         } else {
-          // Fill Job Info button on all non-saved cards
           html += '<button onclick="fillJobInfo(\'' + job.id + '\')" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#374a5a">Fill Job Info</button>';
-          if (stage.id === 'lead') {
-            html += '<button onclick="placeBid(\'' + job.id + '\')" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#1565C0">&#128178; Send Bid</button>';
-          } else if (stage.id === 'bid-sent') {
-            html += '<button onclick="scheduleLead(\'' + job.id + '\')" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#6A1B9A">&#128197; Schedule</button>';
-          } else if (si < PIPE_STAGES.length - 1) {
-            html += '<button onclick="moveLead(\'' + job.id + '\',1)" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:' + PIPE_STAGES[si+1].color + '">&#8594; ' + escHtml(PIPE_STAGES[si+1].label) + '</button>';
-          }
-          if (si > 0) {
-            html += '<button onclick="moveLead(\'' + job.id + '\',-1)" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#5f6368">&#8592; Back</button>';
-          }
+        }
+        // Action buttons for current stage (all jobs — saved and unsaved)
+        if (stage.id === 'lead') {
+          html += '<button onclick="placeBid(\'' + job.id + '\')" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#1565C0">&#128178; Send Bid</button>';
+        } else if (stage.id === 'bid-sent') {
+          html += '<button onclick="scheduleLead(\'' + job.id + '\')" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#6A1B9A">&#128197; Schedule</button>';
+        } else if (!isSaved && si < PIPE_STAGES.length - 1) {
+          html += '<button onclick="moveLead(\'' + job.id + '\',1)" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:' + PIPE_STAGES[si+1].color + '">&#8594; ' + escHtml(PIPE_STAGES[si+1].label) + '</button>';
+        }
+        if (!isSaved && si > 0) {
+          html += '<button onclick="moveLead(\'' + job.id + '\',-1)" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#5f6368">&#8592; Back</button>';
+        }
+        if (!isSaved) {
           html += '<button onclick="deleteLead(\'' + job.id + '\')" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#c0392b">Delete</button>';
         }
         html += '</div></div>';
@@ -3584,14 +3587,45 @@
     board.innerHTML = html;
   }
 
+  function _resolveJob(id) {
+    // Returns a job-like object from pipeline OR from saved jobs (id='saved-XXX')
+    if (String(id).indexOf('saved-') === 0) {
+      var savedId = parseInt(String(id).replace('saved-',''), 10);
+      var sj = [];
+      try { sj = JSON.parse(localStorage.getItem('fsig-jobs')||'[]'); } catch(e){}
+      var s = sj.find(function(j){ return j.id === savedId; });
+      if (!s) return null;
+      var st = s.state || {};
+      return { id: id, _isSaved: true, _savedId: savedId,
+        type: st.appMode || 'fence',
+        name: s.label || st.customerName || 'Saved Job',
+        phone: st.customerPhone || '',
+        address: [st.addr, st.city, st.state].filter(Boolean).join(', '),
+        startDate: s.date || '' };
+    }
+    return getPipeline().find(function(j){ return j.id === id; }) || null;
+  }
+
   function placeBid(id) {
+    if (String(id).indexOf('saved-') === 0) {
+      // For saved jobs, load the job then open the bid amount input via pipeline form
+      var job = _resolveJob(id);
+      if (!job) return;
+      _pipeEditId = null;
+      document.getElementById('pipe-form-title').textContent = 'Send Bid — ' + job.name;
+      ['pipe-name','pipe-phone','pipe-address','pipe-city','pipe-state','pipe-notes','pipe-bid','pipe-start'].forEach(function(fid){ var el=document.getElementById(fid); if(el) el.value=''; });
+      document.getElementById('pipe-name').value = job.name;
+      document.getElementById('pipe-phone').value = job.phone;
+      document.getElementById('pipeline-form').style.display = '';
+      setTimeout(function(){ var el = document.getElementById('pipe-bid'); if(el){ el.focus(); el.select(); } }, 50);
+      return;
+    }
     editLead(id);
     setTimeout(function(){ var el = document.getElementById('pipe-bid'); if(el){ el.focus(); el.select(); } }, 50);
   }
 
   function scheduleLead(id) {
-    var arr = getPipeline();
-    var job = arr.find(function(j){ return j.id === id; });
+    var job = _resolveJob(id);
     if (!job) return;
     _schedLeadId = id;
     var nm = document.getElementById('pipe-sched-job-name');
@@ -3614,13 +3648,20 @@
     var dateVal = document.getElementById('pipe-sched-date').value;
     if (!dateVal) { alert('Please pick a date.'); return; }
     var timeVal = (document.getElementById('pipe-sched-time').value || '08:00').replace(':','');
-    var arr = getPipeline();
-    var job = arr.find(function(j){ return j.id === _schedLeadId; });
+    var job = _resolveJob(_schedLeadId);
     if (!job) { closeScheduleModal(); return; }
-    job.startDate = dateVal;
-    job.status = 'scheduled';
-    job.updatedAt = Date.now();
-    savePipeline(arr);
+    if (String(_schedLeadId).indexOf('saved-') === 0) {
+      // Update the saved job's status so it moves to Scheduled stage
+      var savedId = parseInt(String(_schedLeadId).replace('saved-',''), 10);
+      var sj = [];
+      try { sj = JSON.parse(localStorage.getItem('fsig-jobs')||'[]'); } catch(e){}
+      var si2 = sj.findIndex(function(j){ return j.id === savedId; });
+      if (si2 >= 0) { sj[si2].status = 'scheduled'; sj[si2].date = dateVal; localStorage.setItem('fsig-jobs', JSON.stringify(sj)); }
+    } else {
+      var arr = getPipeline();
+      var pjob = arr.find(function(j){ return j.id === _schedLeadId; });
+      if (pjob) { pjob.startDate = dateVal; pjob.status = 'scheduled'; pjob.updatedAt = Date.now(); savePipeline(arr); }
+    }
     // Build Google Calendar event URL
     var ds = dateVal.replace(/-/g,'');
     var endD = new Date(dateVal + 'T12:00:00');
