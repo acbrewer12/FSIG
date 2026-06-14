@@ -4248,23 +4248,7 @@
   }
 
 function openInOnX() {
-    let url = 'https://app.onxmaps.com/hunt';
-    if (planMap) {
-      try {
-        let lat, lng, zoom;
-        if (_mapIsGoogle) {
-          const c = planMap.getCenter();
-          lat = c.lat().toFixed(6); lng = c.lng().toFixed(6);
-          zoom = Math.round(planMap.getZoom());
-        } else {
-          const c = planMap.getCenter();
-          lat = c.lat.toFixed(6); lng = c.lng.toFixed(6);
-          zoom = Math.round(planMap.getZoom());
-        }
-        url = `https://app.onxmaps.com/hunt/map#${zoom}/${lat}/${lng}`;
-      } catch(e) {}
-    }
-    window.open(url, '_blank');
+    window.open('https://webmap.onxmaps.com/hunt', '_blank');
   }
 
   function _mapAddDot(ll) {
