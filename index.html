@@ -3445,67 +3445,84 @@
   }
 
   function renderPipeline() {
-    const board = document.getElementById('pipeline-board');
+    var board = document.getElementById('pipeline-board');
     if (!board) return;
 
     // Pipeline CRM entries
-    const pipeEntries = getPipeline().filter(j => j.type === _pipeTab);
+    var pipeEntries = getPipeline().filter(function(j){ return j.type === _pipeTab; });
 
-    // Saved jobs from fsig-jobs mapped into pipeline stages
-    const STATUS_MAP = { pending:'lead', scheduled:'scheduled', 'in-progress':'in-progress', complete:'complete' };
-    const savedJobs = JSON.parse(localStorage.getItem('fsig-jobs') || '[]');
-    const savedAsPipe = savedJobs
-      .filter(j => STATUS_MAP[j.status])
-      .map(j => ({
-        id: 'saved-' + j.id, _isSaved: true, _savedId: j.id,
-        status: STATUS_MAP[j.status],
-        name:    j.label || j.state?.customerName || 'Saved Job',
-        phone:   j.state?.customerPhone || '',
-        address: [j.state?.addr, j.state?.city, j.state?.state].filter(Boolean).join(', '),
-        startDate: j.date || '',
-      }));
-
-    const all = [...pipeEntries, ...savedAsPipe];
-    let html = '';
-    PIPE_STAGES.forEach(stage => {
-      const jobs = all.filter(j => j.status === stage.id);
-      const si = PIPE_STAGES.findIndex(s => s.id === stage.id);
-      html += `<div style="margin-bottom:14px">
-        <div class="pipe-stage-hdr" style="background:${stage.color}">
-          ${stage.label}
-          ${jobs.length ? `<span style="background:rgba(255,255,255,.25);border-radius:10px;padding:1px 8px">${jobs.length}</span>` : ''}
-        </div>`;
-      if (!jobs.length) {
-        html += `<div style="font-size:.78rem;color:var(--muted);padding:6px 10px;font-style:italic">No jobs</div>`;
-      }
-      jobs.forEach(job => {
-        const isSaved = !!job._isSaved;
-        html += `<div class="pipe-job" style="${isSaved ? 'border-left-color:#1565C0' : ''}">
-          <div class="pipe-job-name">${escHtml(job.name)}
-            ${isSaved ? `<span style="font-size:.7rem;background:#E3F2FD;color:#1565C0;padding:1px 6px;border-radius:8px;font-weight:400;margin-left:6px">saved job</span>` : ''}
-          </div>
-          <div class="pipe-job-meta">
-            ${job.phone ? `📞 ${escHtml(job.phone)}` : ''}
-            ${job.address ? `${job.phone?' · ':''}${escHtml(job.address)}` : ''}
-          </div>
-          ${job.notes ? `<div class="pipe-job-meta" style="margin-top:3px;color:#444">${escHtml(job.notes)}</div>` : ''}
-          <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
-            ${job.bidAmount ? `<span class="pipe-badge" style="background:#E8F5E9;color:#2E7D32">$${escHtml(job.bidAmount)}</span>` : ''}
-            ${job.startDate ? `<span class="pipe-badge" style="background:#E3F2FD;color:#1565C0">Start: ${escHtml(job.startDate)}</span>` : ''}
-          </div>
-          <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
-            ${isSaved
-              ? `<button onclick="loadJob(${job._savedId})" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#1565C0">Load Job</button>`
-              : `<button onclick="editLead('${job.id}')" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#374a5a">Edit</button>`}
-            ${!isSaved && si < PIPE_STAGES.length-1 ? `<button onclick="moveLead('${job.id}',1)" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:${PIPE_STAGES[si+1].color}">&#8594; ${escHtml(PIPE_STAGES[si+1].label.replace(/^\S+\s/,''))}</button>` : ''}
-            ${!isSaved && si > 0 ? `<button onclick="moveLead('${job.id}',-1)" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#5f6368">&#8592; Back</button>` : ''}
-            ${!isSaved ? `<button onclick="deleteLead('${job.id}')" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#c0392b">Delete</button>` : ''}
-          </div>
-        </div>`;
+    // Saved jobs merged in
+    var STATUS_MAP = { pending:'lead', scheduled:'scheduled', 'in-progress':'in-progress', complete:'complete' };
+    var savedJobs = [];
+    try { savedJobs = JSON.parse(localStorage.getItem('fsig-jobs') || '[]'); } catch(e){}
+    var savedAsPipe = savedJobs
+      .filter(function(j){ return STATUS_MAP[j.status]; })
+      .map(function(j) {
+        var st = j.state || {};
+        return {
+          id: 'saved-' + j.id, _isSaved: true, _savedId: j.id,
+          status: STATUS_MAP[j.status],
+          name:    j.label || st.customerName || 'Saved Job',
+          phone:   st.customerPhone || '',
+          address: [st.addr, st.city, st.state].filter(Boolean).join(', '),
+          startDate: j.date || '',
+        };
       });
-      html += `</div>`;
+
+    var all = pipeEntries.concat(savedAsPipe);
+    var html = '';
+    PIPE_STAGES.forEach(function(stage) {
+      var jobs = all.filter(function(j){ return j.status === stage.id; });
+      var si = PIPE_STAGES.findIndex(function(s){ return s.id === stage.id; });
+      html += '<div style="margin-bottom:14px">'
+        + '<div class="pipe-stage-hdr" style="background:' + stage.color + '">'
+        + stage.label
+        + (jobs.length ? '<span style="background:rgba(255,255,255,.25);border-radius:10px;padding:1px 8px;margin-left:4px">' + jobs.length + '</span>' : '')
+        + '</div>';
+      if (!jobs.length) {
+        html += '<div style="font-size:.78rem;color:var(--muted);padding:6px 10px;font-style:italic">No jobs</div>';
+      }
+      jobs.forEach(function(job) {
+        var isSaved = !!job._isSaved;
+        html += '<div class="pipe-job" style="' + (isSaved ? 'border-left-color:#1565C0' : '') + '">'
+          + '<div class="pipe-job-name">' + escHtml(job.name)
+          + (isSaved ? '<span style="font-size:.7rem;background:#E3F2FD;color:#1565C0;padding:1px 6px;border-radius:8px;font-weight:400;margin-left:6px">saved job</span>' : '')
+          + '</div>'
+          + '<div class="pipe-job-meta">'
+          + (job.phone ? '&#128222; ' + escHtml(job.phone) : '')
+          + (job.address ? (job.phone ? ' &middot; ' : '') + escHtml(job.address) : '')
+          + '</div>'
+          + (job.notes ? '<div class="pipe-job-meta" style="margin-top:3px;color:#444">' + escHtml(job.notes) + '</div>' : '')
+          + '<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">'
+          + (job.bidAmount ? '<span class="pipe-badge" style="background:#E8F5E9;color:#2E7D32">$' + escHtml(job.bidAmount) + '</span>' : '')
+          + (job.startDate ? '<span class="pipe-badge" style="background:#E3F2FD;color:#1565C0">Start: ' + escHtml(job.startDate) + '</span>' : '')
+          + '</div>'
+          + '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">';
+        if (isSaved) {
+          html += '<button onclick="loadJob(' + job._savedId + ')" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#1565C0">Load Job</button>';
+        } else {
+          if (stage.id === 'lead') {
+            html += '<button onclick="placeBid(\'' + job.id + '\')" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#27ae60">&#128178; Place Bid</button>';
+          }
+          html += '<button onclick="editLead(\'' + job.id + '\')" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#374a5a">Edit</button>';
+          if (si < PIPE_STAGES.length - 1) {
+            html += '<button onclick="moveLead(\'' + job.id + '\',1)" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:' + PIPE_STAGES[si+1].color + '">&#8594; ' + escHtml(PIPE_STAGES[si+1].label.replace(/^\S+\s/,'')) + '</button>';
+          }
+          if (si > 0) {
+            html += '<button onclick="moveLead(\'' + job.id + '\',-1)" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#5f6368">&#8592; Back</button>';
+          }
+          html += '<button onclick="deleteLead(\'' + job.id + '\')" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#c0392b">Delete</button>';
+        }
+        html += '</div></div>';
+      });
+      html += '</div>';
     });
     board.innerHTML = html;
+  }
+
+  function placeBid(id) {
+    editLead(id);
+    setTimeout(function(){ var el = document.getElementById('pipe-bid'); if(el){ el.focus(); el.select(); } }, 50);
   }
 
   function showAddLead() {
@@ -4254,8 +4271,9 @@
   }
 
   // Restore mode on load
-  const _savedMode = localStorage.getItem('fsig-app-mode') || 'fence';
+  var _savedMode = localStorage.getItem('fsig-app-mode') || 'fence';
   setAppMode(_savedMode);
+  renderPipeline();
 </script>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
