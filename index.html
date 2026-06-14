@@ -490,6 +490,14 @@
     .container.mode-fence .ch-type { display:none !important; }
     .container.mode-stain .scope-fence-only { display:none !important; }
     .container.mode-fence .scope-stain-only { display:none !important; }
+    /* Stain mode column headers */
+    .ch-stain, .ch-bleach { width:72px; }
+    .container.mode-fence .ch-stain,
+    .container.mode-fence .ch-bleach { display:none !important; }
+    .container.mode-stain .ch-hgt { display:none !important; }
+    /* Mode-conditional titles */
+    .container.mode-fence .stain-mode-title { display:none !important; }
+    .container.mode-stain .fence-mode-title { display:none !important; }
 
     /* ── JOB PIPELINE ── */
     .pipe-tab { padding:6px 18px;border:2px solid var(--border);border-radius:4px;background:#f7f6f2;cursor:pointer;font-size:.85rem;font-weight:600;transition:all .15s; }
@@ -1117,9 +1125,12 @@
     <svg id="house-visual" viewBox="0 0 800 530" xmlns="http://www.w3.org/2000/svg"></svg>
   </div>
 
-  <!-- Fence Sections -->
-  <div class="card" data-section="fence">
-    <h2>Fence Sections</h2>
+  <!-- Fence / Stain Sections (visible in both modes) -->
+  <div class="card">
+    <h2>
+      <span class="fence-mode-title">Fence Sections</span>
+      <span class="stain-mode-title">Fence Areas to Stain</span>
+    </h2>
     <div class="sides-grid">
       <div class="side-panel left" id="panel-left">
         <h3>Left Side</h3>
@@ -1128,6 +1139,8 @@
           <span class="ch-hgt">Height</span>
           <span class="ch-pan">Sides</span>
           <span class="ch-type">Treatment</span>
+          <span class="ch-stain stain-cols">Stain</span>
+          <span class="ch-bleach stain-cols">Bleach</span>
           <span class="ch-sqft">Lin Ft</span>
         </div>
         <div id="rows-left"></div>
@@ -1142,6 +1155,8 @@
           <span class="ch-hgt">Height</span>
           <span class="ch-pan">Sides</span>
           <span class="ch-type">Treatment</span>
+          <span class="ch-stain stain-cols">Stain</span>
+          <span class="ch-bleach stain-cols">Bleach</span>
           <span class="ch-sqft">Lin Ft</span>
         </div>
         <div id="rows-right"></div>
@@ -1156,6 +1171,8 @@
           <span class="ch-hgt">Height</span>
           <span class="ch-pan">Sides</span>
           <span class="ch-type">Treatment</span>
+          <span class="ch-stain stain-cols">Stain</span>
+          <span class="ch-bleach stain-cols">Bleach</span>
           <span class="ch-sqft">Lin Ft</span>
         </div>
         <div id="rows-back"></div>
@@ -1170,6 +1187,8 @@
           <span class="ch-hgt">Height</span>
           <span class="ch-pan">Sides</span>
           <span class="ch-type">Treatment</span>
+          <span class="ch-stain stain-cols">Stain</span>
+          <span class="ch-bleach stain-cols">Bleach</span>
           <span class="ch-sqft">Lin Ft</span>
         </div>
         <div id="rows-frontLeft"></div>
@@ -1184,6 +1203,8 @@
           <span class="ch-hgt">Height</span>
           <span class="ch-pan">Sides</span>
           <span class="ch-type">Treatment</span>
+          <span class="ch-stain stain-cols">Stain</span>
+          <span class="ch-bleach stain-cols">Bleach</span>
           <span class="ch-sqft">Lin Ft</span>
         </div>
         <div id="rows-frontRight"></div>
@@ -1787,9 +1808,9 @@
       div.innerHTML = `
         <input type="number" min="0" step="0.5" placeholder="ft" value="${row.len}"
           onchange="updateRow('${side}',${row.id},'len',this.value)" style="width:64px" />
-        <span style="color:var(--muted);font-size:.8rem">×</span>
+        <span class="fence-mode-title" style="color:var(--muted);font-size:.8rem">×</span>
         <input type="number" min="0" step="0.5" placeholder="ft" value="${row.hgt}"
-          onchange="updateRow('${side}',${row.id},'hgt',this.value)" style="width:64px" />
+          onchange="updateRow('${side}',${row.id},'hgt',this.value)" style="width:64px" class="fence-mode-title" />
         <span style="color:var(--muted);font-size:.8rem">×</span>
         <span class="stain-cols" style="display:inline-flex;gap:4px;align-items:center">
         <span style="font-size:.76rem;font-weight:700;color:#B8760E;padding:0 2px">S</span>
