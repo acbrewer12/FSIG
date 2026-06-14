@@ -1330,7 +1330,11 @@
       </div>
       <div>
         <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:4px">Terminal Posts<br><span style="font-weight:400">(ends + corners)</span></label>
-        <input id="parts-terminals" type="number" min="0" step="1" value="4" style="width:70px;padding:7px 8px;border:1px solid var(--border);border-radius:4px;font-size:.9rem;background:#fafaf8" />
+        <div style="display:flex;gap:4px;align-items:center">
+          <input id="parts-terminals" type="number" min="0" step="1" value="4" style="width:60px;padding:7px 8px;border:1px solid var(--border);border-radius:4px;font-size:.9rem;background:#fafaf8" />
+          <button onclick="autoCalcTerminals()" title="Auto-count from site planner or stretches"
+            style="padding:5px 7px;font-size:.7rem;background:var(--brand);color:white;border:none;border-radius:4px;cursor:pointer;line-height:1;white-space:nowrap">Auto</button>
+        </div>
       </div>
       <div>
         <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:4px">Gates</label>
@@ -3082,6 +3086,37 @@
         return buildPlannerSvgOverlay(pts, _planSegments, getPlanBbox(pts), 580, 280);
       })(),
       onHandItems: JSON.parse(JSON.stringify(onHandItems)),
+      partsCalc: {
+        type:             document.getElementById('parts-type')?.value,
+        lf:               document.getElementById('parts-lf')?.value,
+        height:           document.getElementById('parts-height')?.value,
+        spacing:          document.getElementById('parts-spacing')?.value,
+        terminals:        document.getElementById('parts-terminals')?.value,
+        gates:            document.getElementById('parts-gates')?.value,
+        roll:             document.getElementById('parts-roll')?.value,
+        railLen:          document.getElementById('parts-rail-len')?.value,
+        concrete:         document.getElementById('parts-concrete')?.checked,
+        useStretches:     document.getElementById('parts-use-stretches')?.checked,
+        closedLoop:       document.getElementById('stretch-closed-loop')?.checked,
+        stretches:        JSON.parse(JSON.stringify(stretches)),
+        boardW:           document.getElementById('parts-board-w')?.value,
+        railsPer:         document.getElementById('parts-rails-per')?.value,
+        woodConcrete:     document.getElementById('parts-wood-concrete')?.checked,
+        agPostSpacing:    document.getElementById('ag-post-spacing')?.value,
+        agBarbStrands:    document.getElementById('ag-barb-strands')?.value,
+        agBraceCount:     document.getElementById('ag-brace-count')?.value,
+        agBarbConcrete:   document.getElementById('ag-barb-concrete')?.checked,
+        agWovenHeight:    document.getElementById('ag-woven-height')?.value,
+        agWovenRoll:      document.getElementById('ag-woven-roll')?.value,
+        agWovenBraceCount:document.getElementById('ag-woven-brace-count')?.value,
+        agWovenTopBarb:   document.getElementById('ag-woven-topbarb')?.checked,
+        agWovenBotBarb:   document.getElementById('ag-woven-botbarb')?.checked,
+        agPipeSize:       document.getElementById('ag-pipe-size')?.value,
+        agPipeRails:      document.getElementById('ag-pipe-rails')?.value,
+        agPipeTerminals:  document.getElementById('ag-pipe-terminals')?.value,
+        agPipeConcrete:   document.getElementById('ag-pipe-concrete')?.checked,
+        hasResults:       (document.getElementById('parts-results')?.style.display || 'none') !== 'none',
+      },
     };
   }
 
@@ -3154,6 +3189,36 @@
     onHandItems = JSON.parse(JSON.stringify(s.onHandItems || []));
     onHandCounter = Math.max(0, ...onHandItems.map(i => i.id || 0));
     renderOnHand();
+    // Restore parts calculator
+    const pc = s.partsCalc;
+    if (pc) {
+      const sv = (id, v) => { const el = document.getElementById(id); if (el && v != null) el.value = v; };
+      const sc = (id, v) => { const el = document.getElementById(id); if (el && v != null) el.checked = !!v; };
+      sv('parts-type', pc.type);  sv('parts-lf', pc.lf);  sv('parts-height', pc.height);
+      sv('parts-spacing', pc.spacing);  sv('parts-terminals', pc.terminals);  sv('parts-gates', pc.gates);
+      sv('parts-roll', pc.roll);  sv('parts-rail-len', pc.railLen);
+      sc('parts-concrete', pc.concrete);
+      sc('parts-use-stretches', pc.useStretches != null ? pc.useStretches : true);
+      sc('stretch-closed-loop', pc.closedLoop);
+      if (pc.stretches && pc.stretches.length > 0) {
+        stretches = JSON.parse(JSON.stringify(pc.stretches));
+        stretchCounter = Math.max(0, ...stretches.map(st => st.id || 0));
+        renderStretches();
+        recalcStretches();
+      }
+      sv('parts-board-w', pc.boardW);  sv('parts-rails-per', pc.railsPer);
+      sc('parts-wood-concrete', pc.woodConcrete);
+      sv('ag-post-spacing', pc.agPostSpacing);  sv('ag-barb-strands', pc.agBarbStrands);
+      sv('ag-brace-count', pc.agBraceCount);  sc('ag-barb-concrete', pc.agBarbConcrete);
+      sv('ag-woven-height', pc.agWovenHeight);  sv('ag-woven-roll', pc.agWovenRoll);
+      sv('ag-woven-brace-count', pc.agWovenBraceCount);
+      sc('ag-woven-topbarb', pc.agWovenTopBarb);  sc('ag-woven-botbarb', pc.agWovenBotBarb);
+      sv('ag-pipe-size', pc.agPipeSize);  sv('ag-pipe-rails', pc.agPipeRails);
+      sv('ag-pipe-terminals', pc.agPipeTerminals);  sc('ag-pipe-concrete', pc.agPipeConcrete);
+      partsTypeChange();
+      toggleStretchesUI();
+      if (pc.hasResults && pc.lf) calcParts();
+    }
     // Restore site planner
     clearPlanSnapshot();
     if (s.planPoints && s.planPoints.length >= 2) {
@@ -3875,6 +3940,51 @@
       ];
     }
     return { items, methodNote };
+  }
+
+  // Auto-calculate terminal posts from site planner trace or stretches
+  function autoCalcTerminals() {
+    const gatesNum = parseInt(document.getElementById('parts-gates')?.value) || 0;
+    const termEl = document.getElementById('parts-terminals');
+    if (!termEl) return;
+
+    // Prefer stretches data if available and active
+    const useStretches = document.getElementById('parts-use-stretches')?.checked;
+    if (useStretches && stretches.some(s => parseFloat(s.length) > 0)) {
+      const sc = recalcStretches();
+      termEl.value = sc.terminals;
+      return;
+    }
+
+    // Fall back to site planner bearing-change detection
+    const segs = (typeof _planSegments !== 'undefined') ? _planSegments : [];
+    const pts  = (typeof planPoints !== 'undefined') ? planPoints : [];
+    if (segs.length === 0) {
+      alert('Trace the fence on the Site Planner first, or enter stretch lengths in the Hoover Stretches section.');
+      return;
+    }
+
+    const CORNER_DEG = 20; // bearing change threshold for a "corner" post
+    const isClosedLoop = pts.length >= 2 &&
+      Math.abs(pts[0].lat - pts[pts.length - 1].lat) < 0.00001 &&
+      Math.abs(pts[0].lng - pts[pts.length - 1].lng) < 0.00001;
+
+    let corners = 0;
+    if (isClosedLoop) {
+      for (let i = 0; i < segs.length; i++) {
+        const a = segs[(i - 1 + segs.length) % segs.length].bearing;
+        const b = segs[i].bearing;
+        if (Math.abs(((b - a + 540) % 360) - 180) >= CORNER_DEG) corners++;
+      }
+    } else {
+      corners = 2; // start + end posts
+      for (let i = 1; i < segs.length; i++) {
+        const a = segs[i - 1].bearing, b = segs[i].bearing;
+        if (Math.abs(((b - a + 540) % 360) - 180) >= CORNER_DEG) corners++;
+      }
+    }
+
+    termEl.value = corners + gatesNum * 2;
   }
 
   function calcParts() {
