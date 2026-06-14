@@ -491,6 +491,7 @@
     .mode-btn.active { background:var(--brand);color:#fff; }
     .container.mode-fence .card[data-section="stain"] { display:none !important; }
     .container.mode-stain .card[data-section="fence"] { display:none !important; }
+    .container.mode-fence .stain-cols { display:none !important; }
 
     /* ── JOB PIPELINE ── */
     .pipe-tab { padding:6px 18px;border:2px solid var(--border);border-radius:4px;background:#f7f6f2;cursor:pointer;font-size:.85rem;font-weight:600;transition:all .15s; }
@@ -749,8 +750,16 @@
           <input id="pipe-phone" type="tel" placeholder="417-555-0000" style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:4px;font-size:.85rem;margin-top:2px">
         </div>
         <div style="grid-column:1/-1">
-          <label style="font-size:.75rem;color:var(--muted)">Address</label>
-          <input id="pipe-address" type="text" placeholder="Job address" style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:4px;font-size:.85rem;margin-top:2px">
+          <label style="font-size:.75rem;color:var(--muted)">Street Address</label>
+          <input id="pipe-address" type="text" placeholder="123 Main St" style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:4px;font-size:.85rem;margin-top:2px">
+        </div>
+        <div>
+          <label style="font-size:.75rem;color:var(--muted)">City</label>
+          <input id="pipe-city" type="text" placeholder="City" style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:4px;font-size:.85rem;margin-top:2px">
+        </div>
+        <div>
+          <label style="font-size:.75rem;color:var(--muted)">State</label>
+          <input id="pipe-state" type="text" placeholder="MO" maxlength="2" style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:4px;font-size:.85rem;margin-top:2px">
         </div>
         <div style="grid-column:1/-1">
           <label style="font-size:.75rem;color:var(--muted)">Notes / Job Description</label>
@@ -1723,6 +1732,7 @@
         <input type="number" min="0" step="0.5" placeholder="ft" value="${row.hgt}"
           onchange="updateRow('${side}',${row.id},'hgt',this.value)" style="width:64px" />
         <span style="color:var(--muted);font-size:.8rem">×</span>
+        <span class="stain-cols" style="display:inline-flex;gap:4px;align-items:center">
         <span style="font-size:.76rem;font-weight:700;color:#B8760E;padding:0 2px">S</span>
         <select onchange="updateRow('${side}',${row.id},'stainFace',this.value)" style="font-size:.82rem;padding:5px 4px;border:1px solid var(--border);border-radius:4px">
           <option value="none"    ${row.stainFace==='none'    ?'selected':''}>—</option>
@@ -1737,6 +1747,7 @@
           <option value="outside" ${row.bleachFace==='outside' ?'selected':''}>Out ${sideArrow(side,'outside')}</option>
           <option value="both"    ${row.bleachFace==='both'    ?'selected':''}>Both ${sideArrow(side,'both')}</option>
         </select>
+        </span>
         <span class="sq" id="sqft-${row.id}">${quoteMode==='sqft' ? rowSqft(row)+' sq ft' : rowLinFt(row)+' lin ft'}</span>
         <button class="del-btn" onclick="removeRow('${side}',${row.id})" title="Remove">✕</button>
       `;
@@ -3210,6 +3221,11 @@
     if (existing >= 0) jobs[existing] = entry;
     else jobs.unshift(entry);
     localStorage.setItem('fsig-jobs', JSON.stringify(jobs.slice(0, 50)));
+    // If this job was started from a pipeline lead, remove that lead (saved job now represents it)
+    if (_activeLeadId) {
+      savePipeline(getPipeline().filter(function(j){ return j.id !== _activeLeadId; }));
+      _activeLeadId = null;
+    }
     renderJobLog();
     renderCalendar();
     updateStorageMeter();
@@ -3446,6 +3462,16 @@
   var _pipeTab = 'fence';
   var _pipeEditId = null;
   var _schedLeadId = null;
+  var _activeLeadId = null; // lead that was used to fill Job Info
+
+  // Register pipeline render early — runs even if later init code throws
+  document.addEventListener('DOMContentLoaded', function() {
+    try {
+      var m = localStorage.getItem('fsig-app-mode') || 'fence';
+      _pipeTab = m;
+      renderPipeline();
+    } catch(e) {}
+  });
   var PIPE_STAGES = [
     { id:'lead',        label:'Lead / Needs Bid', color:'#C8530A' },
     { id:'bid-sent',    label:'Send Bid',          color:'#1565C0' },
@@ -3606,12 +3632,17 @@
     var arr = getPipeline();
     var job = arr.find(function(j){ return j.id === id; });
     if (!job) return;
+    _activeLeadId = id;
     var nameEl  = document.getElementById('customer-name');
     var phoneEl = document.getElementById('customer-phone');
     var addrEl  = document.getElementById('addr');
-    if (nameEl)  nameEl.value  = job.name    || '';
-    if (phoneEl) phoneEl.value = job.phone   || '';
-    if (addrEl && job.address)  addrEl.value = job.address;
+    var cityEl  = document.getElementById('city');
+    var stateEl = document.getElementById('state');
+    if (nameEl)  nameEl.value  = job.name   || '';
+    if (phoneEl) phoneEl.value = job.phone  || '';
+    if (addrEl)  addrEl.value  = job.street || job.address || '';
+    if (cityEl)  cityEl.value  = job.city   || '';
+    if (stateEl) stateEl.value = job.state  || '';
     var card = document.getElementById('job-info-card');
     if (card) card.scrollIntoView({ behavior:'smooth', block:'start' });
   }
@@ -3619,7 +3650,7 @@
   function showAddLead() {
     _pipeEditId = null;
     document.getElementById('pipe-form-title').textContent = 'New Lead';
-    ['pipe-name','pipe-phone','pipe-address','pipe-notes','pipe-bid','pipe-start'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+    ['pipe-name','pipe-phone','pipe-address','pipe-city','pipe-state','pipe-notes','pipe-bid','pipe-start'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
     document.getElementById('pipeline-form').style.display = '';
     document.getElementById('pipe-name').focus();
   }
@@ -3631,7 +3662,9 @@
     document.getElementById('pipe-form-title').textContent = 'Edit Lead';
     document.getElementById('pipe-name').value = job.name||'';
     document.getElementById('pipe-phone').value = job.phone||'';
-    document.getElementById('pipe-address').value = job.address||'';
+    document.getElementById('pipe-address').value = job.street || job.address||'';
+    document.getElementById('pipe-city').value = job.city||'';
+    document.getElementById('pipe-state').value = job.state||'';
     document.getElementById('pipe-notes').value = job.notes||'';
     document.getElementById('pipe-bid').value = job.bidAmount||'';
     document.getElementById('pipe-start').value = job.startDate||'';
@@ -3643,11 +3676,18 @@
     var name = document.getElementById('pipe-name').value.trim();
     if (!name) { alert('Customer name is required.'); return; }
     var arr = getPipeline();
+    var city  = document.getElementById('pipe-city').value.trim();
+    var state = document.getElementById('pipe-state').value.trim();
+    var street = document.getElementById('pipe-address').value.trim();
+    var fullAddr = [street, city, state].filter(Boolean).join(', ');
     var entry = {
       name:      name,
       updatedAt: Date.now(),
       phone:     document.getElementById('pipe-phone').value.trim(),
-      address:   document.getElementById('pipe-address').value.trim(),
+      address:   fullAddr,
+      street:    street,
+      city:      city,
+      state:     state,
       notes:     document.getElementById('pipe-notes').value.trim(),
       bidAmount: document.getElementById('pipe-bid').value.trim(),
       startDate: document.getElementById('pipe-start').value.trim(),
@@ -3656,13 +3696,15 @@
       var idx = arr.findIndex(function(j){ return j.id === _pipeEditId; });
       if (idx >= 0) {
         arr[idx].name = entry.name; arr[idx].phone = entry.phone;
-        arr[idx].address = entry.address; arr[idx].notes = entry.notes;
-        arr[idx].bidAmount = entry.bidAmount; arr[idx].startDate = entry.startDate;
-        arr[idx].updatedAt = entry.updatedAt;
+        arr[idx].address = entry.address; arr[idx].street = entry.street;
+        arr[idx].city = entry.city; arr[idx].state = entry.state;
+        arr[idx].notes = entry.notes; arr[idx].bidAmount = entry.bidAmount;
+        arr[idx].startDate = entry.startDate; arr[idx].updatedAt = entry.updatedAt;
       }
     } else {
       arr.push({ id: String(Date.now()), type: _pipeTab, status: 'lead', createdAt: Date.now(),
-        name: entry.name, phone: entry.phone, address: entry.address, notes: entry.notes,
+        name: entry.name, phone: entry.phone, address: entry.address, street: entry.street,
+        city: entry.city, state: entry.state, notes: entry.notes,
         bidAmount: entry.bidAmount, startDate: entry.startDate, updatedAt: entry.updatedAt });
     }
     savePipeline(arr);
@@ -3670,9 +3712,13 @@
     var nameEl = document.getElementById('customer-name');
     var phoneEl = document.getElementById('customer-phone');
     var addrEl  = document.getElementById('addr');
+    var cityEl  = document.getElementById('city');
+    var stateEl = document.getElementById('state');
     if (nameEl  && !nameEl.value)  nameEl.value  = entry.name;
     if (phoneEl && !phoneEl.value) phoneEl.value = entry.phone;
-    if (addrEl  && !addrEl.value && entry.address) addrEl.value = entry.address;
+    if (addrEl  && !addrEl.value  && entry.street) addrEl.value  = entry.street;
+    if (cityEl  && !cityEl.value  && entry.city)  cityEl.value  = entry.city;
+    if (stateEl && !stateEl.value && entry.state) stateEl.value = entry.state;
     document.getElementById('pipeline-form').style.display = 'none';
     renderPipeline();
   }
@@ -4378,10 +4424,10 @@
 
   // Restore mode on load
   var _savedMode = localStorage.getItem('fsig-app-mode') || 'fence';
-  setAppMode(_savedMode);
-  renderPipeline();
+  try { setAppMode(_savedMode); } catch(e) {}
+  try { renderPipeline(); } catch(e) {}
 
-  window.addEventListener('load', function() { renderPipeline(); });
+  window.addEventListener('load', function() { try { renderPipeline(); } catch(e) {} });
 </script>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
