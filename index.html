@@ -3646,6 +3646,9 @@
         if (!isSaved && si > 0) {
           html += '<button onclick="moveLead(\'' + job.id + '\',-1)" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#5f6368">&#8592; Back</button>';
         }
+        if (isSaved && stage.id === 'bid-sent') {
+          html += '<button onclick="_setSavedJobPipeStatus(' + job._savedId + ',\'lead\');renderPipeline();" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#5f6368">&#8592; Back</button>';
+        }
         if (!isSaved) {
           html += '<button onclick="deleteLead(\'' + job.id + '\')" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#c0392b">Delete</button>';
         }
