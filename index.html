@@ -933,6 +933,25 @@
     </div>
   </div>
 
+  <!-- Fence Layout Planner -->
+  <div class="card" data-section="fence">
+    <h2 style="cursor:pointer;user-select:none" onclick="var b=document.getElementById('fence-layout-body');b.style.display=b.style.display==='none'?'':'none'">&#128208; Fence Layout Planner</h2>
+    <div id="fence-layout-body">
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
+        <button class="print-btn" onclick="undoFencePoint()" style="font-size:.76rem;padding:3px 10px;background:#5f6368">&#8617; Undo</button>
+        <button class="print-btn" onclick="squareFenceMap()" style="font-size:.76rem;padding:3px 10px;background:#1565C0">&#9632; Square Up</button>
+        <button class="print-btn" id="fence-close-btn" onclick="toggleCloseFence()" style="font-size:.76rem;padding:3px 10px;background:#6A1B9A">Close Shape</button>
+        <button class="print-btn" onclick="clearFenceMap()" style="font-size:.76rem;padding:3px 10px;background:#c0392b">Clear</button>
+        <label style="font-size:.76rem;color:var(--muted);display:flex;align-items:center;gap:4px;margin-left:4px">
+          Scale <input id="fence-map-scale-in" type="number" value="4" min="1" max="30" style="width:44px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;font-size:.76rem" oninput="fenceMapScale=parseFloat(this.value)||4;drawFenceMap()"> px/ft
+        </label>
+      </div>
+      <div style="font-size:.7rem;color:var(--muted);margin-bottom:4px">Tap/click to add corners &nbsp;·&nbsp; Drag to move &nbsp;·&nbsp; Double-tap to remove</div>
+      <canvas id="fence-map-canvas" style="border:1.5px solid var(--border);border-radius:5px;cursor:crosshair;touch-action:none;width:100%;display:block;background:#f9f8f5"></canvas>
+      <div id="fence-map-info" style="margin-top:8px;font-size:.83rem;color:var(--text);font-weight:500"></div>
+    </div>
+  </div>
+
   <!-- Gates -->
   <div class="card" data-section="fence">
     <h2>Gates</h2>
@@ -5492,6 +5511,260 @@ ${propPts.map(p => `        ${(+p.lng).toFixed(8)},${(+p.lat).toFixed(8)},0`).jo
     if (entries[0].isIntersecting) { initPlanMap(); planObserver.disconnect(); }
   }, { threshold: 0.1 });
   planObserver.observe(document.getElementById('planning-map'));
+
+  // ── Fence Layout Planner ──────────────────────────────────────────────────
+  var fenceMapPoints = [];
+  var fenceMapClosed = false;
+  var fenceMapScale  = 4; // px per foot
+  var _fmDragIdx  = -1;
+  var _fmHoverIdx = -1;
+  var _fmLastTap  = 0; // for double-tap detection on touch
+
+  function _fmDist(ax, ay, bx, by) { var dx=bx-ax, dy=by-ay; return Math.sqrt(dx*dx+dy*dy); }
+
+  function _fmCanvasPos(e, c) {
+    var r = c.getBoundingClientRect();
+    var sx = c.width / r.width, sy = c.height / r.height;
+    return { x: (e.clientX - r.left) * sx, y: (e.clientY - r.top) * sy };
+  }
+
+  function _fmNear(x, y) {
+    var THRESH = 16;
+    for (var i = fenceMapPoints.length - 1; i >= 0; i--) {
+      if (_fmDist(fenceMapPoints[i].x, fenceMapPoints[i].y, x, y) <= THRESH) return i;
+    }
+    return -1;
+  }
+
+  function initFenceMap() {
+    var c = document.getElementById('fence-map-canvas');
+    if (!c || c._fmReady) return;
+    c._fmReady = true;
+    c.width  = c.offsetWidth  || 500;
+    c.height = Math.round(c.width * 0.58);
+    c.addEventListener('mousedown',  _fmMouseDown);
+    c.addEventListener('mousemove',  _fmMouseMove);
+    c.addEventListener('mouseup',    _fmMouseUp);
+    c.addEventListener('mouseleave', _fmMouseUp);
+    c.addEventListener('dblclick',   _fmDblClick);
+    c.addEventListener('touchstart', _fmTouchStart, { passive: false });
+    c.addEventListener('touchmove',  _fmTouchMove,  { passive: false });
+    c.addEventListener('touchend',   _fmTouchEnd,   { passive: false });
+    window.addEventListener('resize', function() {
+      var cc = document.getElementById('fence-map-canvas');
+      if (!cc) return;
+      cc.width  = cc.offsetWidth || 500;
+      cc.height = Math.round(cc.width * 0.58);
+      drawFenceMap();
+    });
+    drawFenceMap();
+  }
+
+  function _fmMouseDown(e) {
+    var pos = _fmCanvasPos(e, this);
+    var hit = _fmNear(pos.x, pos.y);
+    if (hit >= 0) {
+      _fmDragIdx = hit;
+    } else {
+      fenceMapPoints.push({ x: pos.x, y: pos.y });
+      _fmDragIdx = fenceMapPoints.length - 1;
+    }
+    drawFenceMap();
+  }
+
+  function _fmMouseMove(e) {
+    var pos = _fmCanvasPos(e, this);
+    if (_fmDragIdx >= 0) {
+      fenceMapPoints[_fmDragIdx] = { x: pos.x, y: pos.y };
+      drawFenceMap();
+    } else {
+      var hit = _fmNear(pos.x, pos.y);
+      if (hit !== _fmHoverIdx) {
+        _fmHoverIdx = hit;
+        this.style.cursor = hit >= 0 ? 'grab' : 'crosshair';
+        drawFenceMap();
+      }
+    }
+  }
+
+  function _fmMouseUp() { _fmDragIdx = -1; }
+
+  function _fmDblClick(e) {
+    var pos = _fmCanvasPos(e, this);
+    var hit = _fmNear(pos.x, pos.y);
+    if (hit >= 0) { fenceMapPoints.splice(hit, 1); _fmHoverIdx = -1; drawFenceMap(); }
+  }
+
+  function _fmTouchStart(e) {
+    e.preventDefault();
+    var t = e.touches[0];
+    var now = Date.now();
+    var pos = _fmCanvasPos(t, this);
+    if (now - _fmLastTap < 350) {
+      // Double-tap: remove point
+      var hit = _fmNear(pos.x, pos.y);
+      if (hit >= 0) { fenceMapPoints.splice(hit, 1); drawFenceMap(); }
+      _fmLastTap = 0;
+      return;
+    }
+    _fmLastTap = now;
+    var hit2 = _fmNear(pos.x, pos.y);
+    if (hit2 >= 0) {
+      _fmDragIdx = hit2;
+    } else {
+      fenceMapPoints.push({ x: pos.x, y: pos.y });
+      _fmDragIdx = fenceMapPoints.length - 1;
+    }
+    drawFenceMap();
+  }
+
+  function _fmTouchMove(e) {
+    e.preventDefault();
+    if (_fmDragIdx < 0) return;
+    var t = e.touches[0];
+    var pos = _fmCanvasPos(t, document.getElementById('fence-map-canvas'));
+    fenceMapPoints[_fmDragIdx] = { x: pos.x, y: pos.y };
+    drawFenceMap();
+  }
+
+  function _fmTouchEnd(e) { e.preventDefault(); _fmDragIdx = -1; }
+
+  function undoFencePoint() {
+    if (fenceMapPoints.length > 0) { fenceMapPoints.pop(); drawFenceMap(); }
+  }
+
+  function toggleCloseFence() {
+    fenceMapClosed = !fenceMapClosed;
+    var btn = document.getElementById('fence-close-btn');
+    if (btn) btn.style.background = fenceMapClosed ? '#2E7D32' : '#6A1B9A';
+    drawFenceMap();
+  }
+
+  function clearFenceMap() {
+    fenceMapPoints = []; fenceMapClosed = false; _fmDragIdx = -1; _fmHoverIdx = -1;
+    var btn = document.getElementById('fence-close-btn');
+    if (btn) btn.style.background = '#6A1B9A';
+    drawFenceMap();
+  }
+
+  function squareFenceMap() {
+    if (fenceMapPoints.length < 2) return;
+    for (var i = 1; i < fenceMapPoints.length; i++) {
+      var prev = fenceMapPoints[i - 1], cur = fenceMapPoints[i];
+      var dx = cur.x - prev.x, dy = cur.y - prev.y;
+      if (Math.abs(dx) >= Math.abs(dy)) {
+        fenceMapPoints[i] = { x: cur.x, y: prev.y }; // snap horizontal
+      } else {
+        fenceMapPoints[i] = { x: prev.x, y: cur.y }; // snap vertical
+      }
+    }
+    drawFenceMap();
+  }
+
+  function drawFenceMap() {
+    var c = document.getElementById('fence-map-canvas');
+    if (!c) return;
+    if (!c._fmReady) { initFenceMap(); return; }
+    var ctx = c.getContext('2d');
+    var w = c.width, h = c.height;
+    var pts = fenceMapPoints;
+
+    // Background
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = '#f9f8f5';
+    ctx.fillRect(0, 0, w, h);
+
+    // Grid (every 10 ft)
+    var step = fenceMapScale * 10;
+    if (step < 8) step = 8;
+    ctx.strokeStyle = '#e0ddd5';
+    ctx.lineWidth = 0.5;
+    for (var gx = 0; gx < w; gx += step) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, h); ctx.stroke(); }
+    for (var gy = 0; gy < h; gy += step) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(w, gy); ctx.stroke(); }
+
+    if (pts.length === 0) {
+      ctx.fillStyle = '#b0a898';
+      ctx.font = '13px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('Tap to place fence corners', w / 2, h / 2 - 8);
+      ctx.font = '11px Arial';
+      ctx.fillText('Drag to adjust  ·  Square Up to align  ·  Close Shape to connect ends', w / 2, h / 2 + 12);
+      var info = document.getElementById('fence-map-info');
+      if (info) info.innerHTML = '';
+      return;
+    }
+
+    // Build segment list (add closing segment if closed)
+    var segs = pts.slice();
+    if (fenceMapClosed && pts.length > 2) segs = segs.concat([pts[0]]);
+
+    // Draw fence line
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (var i = 1; i < segs.length; i++) ctx.lineTo(segs[i].x, segs[i].y);
+    ctx.strokeStyle = '#C8530A';
+    ctx.lineWidth = 3;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+
+    // Segment length labels
+    var totalFt = 0;
+    ctx.font = 'bold 11px Arial';
+    for (var i = 1; i < segs.length; i++) {
+      var a = segs[i-1], b = segs[i];
+      var pxLen = _fmDist(a.x, a.y, b.x, b.y);
+      var ft = pxLen / fenceMapScale;
+      totalFt += ft;
+      var mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+      var angle = Math.atan2(b.y - a.y, b.x - a.x);
+      var label = ft.toFixed(1) + "'";
+      ctx.save();
+      ctx.translate(mx, my);
+      ctx.rotate(angle);
+      var tw = ctx.measureText(label).width;
+      ctx.fillStyle = 'rgba(255,255,255,0.88)';
+      ctx.fillRect(-tw / 2 - 4, -10, tw + 8, 15);
+      ctx.fillStyle = '#1565C0';
+      ctx.textAlign = 'center';
+      ctx.fillText(label, 0, 2);
+      ctx.restore();
+    }
+
+    // Draw corner points
+    for (var i = 0; i < pts.length; i++) {
+      var p = pts[i];
+      var r = (i === _fmHoverIdx || i === _fmDragIdx) ? 10 : 7;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+      ctx.fillStyle = i === 0 ? '#2E7D32' : '#C8530A';
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 9px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(i + 1, p.x, p.y + 3);
+    }
+
+    // Info bar
+    var info = document.getElementById('fence-map-info');
+    if (info) {
+      info.innerHTML = '<strong>Total: ' + totalFt.toFixed(1) + ' ft</strong>'
+        + ' &nbsp;·&nbsp; ' + pts.length + ' corner' + (pts.length !== 1 ? 's' : '')
+        + (fenceMapClosed ? ' &nbsp;·&nbsp; <span style="color:#2E7D32">&#10003; Closed</span>' : '');
+    }
+  }
+
+  // Lazy-init fence map when card scrolls into view
+  (function() {
+    var el = document.getElementById('fence-map-canvas');
+    if (!el) return;
+    var obs = new IntersectionObserver(function(entries) {
+      if (entries[0].isIntersecting) { initFenceMap(); obs.disconnect(); }
+    }, { threshold: 0.1 });
+    obs.observe(el);
+  })();
 </script>
 </body>
 </html>
