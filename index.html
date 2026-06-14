@@ -3537,15 +3537,17 @@
     var savedJobs = [];
     try { savedJobs = JSON.parse(localStorage.getItem('fsig-jobs') || '[]'); } catch(e){}
     var savedAsPipe = savedJobs
-      .filter(function(j){ return j.pipelineStatus || STATUS_MAP[j.status]; })
+      .filter(function(j){ return !j.pipelineHidden && (j.pipelineStatus || STATUS_MAP[j.status]); })
       .map(function(j) {
         var st = j.state || {};
         return {
           id: 'saved-' + j.id, _isSaved: true, _savedId: j.id,
+          jobNum: j.label && j.label.match(/^FS-\d+$/) ? j.label : (st.jobNumber || ''),
           status: j.pipelineStatus || STATUS_MAP[j.status],
-          name:    j.label || st.customerName || 'Saved Job',
+          name:    st.customerName || j.label || 'Saved Job',
           phone:   st.customerPhone || '',
           address: [st.addr, st.city, st.state].filter(Boolean).join(', '),
+          linFt:   (function(){ var sides=st.sides||{}; var lf=0; for(var s in sides){ if(Array.isArray(sides[s])) sides[s].forEach(function(r){ lf+=(parseFloat(r.len)||0); }); } return lf>0?Math.round(lf):0; })(),
           startDate: j.date || '',
           bidAmount: j.bidAmountPipe || '',
         };
@@ -3571,13 +3573,17 @@
         var typeFg  = jobType === 'stain' ? '#E65100' : '#1B5E20';
         var typeIcon = jobType === 'stain' ? '&#129531;' : '&#128296;';
         html += '<div class="pipe-job" style="' + (isSaved ? 'border-left-color:#1565C0' : '') + '">'
+          + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px">'
           + '<div class="pipe-job-name">' + escHtml(job.name)
           + '<span style="font-size:.7rem;background:' + typeBg + ';color:' + typeFg + ';padding:1px 6px;border-radius:8px;font-weight:400;margin-left:6px">' + typeIcon + ' ' + jobType + '</span>'
-          + (isSaved ? '<span style="font-size:.7rem;background:#E3F2FD;color:#1565C0;padding:1px 6px;border-radius:8px;font-weight:400;margin-left:4px">saved</span>' : '')
+          + (isSaved && job.jobNum ? '<span style="font-size:.68rem;color:var(--muted);margin-left:5px">' + escHtml(job.jobNum) + '</span>' : '')
+          + '</div>'
+          + (isSaved ? '<button onclick="hideSavedFromPipeline(' + job._savedId + ')" title="Remove from pipeline" style="background:none;border:none;color:#aaa;font-size:1rem;cursor:pointer;padding:0 2px;line-height:1;flex-shrink:0">&#10005;</button>' : '')
           + '</div>'
           + '<div class="pipe-job-meta">'
           + (job.phone ? '&#128222; ' + escHtml(job.phone) : '')
           + (job.address ? (job.phone ? ' &middot; ' : '') + escHtml(job.address) : '')
+          + (isSaved && job.linFt ? ' &middot; ' + job.linFt + ' lin ft' : '')
           + '</div>'
           + (job.notes ? '<div class="pipe-job-meta" style="margin-top:3px;color:#444">' + escHtml(job.notes) + '</div>' : '')
           + '<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">'
@@ -3585,7 +3591,6 @@
           + (job.startDate ? '<span class="pipe-badge" style="background:#E3F2FD;color:#1565C0">Start: ' + escHtml(job.startDate) + '</span>' : '')
           + '</div>'
           + '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">';
-        // Load Job button for saved jobs
         if (isSaved) {
           html += '<button onclick="loadJob(' + job._savedId + ')" class="print-btn" style="font-size:.72rem;padding:3px 10px;background:#1565C0">Load Job</button>';
         } else {
@@ -3612,6 +3617,11 @@
     board.innerHTML = html;
   }
 
+  function hideSavedFromPipeline(savedId) {
+    _setSavedJobPipeStatus(savedId, null, { pipelineHidden: true });
+    renderPipeline();
+  }
+
   function _resolveJob(id) {
     // Returns a job-like object from pipeline OR from saved jobs (id='saved-XXX')
     if (String(id).indexOf('saved-') === 0) {
@@ -3622,10 +3632,12 @@
       if (!s) return null;
       var st = s.state || {};
       return { id: id, _isSaved: true, _savedId: savedId,
-        type: st.appMode || 'fence',
-        name: s.label || st.customerName || 'Saved Job',
+        type: localStorage.getItem('fsig-app-mode') || 'fence',
+        jobNum: st.jobNumber || '',
+        name: st.customerName || s.label || 'Saved Job',
         phone: st.customerPhone || '',
         address: [st.addr, st.city, st.state].filter(Boolean).join(', '),
+        bidAmount: s.bidAmountPipe || '',
         startDate: s.date || '' };
     }
     return getPipeline().find(function(j){ return j.id === id; }) || null;
