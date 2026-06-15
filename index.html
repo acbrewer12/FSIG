@@ -3276,6 +3276,10 @@
       fenceMapSvg: buildPrintMapSVG(),
       planPoints: planPoints.map(p => ({ lat: p.lat, lng: p.lng })),
       planSegments: _planSegments.slice(),
+      fenceMapPoints: fenceMapPoints.map(p => ({ x: p.x, y: p.y })),
+      fenceMapSegData: fenceMapSegData.map(d => ({ stain: d.stain, bleach: d.bleach })),
+      fenceMapClosed: fenceMapClosed,
+      fenceMapScale: fenceMapScale,
       plannerSvg: buildPlannerSvg(planPoints.map(p => ({lat: p.lat, lng: p.lng})), _planSegments),
       mapSnapshotUrl: (planPoints.length >= 2) ? buildMapSnapshotUrl(planPoints.map(p => ({lat: p.lat, lng: p.lng}))) : '',
       plannerSvgOverlay: (() => {
@@ -3450,6 +3454,14 @@
     if (s.mapSnapshotUrl || s.plannerSvgOverlay || s.plannerSvg) {
       showPlannerPreview(s.mapSnapshotUrl || '', s.plannerSvgOverlay || s.plannerSvg || '');
     }
+    // Restore fence layout canvas
+    fenceMapPoints = (s.fenceMapPoints || []).map(p => ({ x: +p.x, y: +p.y }));
+    fenceMapSegData = (s.fenceMapSegData || []).map(d => ({ stain: d.stain || 'none', bleach: d.bleach || 'none' }));
+    fenceMapClosed = !!s.fenceMapClosed;
+    if (s.fenceMapScale) { fenceMapScale = +s.fenceMapScale; var sc = document.getElementById('fence-map-scale-in'); if (sc) sc.value = fenceMapScale; }
+    var fmb = document.getElementById('fence-close-btn');
+    if (fmb) fmb.style.background = fenceMapClosed ? '#2E7D32' : '#6A1B9A';
+    try { drawFenceMap(); } catch(e) {}
     window.scrollTo(0, 0);
   }
 
@@ -4328,6 +4340,14 @@
     gates = []; gateCounter = 0;
     renderGates();
     recalc();
+    // Clear fence layout canvas
+    fenceMapPoints = []; fenceMapSegData = []; fenceMapClosed = false;
+    var fmb = document.getElementById('fence-close-btn');
+    if (fmb) fmb.style.background = '#6A1B9A';
+    try { drawFenceMap(); } catch(e) {}
+    // Clear site planner
+    clearPlanningMap();
+    clearPlanSnapshot();
   }
 
   // ── Fence Parts Calculator ────────────────────────────────────────────────
