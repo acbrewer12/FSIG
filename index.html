@@ -4348,6 +4348,10 @@
     // Clear site planner
     clearPlanningMap();
     clearPlanSnapshot();
+    // Auto-save so the new job appears in the job log immediately
+    _activeLeadId = null;
+    _pipeEditSavedId = null;
+    saveJob();
   }
 
   // ── Fence Parts Calculator ────────────────────────────────────────────────
