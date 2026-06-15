@@ -975,6 +975,29 @@
       style="width:100%;padding:8px 10px;border:1px solid #f0c050;border-radius:5px;font-size:.88rem;resize:vertical;font-family:inherit;background:#fffde7;margin-bottom:8px"></textarea>
     <div style="font-size:.72rem;color:#a07000;margin-top:-4px;margin-bottom:10px">Internal crew notes stay off the customer invoice</div>
 
+    <!-- Job Checklist -->
+    <div style="background:#f4f7fa;border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-bottom:10px">
+      <div style="font-size:.83rem;font-weight:700;color:var(--brand);margin-bottom:7px;display:flex;align-items:center;gap:6px">&#128295; Job Checklist</div>
+      <select id="checklist-type" onchange="checklistTypeChange(this.value)"
+        style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:.85rem;margin-bottom:8px;background:#fff">
+        <option value="">— Select checklist type —</option>
+        <option value="residential">Residential / Privacy</option>
+        <option value="chainlink">Chainlink</option>
+        <option value="pipe">Pipe Fence</option>
+        <option value="ag">Ag / Farm</option>
+        <option value="stain">Stain / Bleach</option>
+      </select>
+      <div id="checklist-items" style="display:flex;flex-direction:column;gap:1px;margin-bottom:6px">
+        <div style="color:var(--muted);font-size:.82rem;padding:4px 0">No checklist loaded. Select a type above.</div>
+      </div>
+      <div id="checklist-add-row" style="display:none;gap:6px;align-items:center;margin-top:4px">
+        <input id="checklist-new-item" type="text" placeholder="Add custom item…"
+          style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:4px;font-size:.83rem"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();checklistAddItem();}">
+        <button onclick="checklistAddItem()" class="print-btn" style="padding:5px 11px;font-size:.8rem;flex-shrink:0;background:var(--accent)">Add</button>
+      </div>
+    </div>
+
     <!-- Sign-off / Change Order -->
     <div>
       <div style="font-size:.78rem;font-weight:700;color:var(--brand);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px">
@@ -1772,6 +1795,87 @@
   const sides = { left: [], right: [], back: [], frontLeft: [], frontRight: [] };
   let rowCounter = 0;
   const ALL_SIDES = ['left','right','back','frontLeft','frontRight'];
+
+  // ── Job Checklists ──────────────────────────────────────────────────────────
+  const DEFAULT_CHECKLISTS = {
+    residential: ['Post hole digger','Level (4ft + torpedo)','String line + stakes','Tape measure','Circular saw / chop saw','Nail gun + nails or screws + drill','Post driver','Concrete bags','Safety glasses','Work gloves'],
+    chainlink:   ['Post hole digger','Chain link stretcher','Come-along / puller','Fence pliers','Lineman\'s pliers','Wire ties / hog rings','Tension bars + bands','Gate hardware','Level','Tape measure'],
+    pipe:        ['Welder + supplies','Angle grinder','Pipe cutter','Level','Tape measure','Post hole digger','Concrete bags','Welding helmet + gloves','Safety glasses','Truck / trailer'],
+    ag:          ['Post pounder','Wire stretcher','Fence pliers','Staples','Wire cutters','Come-along','T-posts','Level','Tape measure','Work gloves'],
+    stain:       ['Pump or airless sprayer','Brushes + rollers','Drop cloths / plastic sheeting','Stain product','Bleach product','Safety glasses + respirator','Work gloves','Ladder','Masking tape','Pressure washer'],
+  };
+  const CHECKLIST_LABELS = {
+    residential: 'Residential / Privacy',
+    chainlink:   'Chainlink',
+    pipe:        'Pipe Fence',
+    ag:          'Ag / Farm',
+    stain:       'Stain / Bleach',
+  };
+
+  function getChecklist(type) {
+    try {
+      const custom = JSON.parse(localStorage.getItem('fsig-checklists') || '{}');
+      if (custom[type] && Array.isArray(custom[type])) return custom[type];
+    } catch(e) {}
+    return DEFAULT_CHECKLISTS[type] || [];
+  }
+
+  // In-memory checklist state for the current job
+  let _jobChecklist = { type: '', items: [] };
+
+  function renderJobChecklist() {
+    const container = document.getElementById('checklist-items');
+    if (!container) return;
+    if (!_jobChecklist.items.length) {
+      container.innerHTML = '<div style="color:var(--muted);font-size:.82rem;padding:4px 0">No checklist loaded. Select a type above.</div>';
+      return;
+    }
+    container.innerHTML = _jobChecklist.items.map((item, idx) =>
+      `<label style="display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer;font-size:.88rem;${item.checked ? 'text-decoration:line-through;color:#aaa;' : ''}">
+        <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="checklistToggle(${idx}, this.checked)" style="width:16px;height:16px;cursor:pointer;flex-shrink:0">
+        ${item.text.replace(/</g,'&lt;')}
+      </label>`
+    ).join('');
+  }
+
+  function checklistToggle(idx, checked) {
+    if (_jobChecklist.items[idx]) _jobChecklist.items[idx].checked = checked;
+    renderJobChecklist();
+  }
+
+  function checklistTypeChange(type) {
+    if (!type) {
+      _jobChecklist = { type: '', items: [] };
+      renderJobChecklist();
+      document.getElementById('checklist-add-row').style.display = 'none';
+      return;
+    }
+    const hasChecked = _jobChecklist.items.some(i => i.checked);
+    const hasItems   = _jobChecklist.items.length > 0;
+    if (hasItems && hasChecked) {
+      if (!confirm('Replace current checklist? Items you\'ve already checked will be lost.')) {
+        // revert dropdown
+        document.getElementById('checklist-type').value = _jobChecklist.type || '';
+        return;
+      }
+    }
+    _jobChecklist = {
+      type,
+      items: getChecklist(type).map(text => ({ text, checked: false })),
+    };
+    renderJobChecklist();
+    document.getElementById('checklist-add-row').style.display = 'flex';
+  }
+
+  function checklistAddItem() {
+    const inp = document.getElementById('checklist-new-item');
+    if (!inp) return;
+    const text = inp.value.trim();
+    if (!text) return;
+    _jobChecklist.items.push({ text, checked: false });
+    inp.value = '';
+    renderJobChecklist();
+  }
 
   // ── Gates data model ──
   let gates = [];
@@ -2890,6 +2994,25 @@
 
     const partsListHtml  = buildPartsListHtml();
     const custInvoiceHtml = buildCustomerInvoiceHtml(addressHtml, dateStr);
+
+    // Build checklist print HTML
+    const checklistPrintHtml = (() => {
+      if (!_jobChecklist || !_jobChecklist.type || !_jobChecklist.items.length) return '';
+      const typeLabel = CHECKLIST_LABELS[_jobChecklist.type] || _jobChecklist.type;
+      const rows = _jobChecklist.items.map(item =>
+        `<tr style="border-bottom:1px solid #eee">
+          <td style="padding:4px 10px;width:28px;text-align:center">${item.checked ? '&#10003;' : '&#9633;'}</td>
+          <td style="padding:4px 10px;${item.checked ? 'text-decoration:line-through;color:#aaa;' : ''}">${item.text.replace(/</g,'&lt;')}</td>
+        </tr>`
+      ).join('');
+      return `
+        <div style="margin-top:14px;page-break-inside:avoid">
+          <div style="font-weight:700;font-size:.88rem;color:#1B2937;margin-bottom:5px;border-bottom:1px solid #ccc;padding-bottom:3px">&#128295; Job Checklist — ${typeLabel}</div>
+          <table style="width:100%;border-collapse:collapse;font-size:.85rem;border:1px solid #ddd">
+            ${rows}
+          </table>
+        </div>`;
+    })();
     const _printPts = planPoints.map(p => ({lat: p.lat, lng: p.lng}));
     const _printPlanUrl = _printPts.length >= 2 ? buildMapSnapshotUrl(_printPts) : '';
     // Skip SVG overlay when Google key is set — path is already baked into the Static Maps image
@@ -2935,6 +3058,7 @@
         <div style="text-align:right;margin-top:8px;padding-top:8px;border-top:2px solid #222;font-size:1.05rem;font-weight:700">
           Total Gross Profit: <span style="background:#ffff00;padding:3px 18px;margin-left:10px">$${totalProfit.toFixed(2)}</span>
         </div>
+        ${checklistPrintHtml}
       </div>
 
       <!-- PAGE 2: Parts List -->
@@ -3280,6 +3404,7 @@
       state: document.getElementById('state').value,
       zip:   document.getElementById('zip').value,
       stainProduct: document.getElementById('stain-product').value,
+      checklist: JSON.parse(JSON.stringify(_jobChecklist)),
       rates,
       sides: JSON.parse(JSON.stringify(sides)),
       gates: JSON.parse(JSON.stringify(gates)),
@@ -3402,6 +3527,22 @@
     document.getElementById('zip').value   = s.zip   || '';
     document.getElementById('stain-product').value = s.stainProduct || '';
     if (s.stainProduct) selectStain(s.stainProduct);
+    // Restore checklist
+    if (s.checklist && s.checklist.type) {
+      _jobChecklist = JSON.parse(JSON.stringify(s.checklist));
+      const ctEl = document.getElementById('checklist-type');
+      if (ctEl) ctEl.value = _jobChecklist.type || '';
+      const addRow = document.getElementById('checklist-add-row');
+      if (addRow) addRow.style.display = _jobChecklist.type ? 'flex' : 'none';
+      renderJobChecklist();
+    } else {
+      _jobChecklist = { type: '', items: [] };
+      const ctEl = document.getElementById('checklist-type');
+      if (ctEl) ctEl.value = '';
+      const addRow = document.getElementById('checklist-add-row');
+      if (addRow) addRow.style.display = 'none';
+      renderJobChecklist();
+    }
     Object.entries(s.rates || {}).forEach(([rid, val]) => {
       const el = document.getElementById(rid);
       if (el) el.value = val;
@@ -4356,6 +4497,13 @@
     var fmb = document.getElementById('fence-close-btn');
     if (fmb) fmb.style.background = '#6A1B9A';
     try { drawFenceMap(); } catch(e) {}
+    // Clear checklist
+    _jobChecklist = { type: '', items: [] };
+    const ctEl = document.getElementById('checklist-type');
+    if (ctEl) ctEl.value = '';
+    const addRow = document.getElementById('checklist-add-row');
+    if (addRow) addRow.style.display = 'none';
+    renderJobChecklist();
     // Clear site planner
     clearPlanningMap();
     clearPlanSnapshot();
@@ -6155,6 +6303,28 @@ ${propPts.map(p => `        ${(+p.lng).toFixed(8)},${(+p.lat).toFixed(8)},0`).jo
         style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;font-size:.82rem;box-sizing:border-box;margin-bottom:8px">
       <button onclick="saveClaudeKey()" class="print-btn" style="width:100%;background:#1565C0">Save Claude Key</button>
     </div>
+    <div style="border-top:1px solid var(--border);padding-top:16px;margin-top:4px">
+      <div style="font-size:.8rem;font-weight:700;color:var(--brand);margin-bottom:8px">&#128295; Manage Checklists</div>
+      <div style="font-size:.73rem;color:var(--muted);margin-bottom:10px">One item per line. Saved to this device. Leave blank to use the built-in defaults.</div>
+      <div id="admin-checklists-wrap" style="display:grid;gap:10px">
+        <label style="font-size:.78rem;color:var(--muted)">Residential / Privacy<br>
+          <textarea id="admin-cl-residential" rows="5" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:.78rem;margin-top:3px;resize:vertical;font-family:inherit;box-sizing:border-box"></textarea>
+        </label>
+        <label style="font-size:.78rem;color:var(--muted)">Chainlink<br>
+          <textarea id="admin-cl-chainlink" rows="5" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:.78rem;margin-top:3px;resize:vertical;font-family:inherit;box-sizing:border-box"></textarea>
+        </label>
+        <label style="font-size:.78rem;color:var(--muted)">Pipe Fence<br>
+          <textarea id="admin-cl-pipe" rows="5" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:.78rem;margin-top:3px;resize:vertical;font-family:inherit;box-sizing:border-box"></textarea>
+        </label>
+        <label style="font-size:.78rem;color:var(--muted)">Ag / Farm<br>
+          <textarea id="admin-cl-ag" rows="5" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:.78rem;margin-top:3px;resize:vertical;font-family:inherit;box-sizing:border-box"></textarea>
+        </label>
+        <label style="font-size:.78rem;color:var(--muted)">Stain / Bleach<br>
+          <textarea id="admin-cl-stain" rows="5" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:.78rem;margin-top:3px;resize:vertical;font-family:inherit;box-sizing:border-box"></textarea>
+        </label>
+      </div>
+      <button onclick="saveAdminChecklists()" class="print-btn" style="width:100%;background:#2E7D32;margin-top:10px">Save Checklists</button>
+    </div>
   </div>
 </div>
 
@@ -6258,7 +6428,24 @@ function openAdminPanel() {
   });
   var ck = document.getElementById('claude-api-key-input');
   if (ck) ck.value = getClaudeKey();
+  // Load checklist items into admin textareas
+  ['residential','chainlink','pipe','ag','stain'].forEach(function(type) {
+    var ta = document.getElementById('admin-cl-' + type);
+    if (ta) ta.value = getChecklist(type).join('\n');
+  });
   document.getElementById('admin-pin-modal').style.display = 'flex';
+}
+
+function saveAdminChecklists() {
+  var result = {};
+  ['residential','chainlink','pipe','ag','stain'].forEach(function(type) {
+    var ta = document.getElementById('admin-cl-' + type);
+    if (!ta) return;
+    var lines = ta.value.split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
+    result[type] = lines;
+  });
+  localStorage.setItem('fsig-checklists', JSON.stringify(result));
+  alert('Checklists saved.');
 }
 
 function closeAdminPanel() { document.getElementById('admin-pin-modal').style.display = 'none'; }
