@@ -731,6 +731,16 @@
     #auth-signout:hover { background:rgba(255,255,255,.28); }
     /* Admin PIN modal */
     #admin-pin-modal { position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:9998; display:none; align-items:center; justify-content:center; }
+    /* Voice Input Modal */
+    #voice-modal { position:fixed; inset:0; background:rgba(0,0,0,.72); z-index:9999; display:none; align-items:center; justify-content:center; padding:16px; }
+    .voice-box { background:#fff; border-radius:16px; padding:24px 22px; max-width:420px; width:100%; box-shadow:0 12px 48px rgba(0,0,0,.45); }
+    .voice-title { font-family:'Oswald',Arial,sans-serif; font-size:1.08rem; font-weight:700; color:var(--brand); }
+    #voice-mic-btn { width:76px; height:76px; border-radius:50%; border:none; background:var(--brand); cursor:pointer; font-size:2rem; color:#fff; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 18px rgba(200,83,10,.45); transition:transform .12s; outline:none; }
+    #voice-mic-btn:active { transform:scale(.9); }
+    #voice-mic-btn.recording { background:#c0392b; animation:voicePulse 1.1s ease-in-out infinite; }
+    @keyframes voicePulse { 0%,100%{box-shadow:0 0 0 0 rgba(192,57,43,.55)} 55%{box-shadow:0 0 0 20px rgba(192,57,43,0)} }
+    #voice-transcript-live { background:#f7f6f2; border:1px solid var(--border); border-radius:6px; padding:10px 12px; font-size:.85rem; min-height:52px; max-height:130px; overflow-y:auto; color:var(--text); white-space:pre-wrap; }
+    #voice-transcript-edit { width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:6px; font-size:.85rem; resize:vertical; font-family:inherit; box-sizing:border-box; background:#fff; }
   </style>
 </head>
 <body>
@@ -750,6 +760,7 @@
     </div>
     <button class="print-btn auth-admin-only" onclick="openAdminPanel()" style="background:#6A1B9A;font-size:.75rem">&#9881; Admin</button>
     <button class="print-btn auth-edit-only" onclick="newJob()" style="background:#374a5a">New Job</button>
+    <button class="print-btn auth-edit-only" onclick="openVoiceInput()" style="background:#1565C0;font-size:.8rem" title="Voice-fill job details with AI">&#127897;&#65039; Voice Fill</button>
     <button class="print-btn auth-edit-only" onclick="saveJob()" id="save-job-btn">Save Job</button>
     <button class="print-btn auth-edit-only" onclick="textCustomer()" style="background:#2E7D32">Text Customer</button>
     <button class="print-btn auth-edit-only" onclick="textCrew()" style="background:#1565C0">Text Crew</button>
@@ -6125,7 +6136,7 @@ ${propPts.map(p => `        ${(+p.lng).toFixed(8)},${(+p.lat).toFixed(8)},0`).jo
 
 <!-- Admin PIN Management Modal -->
 <div id="admin-pin-modal">
-  <div style="background:#fff;border-radius:12px;padding:28px;max-width:340px;width:92%;box-shadow:0 8px 32px rgba(0,0,0,.35)">
+  <div style="background:#fff;border-radius:12px;padding:28px;max-width:360px;width:92%;box-shadow:0 8px 32px rgba(0,0,0,.35);max-height:90vh;overflow-y:auto">
     <div style="font-family:'Oswald',Arial,sans-serif;font-size:1.05rem;font-weight:700;color:var(--brand);margin-bottom:18px">&#9881; Manage PINs</div>
     <div style="display:grid;gap:10px;margin-bottom:20px">
       <label style="font-size:.8rem;color:var(--muted)">&#128081; Administrator PIN<br><input id="pin-admin"   type="text" inputmode="numeric" maxlength="6" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;font-size:1rem;margin-top:4px;letter-spacing:4px"></label>
@@ -6133,9 +6144,43 @@ ${propPts.map(p => `        ${(+p.lng).toFixed(8)},${(+p.lat).toFixed(8)},0`).jo
       <label style="font-size:.8rem;color:var(--muted)">&#128396; Stainer PIN<br><input id="pin-stainer" type="text" inputmode="numeric" maxlength="6" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;font-size:1rem;margin-top:4px;letter-spacing:4px"></label>
       <label style="font-size:.8rem;color:var(--muted)">&#128065; View Jobs PIN<br><input id="pin-viewer"  type="text" inputmode="numeric" maxlength="6" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;font-size:1rem;margin-top:4px;letter-spacing:4px"></label>
     </div>
-    <div style="display:flex;gap:8px">
+    <div style="display:flex;gap:8px;margin-bottom:20px">
       <button onclick="saveAdminPins()" class="print-btn" style="flex:1;background:var(--accent)">Save PINs</button>
       <button onclick="closeAdminPanel()" class="print-btn" style="background:#5f6368">Cancel</button>
+    </div>
+    <div style="border-top:1px solid var(--border);padding-top:16px">
+      <div style="font-size:.8rem;font-weight:700;color:var(--brand);margin-bottom:8px">&#127897;&#65039; Voice Fill — Claude AI Key</div>
+      <div style="font-size:.73rem;color:var(--muted);margin-bottom:8px">Required for AI-powered voice-to-form. Get a key at console.anthropic.com.</div>
+      <input id="claude-api-key-input" type="password" placeholder="sk-ant-..." autocomplete="off"
+        style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;font-size:.82rem;box-sizing:border-box;margin-bottom:8px">
+      <button onclick="saveClaudeKey()" class="print-btn" style="width:100%;background:#1565C0">Save Claude Key</button>
+    </div>
+  </div>
+</div>
+
+<!-- Voice Input Modal -->
+<div id="voice-modal">
+  <div class="voice-box">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+      <div>
+        <div class="voice-title">&#127897;&#65039; Voice Job Entry</div>
+        <div style="font-size:.76rem;color:var(--muted);margin-top:2px">Speak the full job details — name, address, phone, measurements</div>
+      </div>
+      <button onclick="closeVoiceModal()" style="border:none;background:none;font-size:1.4rem;cursor:pointer;color:var(--muted);line-height:1;padding:0 0 0 10px">&#10005;</button>
+    </div>
+    <div id="voice-status" style="font-size:.82rem;color:var(--muted);text-align:center;min-height:1.3em;margin-bottom:10px">Tap the mic and speak your job details</div>
+    <div style="display:flex;justify-content:center;margin:10px 0 14px">
+      <button id="voice-mic-btn" onclick="toggleVoiceRecording()" title="Tap to start / stop recording">&#127897;&#65039;</button>
+    </div>
+    <div id="voice-transcript-live" style="display:none;margin-bottom:10px"></div>
+    <div id="voice-result-area" style="display:none">
+      <div style="font-size:.73rem;color:var(--muted);margin-bottom:4px">Review / edit transcript before filling:</div>
+      <textarea id="voice-transcript-edit" rows="4"></textarea>
+      <div style="display:flex;gap:7px;margin-top:10px;flex-wrap:wrap">
+        <button onclick="applyVoiceInput()" class="print-btn" style="flex:1;min-width:120px;background:var(--accent)">&#10003; Fill Form</button>
+        <button onclick="startVoiceRecording()" class="print-btn" style="background:#374a5a">&#128260; Re-record</button>
+        <button onclick="closeVoiceModal()" class="print-btn" style="background:#5f6368">Cancel</button>
+      </div>
     </div>
   </div>
 </div>
@@ -6211,6 +6256,8 @@ function openAdminPanel() {
     var el = document.getElementById('pin-' + r);
     if (el) el.value = pins[r] || _DEFAULT_PINS[r];
   });
+  var ck = document.getElementById('claude-api-key-input');
+  if (ck) ck.value = getClaudeKey();
   document.getElementById('admin-pin-modal').style.display = 'flex';
 }
 
@@ -6240,6 +6287,204 @@ function saveAdminPins() {
   } catch(e) {}
   // No valid session — login screen stays visible (default display:flex)
 })();
+
+// ── Voice Fill ───────────────────────────────────────────────────────────────
+function getClaudeKey() { return localStorage.getItem('fsig-claude-key') || ''; }
+
+function saveClaudeKey() {
+  var key = (document.getElementById('claude-api-key-input') || {}).value || '';
+  localStorage.setItem('fsig-claude-key', key.trim());
+  alert('Claude API key saved.');
+}
+
+var _voiceRecognition = null;
+var _voiceTranscript  = '';
+var _voiceRecording   = false;
+
+function openVoiceInput() {
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { alert('Voice input requires Chrome or Safari on iOS/Android. Please use one of those browsers.'); return; }
+  _voiceTranscript = '';
+  document.getElementById('voice-transcript-live').textContent = '';
+  document.getElementById('voice-transcript-live').style.display = 'none';
+  document.getElementById('voice-result-area').style.display = 'none';
+  document.getElementById('voice-status').textContent = 'Tap the mic and speak your job details';
+  document.getElementById('voice-mic-btn').classList.remove('recording');
+  // Pre-fill Claude key in admin panel if already saved
+  var kInput = document.getElementById('claude-api-key-input');
+  if (kInput && !kInput.value) kInput.value = getClaudeKey();
+  document.getElementById('voice-modal').style.display = 'flex';
+}
+
+function closeVoiceModal() {
+  stopVoiceRecording();
+  document.getElementById('voice-modal').style.display = 'none';
+}
+
+function toggleVoiceRecording() {
+  if (_voiceRecording) { stopVoiceRecording(); } else { startVoiceRecording(); }
+}
+
+function startVoiceRecording() {
+  stopVoiceRecording();
+  _voiceTranscript = '';
+  document.getElementById('voice-transcript-live').textContent = '';
+  document.getElementById('voice-transcript-live').style.display = 'block';
+  document.getElementById('voice-result-area').style.display = 'none';
+
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var r = new SR();
+  r.continuous = true;
+  r.interimResults = true;
+  r.lang = 'en-US';
+  _voiceRecognition = r;
+
+  r.onstart = function() {
+    _voiceRecording = true;
+    document.getElementById('voice-mic-btn').classList.add('recording');
+    document.getElementById('voice-status').textContent = '🔴 Recording — speak clearly, then tap mic to stop';
+  };
+
+  r.onresult = function(e) {
+    var final = '', interim = '';
+    for (var i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) final += e.results[i][0].transcript + ' ';
+      else interim += e.results[i][0].transcript;
+    }
+    _voiceTranscript += final;
+    document.getElementById('voice-transcript-live').textContent = (_voiceTranscript + interim).trim();
+  };
+
+  r.onerror = function(e) {
+    document.getElementById('voice-status').textContent = 'Mic error: ' + e.error + '. Try again.';
+    _voiceRecording = false;
+    document.getElementById('voice-mic-btn').classList.remove('recording');
+  };
+
+  r.onend = function() {
+    _voiceRecording = false;
+    document.getElementById('voice-mic-btn').classList.remove('recording');
+    var t = _voiceTranscript.trim();
+    if (t) {
+      document.getElementById('voice-status').textContent = '✓ Done recording. Review and tap Fill Form.';
+      document.getElementById('voice-transcript-edit').value = t;
+      document.getElementById('voice-result-area').style.display = 'block';
+    } else {
+      document.getElementById('voice-status').textContent = 'Nothing captured. Try again.';
+    }
+  };
+
+  r.start();
+}
+
+function stopVoiceRecording() {
+  if (_voiceRecognition) { try { _voiceRecognition.stop(); } catch(e) {} _voiceRecognition = null; }
+  _voiceRecording = false;
+}
+
+async function applyVoiceInput() {
+  var transcript = (document.getElementById('voice-transcript-edit').value || '').trim();
+  if (!transcript) { alert('No transcript to parse.'); return; }
+  var statusEl = document.getElementById('voice-status');
+  var key = getClaudeKey();
+  if (key) {
+    statusEl.textContent = '🤖 Sending to Claude AI…';
+    document.getElementById('voice-result-area').style.display = 'none';
+    try {
+      var data = await _parseVoiceWithAI(transcript, key);
+      if (data) {
+        _fillFormFromVoice(data);
+        statusEl.textContent = '✅ Form filled! Review and save.';
+        setTimeout(function() { closeVoiceModal(); }, 1400);
+        return;
+      }
+    } catch(err) {
+      statusEl.textContent = '⚠️ AI failed (' + (err.message||'error') + '). Trying basic parse…';
+    }
+  }
+  _fillFormFallback(transcript);
+  statusEl.textContent = '✓ Basic fill applied — review fields.';
+  setTimeout(function() { closeVoiceModal(); }, 1400);
+}
+
+async function _parseVoiceWithAI(transcript, key) {
+  var prompt = 'You are a data extractor for a fencing company job form. Extract structured details from the spoken job description below and return ONLY a valid JSON object. Use empty string for any field not mentioned. For jobType use "fence", "stain", or "both". For sections, list each fence run with its side (left/right/front/back/rear), length in feet, and height in feet (default 6 if not stated). Return ONLY the JSON, no other text.\n\nJSON shape:\n{"customerName":"","customerPhone":"","customerPhone2":"","customerEmail":"","addr":"","city":"","state":"","zip":"","jobStartDate":"YYYY-MM-DD or empty","crewLead":"","accessNotes":"","crewNotes":"","jobType":"fence","scopeDemo":false,"scope811":false,"scopePermit":false,"sections":[{"side":"left","length":0,"height":6}]}\n\nSpoken description: ' + JSON.stringify(transcript);
+  var resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-allow-browser': 'true',
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1024,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+  if (!resp.ok) throw new Error('HTTP ' + resp.status);
+  var body = await resp.json();
+  var text = (body.content && body.content[0] && body.content[0].text) || '';
+  var m = text.match(/\{[\s\S]*\}/);
+  if (!m) throw new Error('No JSON returned');
+  return JSON.parse(m[0]);
+}
+
+function _fillFormFromVoice(data) {
+  function sv(id, v) { var el = document.getElementById(id); if (el && v != null && v !== '') el.value = v; }
+  function sc(id, v) { var el = document.getElementById(id); if (el && v != null) el.checked = !!v; }
+  sv('customer-name',  data.customerName);
+  sv('customer-phone', data.customerPhone);
+  sv('customer-phone2',data.customerPhone2);
+  sv('customer-email', data.customerEmail);
+  sv('addr',           data.addr);
+  sv('city',           data.city);
+  sv('state',          data.state);
+  sv('zip',            data.zip);
+  sv('job-start-date', data.jobStartDate);
+  sv('crew-lead',      data.crewLead);
+  sv('access-notes',   data.accessNotes);
+  sv('crew-notes',     data.crewNotes);
+  sc('scope-demo',     data.scopeDemo);
+  sc('scope-811',      data.scope811);
+  sc('scope-permit',   data.scopePermit);
+  if (data.jobType === 'stain') { try { setAppMode('stain'); } catch(e) {} }
+  else if (data.jobType === 'both') { try { setAppMode('fence'); } catch(e) {} }
+  if (data.sections && data.sections.length > 0) {
+    var sideAliases = { rear:'back', behind:'back', left:'left', right:'right', front:'front', back:'back' };
+    data.sections.forEach(function(sec) {
+      var sideRaw = (sec.side || 'left').toLowerCase();
+      var side = 'left';
+      Object.keys(sideAliases).forEach(function(k) { if (sideRaw.includes(k)) side = sideAliases[k]; });
+      if (!sides[side]) side = 'left';
+      addRow(side);
+      var rows = sides[side];
+      var r = rows[rows.length - 1];
+      if (r) {
+        r.length = parseFloat(sec.length) || 0;
+        r.height = parseFloat(sec.height) || 6;
+        renderRows(side);
+      }
+    });
+  }
+  recalc();
+}
+
+function _fillFormFallback(text) {
+  var phones = text.match(/\(?\d{3}\)?[\s.\-]?\d{3}[\s.\-]?\d{4}/g) || [];
+  if (phones[0]) { var el = document.getElementById('customer-phone'); if (el) el.value = phones[0]; }
+  if (phones[1]) { var el2 = document.getElementById('customer-phone2'); if (el2) el2.value = phones[1]; }
+  var addrM = text.match(/\b(\d+\s+[A-Za-z][A-Za-z0-9\s]+?(?:Street|St|Avenue|Ave|Road|Rd|Drive|Dr|Lane|Ln|Court|Ct|Boulevard|Blvd|Way|Place|Pl|Circle|Cir))\b/i);
+  if (addrM) { var ea = document.getElementById('addr'); if (ea) ea.value = addrM[1].trim(); }
+  var lens = [];
+  text.replace(/(\d+(?:\.\d+)?)\s*(?:feet|foot|ft\b)/gi, function(_, n) { lens.push(parseFloat(n)); });
+  if (lens.length) {
+    addRow('left');
+    var r = sides['left'][sides['left'].length - 1];
+    if (r) { r.length = lens[0]; if (lens[1]) r.height = lens[1]; renderRows('left'); recalc(); }
+  }
+}
 </script>
 </body>
 </html>
