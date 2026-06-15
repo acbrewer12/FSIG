@@ -6164,7 +6164,7 @@ ${propPts.map(p => `        ${(+p.lng).toFixed(8)},${(+p.lat).toFixed(8)},0`).jo
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
       <div>
         <div class="voice-title">&#127897;&#65039; Voice Job Entry</div>
-        <div style="font-size:.76rem;color:var(--muted);margin-top:2px">Speak the full job details — name, address, phone, measurements. No API key needed.</div>
+        <div id="voice-ai-badge" style="font-size:.73rem;margin-top:3px;padding:2px 7px;border-radius:10px;display:inline-block"></div>
       </div>
       <button onclick="closeVoiceModal()" style="border:none;background:none;font-size:1.4rem;cursor:pointer;color:var(--muted);line-height:1;padding:0 0 0 10px">&#10005;</button>
     </div>
@@ -6313,6 +6313,14 @@ function openVoiceInput() {
   // Pre-fill Claude key in admin panel if already saved
   var kInput = document.getElementById('claude-api-key-input');
   if (kInput && !kInput.value) kInput.value = getClaudeKey();
+  // Show AI/basic badge
+  var badge = document.getElementById('voice-ai-badge');
+  if (badge) {
+    var hasKey = !!getClaudeKey();
+    badge.textContent = hasKey ? '🤖 AI mode — Claude will parse your speech' : '📝 Basic mode — speak clearly for best results';
+    badge.style.background = hasKey ? '#e8f5e9' : '#fff3e0';
+    badge.style.color = hasKey ? '#2E7D32' : '#e65100';
+  }
   document.getElementById('voice-modal').style.display = 'flex';
 }
 
