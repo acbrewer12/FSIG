@@ -6164,7 +6164,7 @@ ${propPts.map(p => `        ${(+p.lng).toFixed(8)},${(+p.lat).toFixed(8)},0`).jo
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
       <div>
         <div class="voice-title">&#127897;&#65039; Voice Job Entry</div>
-        <div style="font-size:.76rem;color:var(--muted);margin-top:2px">Speak the full job details — name, address, phone, measurements</div>
+        <div style="font-size:.76rem;color:var(--muted);margin-top:2px">Speak the full job details — name, address, phone, measurements. No API key needed.</div>
       </div>
       <button onclick="closeVoiceModal()" style="border:none;background:none;font-size:1.4rem;cursor:pointer;color:var(--muted);line-height:1;padding:0 0 0 10px">&#10005;</button>
     </div>
@@ -6472,18 +6472,119 @@ function _fillFormFromVoice(data) {
 }
 
 function _fillFormFallback(text) {
-  var phones = text.match(/\(?\d{3}\)?[\s.\-]?\d{3}[\s.\-]?\d{4}/g) || [];
-  if (phones[0]) { var el = document.getElementById('customer-phone'); if (el) el.value = phones[0]; }
-  if (phones[1]) { var el2 = document.getElementById('customer-phone2'); if (el2) el2.value = phones[1]; }
-  var addrM = text.match(/\b(\d+\s+[A-Za-z][A-Za-z0-9\s]+?(?:Street|St|Avenue|Ave|Road|Rd|Drive|Dr|Lane|Ln|Court|Ct|Boulevard|Blvd|Way|Place|Pl|Circle|Cir))\b/i);
+  var t = text; // keep original case for names
+
+  // ── Phone numbers ──────────────────────────────────────────────────────
+  var phones = t.match(/\(?\d{3}\)?[\s.\-]?\d{3}[\s.\-]?\d{4}/g) || [];
+  if (phones[0]) { var ep = document.getElementById('customer-phone'); if (ep) ep.value = phones[0]; }
+  if (phones[1]) { var ep2 = document.getElementById('customer-phone2'); if (ep2) ep2.value = phones[1]; }
+
+  // ── ZIP code ───────────────────────────────────────────────────────────
+  var zipM = t.match(/\b(\d{5})\b/);
+  if (zipM) { var ez = document.getElementById('zip'); if (ez) ez.value = zipM[1]; }
+
+  // ── Street address ─────────────────────────────────────────────────────
+  var addrM = t.match(/\b(\d+\s+[A-Za-z][A-Za-z0-9\s]+?(?:Street|St|Avenue|Ave|Road|Rd|Drive|Dr|Lane|Ln|Court|Ct|Boulevard|Blvd|Way|Place|Pl|Circle|Cir|Highway|Hwy|Route|Rt)\.?)\b/i);
   if (addrM) { var ea = document.getElementById('addr'); if (ea) ea.value = addrM[1].trim(); }
-  var lens = [];
-  text.replace(/(\d+(?:\.\d+)?)\s*(?:feet|foot|ft\b)/gi, function(_, n) { lens.push(parseFloat(n)); });
-  if (lens.length) {
-    addRow('left');
-    var r = sides['left'][sides['left'].length - 1];
-    if (r) { r.length = lens[0]; if (lens[1]) r.height = lens[1]; renderRows('left'); recalc(); }
+
+  // ── US States (name or abbreviation) ──────────────────────────────────
+  var stateMap = { 'iowa':'IA','nebraska':'NE','illinois':'IL','missouri':'MO','kansas':'KS','minnesota':'MN','wisconsin':'WI','south dakota':'SD','north dakota':'ND','colorado':'CO','texas':'TX','oklahoma':'OK','ohio':'OH','indiana':'IN','michigan':'MI','kentucky':'KY','tennessee':'TN','arkansas':'AR','louisiana':'LA','mississippi':'MS','alabama':'AL','georgia':'GA','florida':'FL','south carolina':'SC','north carolina':'NC','virginia':'VA','west virginia':'WV','maryland':'MD','delaware':'DE','pennsylvania':'PA','new jersey':'NJ','new york':'NY','connecticut':'CT','massachusetts':'MA','rhode island':'RI','vermont':'VT','new hampshire':'NH','maine':'ME','wyoming':'WY','montana':'MT','idaho':'ID','utah':'UT','nevada':'NV','arizona':'AZ','new mexico':'NM','california':'CA','oregon':'OR','washington':'WA','alaska':'AK','hawaii':'HI' };
+  var stateEl = document.getElementById('state');
+  if (stateEl) {
+    var tl = t.toLowerCase();
+    Object.keys(stateMap).forEach(function(name) {
+      if (tl.includes(name)) stateEl.value = stateMap[name];
+    });
+    // also match 2-letter abbreviation at word boundary (not inside a number)
+    var abbrM = t.match(/\b([A-Z]{2})\b/g) || [];
+    var validAbbr = Object.values(stateMap);
+    abbrM.forEach(function(a) { if (validAbbr.includes(a) && !stateEl.value) stateEl.value = a; });
   }
+
+  // ── City: word(s) before state name ───────────────────────────────────
+  var cityEl = document.getElementById('city');
+  if (cityEl) {
+    var cityM = t.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:Iowa|Nebraska|Illinois|Missouri|Kansas|Minnesota|Wisconsin|Colorado|Texas|Ohio|Indiana|Michigan|Georgia|Florida|Virginia|Pennsylvania|California|Oregon|Washington)\b/);
+    if (cityM) cityEl.value = cityM[1];
+  }
+
+  // ── Customer name ──────────────────────────────────────────────────────
+  // Patterns: "for John Smith", "customer is/name is John Smith", "customer John Smith"
+  var nameEl = document.getElementById('customer-name');
+  if (nameEl) {
+    var nameM = t.match(/(?:for|customer(?:'s)?\s*(?:name\s*is|is)?|name\s*is)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2})/i)
+             || t.match(/^([A-Z][a-z]+\s+[A-Z][a-z]+)/); // first two capitalized words
+    if (nameM) nameEl.value = nameM[1].trim();
+  }
+
+  // ── Access / gate notes ────────────────────────────────────────────────
+  var accessEl = document.getElementById('access-notes');
+  if (accessEl) {
+    var gateM = t.match(/(?:gate\s*(?:code|is|number)?[\s:]*)([\w\d#\s]+?)(?:\.|,|$)/i)
+             || t.match(/(?:access\s*(?:code|is)?[\s:]*)([\w\d#\s]+?)(?:\.|,|$)/i);
+    if (gateM) accessEl.value = gateM[1].trim();
+  }
+
+  // ── Job type ───────────────────────────────────────────────────────────
+  var tl2 = t.toLowerCase();
+  if (/\bstain(ing)?\b/.test(tl2) && /\bfenc(e|ing)\b/.test(tl2)) {
+    try { setAppMode('fence'); } catch(e) {} // both - default to fence mode
+  } else if (/\bstain(ing)?\b/.test(tl2) || /\bbleach(ing)?\b/.test(tl2)) {
+    try { setAppMode('stain'); } catch(e) {}
+  }
+
+  // ── Scope checkboxes ──────────────────────────────────────────────────
+  if (/\bdemolition\b|\bremov(al|e)\b|\btear.?down\b/i.test(t)) {
+    var sd = document.getElementById('scope-demo'); if (sd) sd.checked = true;
+  }
+  if (/\b811\b|call before you dig|utility locat/i.test(t)) {
+    var s8 = document.getElementById('scope-811'); if (s8) s8.checked = true;
+  }
+  if (/\bpermit\b/i.test(t)) {
+    var sp = document.getElementById('scope-permit'); if (sp) sp.checked = true;
+  }
+
+  // ── Measurements: "[number] feet [side]" or "[side] [number] feet" ────
+  var sideWords = { left:['left','west'], right:['right','east'], front:['front','north'], back:['back','rear','behind','south'] };
+  var measurePats = [
+    // "150 feet on the left side"
+    /(\d+(?:\.\d+)?)\s*(?:feet|foot|ft)\s+(?:on\s+(?:the\s+)?)?(?:the\s+)?(left|right|front|back|rear)/gi,
+    // "left side 150 feet"
+    /(left|right|front|back|rear)\s+(?:side\s+)?(\d+(?:\.\d+)?)\s*(?:feet|foot|ft)/gi,
+  ];
+  var foundSections = {};
+  measurePats[0].lastIndex = 0;
+  var m0;
+  while ((m0 = measurePats[0].exec(t)) !== null) {
+    var len0 = parseFloat(m0[1]), sideRaw0 = m0[2].toLowerCase();
+    var side0 = sideRaw0 === 'rear' ? 'back' : sideRaw0;
+    if (!foundSections[side0] || foundSections[side0] < len0) foundSections[side0] = len0;
+  }
+  measurePats[1].lastIndex = 0;
+  var m1;
+  while ((m1 = measurePats[1].exec(t)) !== null) {
+    var sideRaw1 = m1[1].toLowerCase(), len1 = parseFloat(m1[2]);
+    var side1 = sideRaw1 === 'rear' ? 'back' : sideRaw1;
+    if (!foundSections[side1] || foundSections[side1] < len1) foundSections[side1] = len1;
+  }
+  // Plain "X feet" with no side context → left side
+  if (Object.keys(foundSections).length === 0) {
+    var plainLens = [];
+    t.replace(/(\d+(?:\.\d+)?)\s*(?:feet|foot|ft\b)/gi, function(_, n) { plainLens.push(parseFloat(n)); });
+    if (plainLens.length) foundSections['left'] = plainLens[0];
+  }
+  // Height pattern: "X foot tall" / "X ft height" / "X-foot"
+  var heightM = t.match(/(\d+(?:\.\d+)?)\s*[-\s]?(?:foot|feet|ft)\s*(?:tall|high|height|privacy|board)/i)
+             || t.match(/(\d+(?:\.\d+)?)\s*(?:foot|feet|ft)\s+(?:fence|panel)/i);
+  var height = heightM ? parseFloat(heightM[1]) : 6;
+  Object.keys(foundSections).forEach(function(side) {
+    if (!sides[side]) side = 'left';
+    addRow(side);
+    var rows = sides[side];
+    var r = rows[rows.length - 1];
+    if (r) { r.length = foundSections[side]; r.height = height; renderRows(side); }
+  });
+  recalc();
 }
 </script>
 </body>
