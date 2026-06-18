@@ -4854,12 +4854,12 @@
       const totalPosts    = linePosts + gatesNum * 2;
       const boardsPerBay  = Math.ceil((spacing * 12) / boardW);
       const totalBoards   = boardsPerBay * sections;
-      const rails8ft      = Math.ceil((lf * railsPer) / 8);
+      const rails16ft     = Math.ceil((lf * railsPer) / 16);
       items = [
         { cat:'Posts',   name:`${postLabel} Posts (${height+2}')`,  qty:linePosts,             unit:'posts' },
         { cat:'Posts',   name:`Gate Posts (heavier gauge)`,          qty:gatesNum*2,            unit:'posts' },
         { cat:'Boards',  name:`Privacy Pickets (${height}')`,        qty:totalBoards,           unit:'boards' },
-        { cat:'Rails',   name:`2×4×8 Rails (${railsPer} per bay)`,   qty:rails8ft,              unit:'rails' },
+        { cat:'Rails',   name:`2×4×16 Rails (${railsPer} per bay)`,  qty:rails16ft,             unit:'rails' },
         { cat:'Hardware',name:`Deck Screws (lbs)`,                   qty:Math.ceil(totalBoards*3/200), unit:'lbs' },
         { cat:'Hardware',name:`Post Caps`,                            qty:totalPosts,            unit:'ea' },
         { cat:'Gate',    name:`Gate Hardware Sets`,                   qty:gatesNum,              unit:'sets' },
