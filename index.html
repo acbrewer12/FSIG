@@ -6879,13 +6879,13 @@ function startVoiceRecording() {
   };
 
   r.onresult = function(e) {
-    var final = '', interim = '';
-    for (var i = e.resultIndex; i < e.results.length; i++) {
-      if (e.results[i].isFinal) final += e.results[i][0].transcript + ' ';
-      else interim += e.results[i][0].transcript;
+    var finalText = '', interimText = '';
+    for (var i = 0; i < e.results.length; i++) {
+      if (e.results[i].isFinal) finalText += e.results[i][0].transcript + ' ';
+      else interimText += e.results[i][0].transcript;
     }
-    _voiceTranscript += final;
-    document.getElementById('voice-transcript-live').textContent = (_voiceTranscript + interim).trim();
+    _voiceTranscript = finalText;
+    document.getElementById('voice-transcript-live').textContent = (finalText + interimText).trim();
   };
 
   r.onerror = function(e) {
