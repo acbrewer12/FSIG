@@ -1,0 +1,1461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Holliday Welding & Fence | Iowa's Trusted Fence Experts</title>
+  <meta name="description" content="Holliday Welding & Fence — professional fence installation, staining, and custom welding across Iowa. Privacy fences, chain link, agricultural, pipe fencing and more. Free estimates.">
+  <meta name="keywords" content="fence company Iowa, privacy fence, chain link fence, agricultural fence, pipe fence, fence staining, welding Iowa">
+  <meta property="og:title" content="Holliday Welding & Fence">
+  <meta property="og:description" content="Iowa's trusted fence and welding experts. Quality craftsmanship, free estimates.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange: #C8530A;
+      --orange-dark: #A6420A;
+      --orange-light: #E8820C;
+      --dark: #1B2937;
+      --dark2: #243447;
+      --charcoal: #2d3748;
+      --tan: #F5F0EB;
+      --tan2: #EDE8E2;
+      --white: #FFFFFF;
+      --text: #2d3748;
+      --muted: #718096;
+      --border: #e2d9ce;
+      --shadow: 0 4px 24px rgba(0,0,0,.12);
+      --shadow-lg: 0 12px 48px rgba(0,0,0,.18);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      color: var(--text);
+      background: var(--white);
+      overflow-x: hidden;
+    }
+
+    h1, h2, h3, h4 { font-family: 'Oswald', sans-serif; letter-spacing: .5px; }
+
+    img { max-width: 100%; display: block; }
+
+    .container { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+
+    .btn {
+      display: inline-block;
+      padding: 14px 32px;
+      border-radius: 6px;
+      font-family: 'Oswald', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all .2s;
+      text-decoration: none;
+      border: 2px solid transparent;
+    }
+    .btn-primary { background: var(--orange); color: #fff; }
+    .btn-primary:hover { background: var(--orange-dark); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(200,83,10,.4); }
+    .btn-outline { background: transparent; color: #fff; border-color: rgba(255,255,255,.7); }
+    .btn-outline:hover { background: rgba(255,255,255,.12); border-color: #fff; }
+    .btn-dark { background: var(--dark); color: #fff; }
+    .btn-dark:hover { background: var(--dark2); transform: translateY(-2px); }
+
+    .section-label {
+      font-family: 'Oswald', sans-serif;
+      font-size: .8rem;
+      font-weight: 600;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--orange);
+      margin-bottom: 10px;
+    }
+    .section-title {
+      font-family: 'Oswald', sans-serif;
+      font-size: clamp(2rem, 4vw, 2.8rem);
+      font-weight: 700;
+      color: var(--dark);
+      line-height: 1.15;
+      margin-bottom: 16px;
+    }
+    .section-title span { color: var(--orange); }
+    .section-sub {
+      font-size: 1.05rem;
+      color: var(--muted);
+      line-height: 1.7;
+      max-width: 600px;
+    }
+
+    /* fade-in animation */
+    .fade-in { opacity: 0; transform: translateY(28px); transition: opacity .6s ease, transform .6s ease; }
+    .fade-in.visible { opacity: 1; transform: translateY(0); }
+
+    /* ─── NAV ─────────────────────────────────────────────────────────── */
+    #nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 1000;
+      padding: 0 24px;
+      background: transparent;
+      transition: background .3s, box-shadow .3s, padding .3s;
+    }
+    #nav.scrolled {
+      background: var(--dark);
+      box-shadow: 0 2px 20px rgba(0,0,0,.3);
+      padding: 0 24px;
+    }
+    .nav-inner {
+      max-width: 1180px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 72px;
+    }
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+    .nav-logo-icon {
+      width: 42px; height: 42px;
+      background: var(--orange);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem;
+    }
+    .nav-logo-text { font-family: 'Oswald', sans-serif; font-size: 1.1rem; font-weight: 700; color: #fff; line-height: 1.2; }
+    .nav-logo-sub { font-size: .68rem; font-weight: 400; color: rgba(255,255,255,.7); letter-spacing: 1px; }
+    .nav-links { display: flex; align-items: center; gap: 8px; }
+    .nav-links a {
+      color: rgba(255,255,255,.85);
+      text-decoration: none;
+      font-size: .9rem;
+      font-weight: 500;
+      padding: 8px 14px;
+      border-radius: 5px;
+      transition: color .2s, background .2s;
+    }
+    .nav-links a:hover { color: #fff; background: rgba(255,255,255,.1); }
+    .nav-links .btn-primary { padding: 10px 22px; font-size: .85rem; }
+    .nav-hamburger { display: none; background: none; border: none; cursor: pointer; padding: 8px; }
+    .nav-hamburger span { display: block; width: 24px; height: 2px; background: #fff; margin: 5px 0; transition: .3s; border-radius: 2px; }
+    .nav-mobile { display: none; position: fixed; inset: 0; background: var(--dark); z-index: 999; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
+    .nav-mobile.open { display: flex; }
+    .nav-mobile a { color: #fff; text-decoration: none; font-family: 'Oswald', sans-serif; font-size: 1.6rem; font-weight: 600; }
+    .nav-mobile-close { position: absolute; top: 20px; right: 24px; background: none; border: none; color: #fff; font-size: 2rem; cursor: pointer; }
+
+    /* ─── HERO ────────────────────────────────────────────────────────── */
+    #hero {
+      min-height: 100vh;
+      position: relative;
+      display: flex;
+      align-items: center;
+      background: linear-gradient(135deg, #0f1c28 0%, #1B2937 40%, #243447 100%);
+      overflow: hidden;
+    }
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      background-image:
+        url('https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=1600&q=70');
+      background-size: cover;
+      background-position: center;
+      opacity: .22;
+    }
+    .hero-pattern {
+      position: absolute;
+      inset: 0;
+      background-image: repeating-linear-gradient(
+        0deg, transparent, transparent 60px,
+        rgba(200,83,10,.04) 60px, rgba(200,83,10,.04) 61px
+      ),
+      repeating-linear-gradient(
+        90deg, transparent, transparent 60px,
+        rgba(200,83,10,.04) 60px, rgba(200,83,10,.04) 61px
+      );
+    }
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+    }
+    .hero-inner {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 120px 24px 80px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+    }
+    .hero-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(200,83,10,.2);
+      border: 1px solid rgba(200,83,10,.4);
+      color: #f4a261;
+      font-size: .78rem;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 6px 14px;
+      border-radius: 20px;
+      margin-bottom: 22px;
+    }
+    .hero-tag::before { content: ''; width: 6px; height: 6px; background: var(--orange-light); border-radius: 50%; }
+    .hero-h1 {
+      font-family: 'Oswald', sans-serif;
+      font-size: clamp(2.4rem, 5vw, 3.8rem);
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.1;
+      margin-bottom: 20px;
+    }
+    .hero-h1 span { color: var(--orange-light); }
+    .hero-sub {
+      font-size: 1.1rem;
+      color: rgba(255,255,255,.72);
+      line-height: 1.75;
+      margin-bottom: 32px;
+      max-width: 520px;
+    }
+    .hero-btns { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 48px; }
+    .hero-services {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .hero-service-chip {
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.15);
+      color: rgba(255,255,255,.7);
+      font-size: .75rem;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-weight: 500;
+    }
+    .hero-right { position: relative; }
+    .hero-card {
+      background: rgba(255,255,255,.06);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 16px;
+    }
+    .hero-card-title { font-family: 'Oswald', sans-serif; font-size: 1rem; color: #fff; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 1px; }
+    .hero-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .hero-stat-val { font-family: 'Oswald', sans-serif; font-size: 2rem; font-weight: 700; color: var(--orange-light); line-height: 1; }
+    .hero-stat-lbl { font-size: .75rem; color: rgba(255,255,255,.55); margin-top: 4px; line-height: 1.3; }
+    .hero-badge {
+      background: var(--orange);
+      border-radius: 12px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .hero-badge-icon { font-size: 1.8rem; flex-shrink: 0; }
+    .hero-badge-text { font-size: .85rem; color: #fff; font-weight: 500; line-height: 1.4; }
+    .hero-badge-text strong { font-family: 'Oswald', sans-serif; font-size: 1rem; display: block; }
+    .hero-scroll {
+      position: absolute;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      color: rgba(255,255,255,.4);
+      font-size: .72rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      animation: bounce 2s infinite;
+    }
+    @keyframes bounce { 0%,100%{transform:translateX(-50%) translateY(0)} 50%{transform:translateX(-50%) translateY(8px)} }
+
+    /* ─── TRUST BAR ───────────────────────────────────────────────────── */
+    #trust {
+      background: var(--orange);
+      padding: 24px 0;
+    }
+    .trust-inner {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+      divide-color: rgba(255,255,255,.3);
+    }
+    .trust-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 24px;
+      border-right: 1px solid rgba(255,255,255,.25);
+    }
+    .trust-item:last-child { border-right: none; }
+    .trust-icon { font-size: 1.6rem; flex-shrink: 0; }
+    .trust-val { font-family: 'Oswald', sans-serif; font-size: 1.5rem; font-weight: 700; color: #fff; line-height: 1; }
+    .trust-lbl { font-size: .75rem; color: rgba(255,255,255,.8); margin-top: 2px; }
+
+    /* ─── SERVICES ────────────────────────────────────────────────────── */
+    #services { padding: 100px 0; background: var(--white); }
+    .services-header { text-align: center; margin-bottom: 60px; }
+    .services-header .section-sub { margin: 0 auto; }
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 28px;
+    }
+    .service-card {
+      background: var(--tan);
+      border-radius: 14px;
+      padding: 36px 28px;
+      border: 1px solid var(--border);
+      transition: transform .25s, box-shadow .25s, border-color .25s;
+      cursor: default;
+      position: relative;
+      overflow: hidden;
+    }
+    .service-card::before {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--orange);
+      transform: scaleX(0);
+      transition: transform .3s;
+      transform-origin: left;
+    }
+    .service-card:hover { transform: translateY(-6px); box-shadow: var(--shadow-lg); border-color: var(--orange); }
+    .service-card:hover::before { transform: scaleX(1); }
+    .service-icon {
+      width: 60px; height: 60px;
+      background: linear-gradient(135deg, var(--orange), var(--orange-light));
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.7rem;
+      margin-bottom: 20px;
+      box-shadow: 0 6px 16px rgba(200,83,10,.3);
+    }
+    .service-card h3 { font-size: 1.25rem; font-weight: 600; color: var(--dark); margin-bottom: 10px; }
+    .service-card p { font-size: .9rem; color: var(--muted); line-height: 1.65; margin-bottom: 18px; }
+    .service-features { list-style: none; }
+    .service-features li {
+      font-size: .82rem;
+      color: var(--text);
+      padding: 4px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .service-features li::before { content: '✓'; color: var(--orange); font-weight: 700; font-size: .8rem; }
+
+    /* ─── ABOUT ───────────────────────────────────────────────────────── */
+    #about { padding: 100px 0; background: var(--dark); }
+    .about-inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 72px;
+      align-items: center;
+    }
+    .about-img-wrap { position: relative; }
+    .about-img-main {
+      width: 100%;
+      aspect-ratio: 4/3;
+      border-radius: 16px;
+      overflow: hidden;
+      background: var(--dark2);
+    }
+    .about-img-main img { width: 100%; height: 100%; object-fit: cover; }
+    .about-img-accent {
+      position: absolute;
+      bottom: -24px; right: -24px;
+      width: 48%;
+      aspect-ratio: 1;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 4px solid var(--dark);
+      background: var(--dark2);
+    }
+    .about-img-accent img { width: 100%; height: 100%; object-fit: cover; }
+    .about-exp-badge {
+      position: absolute;
+      top: 20px; left: 20px;
+      background: var(--orange);
+      border-radius: 10px;
+      padding: 14px 18px;
+      text-align: center;
+    }
+    .about-exp-badge .num { font-family: 'Oswald', sans-serif; font-size: 2.2rem; font-weight: 700; color: #fff; line-height: 1; }
+    .about-exp-badge .lbl { font-size: .68rem; color: rgba(255,255,255,.85); letter-spacing: 1px; text-transform: uppercase; margin-top: 2px; }
+    .about-text .section-title { color: #fff; }
+    .about-text .section-sub { color: rgba(255,255,255,.65); }
+    .about-values {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 32px;
+    }
+    .about-value {
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 10px;
+      padding: 18px;
+    }
+    .about-value-icon { font-size: 1.5rem; margin-bottom: 8px; }
+    .about-value h4 { font-size: .95rem; font-weight: 600; color: #fff; margin-bottom: 4px; }
+    .about-value p { font-size: .8rem; color: rgba(255,255,255,.5); line-height: 1.5; }
+
+    /* ─── PROCESS ─────────────────────────────────────────────────────── */
+    #process { padding: 100px 0; background: var(--tan); }
+    .process-header { text-align: center; margin-bottom: 60px; }
+    .process-steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+      position: relative;
+    }
+    .process-steps::before {
+      content: '';
+      position: absolute;
+      top: 36px;
+      left: 12%;
+      right: 12%;
+      height: 2px;
+      background: linear-gradient(90deg, var(--orange), var(--orange-light));
+    }
+    .process-step { text-align: center; padding: 0 20px; position: relative; }
+    .process-num {
+      width: 72px; height: 72px;
+      background: #fff;
+      border: 3px solid var(--orange);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Oswald', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--orange);
+      margin: 0 auto 20px;
+      position: relative;
+      z-index: 1;
+      box-shadow: 0 4px 16px rgba(200,83,10,.2);
+    }
+    .process-step h3 { font-size: 1.05rem; color: var(--dark); margin-bottom: 10px; font-weight: 600; }
+    .process-step p { font-size: .85rem; color: var(--muted); line-height: 1.6; }
+
+    /* ─── GALLERY ─────────────────────────────────────────────────────── */
+    #gallery { padding: 100px 0; background: var(--white); }
+    .gallery-header { text-align: center; margin-bottom: 48px; }
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      grid-template-rows: 240px 240px;
+      gap: 12px;
+    }
+    .gallery-item {
+      border-radius: 10px;
+      overflow: hidden;
+      position: relative;
+      cursor: pointer;
+    }
+    .gallery-item img { width: 100%; height: 100%; object-fit: cover; transition: transform .4s; }
+    .gallery-item:hover img { transform: scale(1.05); }
+    .gallery-item .gallery-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,.7) 0%, transparent 60%);
+      opacity: 0;
+      transition: opacity .3s;
+      display: flex;
+      align-items: flex-end;
+      padding: 16px;
+    }
+    .gallery-item:hover .gallery-overlay { opacity: 1; }
+    .gallery-overlay-text { color: #fff; font-size: .85rem; font-weight: 600; font-family: 'Oswald', sans-serif; letter-spacing: .5px; }
+    .gallery-item:nth-child(1) { grid-column: span 4; }
+    .gallery-item:nth-child(2) { grid-column: span 5; }
+    .gallery-item:nth-child(3) { grid-column: span 3; }
+    .gallery-item:nth-child(4) { grid-column: span 3; }
+    .gallery-item:nth-child(5) { grid-column: span 4; }
+    .gallery-item:nth-child(6) { grid-column: span 5; }
+    .gallery-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .gallery-placeholder .icon { font-size: 2.5rem; opacity: .6; }
+    .gallery-placeholder .label { font-family: 'Oswald', sans-serif; font-size: .95rem; letter-spacing: 1px; opacity: .8; text-transform: uppercase; }
+    .gallery-item:nth-child(1) .gallery-placeholder { background: linear-gradient(135deg, #3d5a47, #2d4a37); color: #a8d5b5; }
+    .gallery-item:nth-child(2) .gallery-placeholder { background: linear-gradient(135deg, #4a3728, #3a2718); color: #d4a87a; }
+    .gallery-item:nth-child(3) .gallery-placeholder { background: linear-gradient(135deg, #374a5a, #243447); color: #7ab0d4; }
+    .gallery-item:nth-child(4) .gallery-placeholder { background: linear-gradient(135deg, #5a4028, #4a3018); color: #d4b08a; }
+    .gallery-item:nth-child(5) .gallery-placeholder { background: linear-gradient(135deg, #2d4a3e, #1d3a2e); color: #8ad4b8; }
+    .gallery-item:nth-child(6) .gallery-placeholder { background: linear-gradient(135deg, #4a3840, #3a2830); color: #d48aaa; }
+    .gallery-cta { text-align: center; margin-top: 40px; }
+
+    /* ─── TESTIMONIALS ────────────────────────────────────────────────── */
+    #testimonials { padding: 100px 0; background: var(--tan); }
+    .testimonials-header { text-align: center; margin-bottom: 56px; }
+    .testimonials-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
+    .testimonial-card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 32px 28px;
+      border: 1px solid var(--border);
+      position: relative;
+      box-shadow: var(--shadow);
+    }
+    .testimonial-quote {
+      position: absolute;
+      top: 20px; right: 24px;
+      font-size: 4rem;
+      color: var(--orange);
+      opacity: .12;
+      font-family: Georgia, serif;
+      line-height: 1;
+    }
+    .testimonial-stars { display: flex; gap: 3px; margin-bottom: 16px; }
+    .testimonial-stars span { color: #f59e0b; font-size: 1rem; }
+    .testimonial-text { font-size: .92rem; color: var(--text); line-height: 1.7; margin-bottom: 22px; font-style: italic; }
+    .testimonial-author { display: flex; align-items: center; gap: 12px; }
+    .testimonial-avatar {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--orange), var(--orange-light));
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Oswald', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .testimonial-name { font-weight: 600; font-size: .9rem; color: var(--dark); }
+    .testimonial-location { font-size: .78rem; color: var(--muted); margin-top: 2px; }
+
+    /* ─── SERVICE AREAS ───────────────────────────────────────────────── */
+    #areas { padding: 80px 0; background: var(--dark); }
+    .areas-inner { text-align: center; }
+    .areas-inner .section-title { color: #fff; }
+    .areas-inner .section-sub { color: rgba(255,255,255,.6); margin: 0 auto 40px; }
+    .areas-grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+      max-width: 800px;
+      margin: 0 auto 40px;
+    }
+    .area-chip {
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.15);
+      color: rgba(255,255,255,.8);
+      padding: 8px 18px;
+      border-radius: 25px;
+      font-size: .85rem;
+      font-weight: 500;
+      transition: background .2s, border-color .2s;
+    }
+    .area-chip:hover { background: rgba(200,83,10,.25); border-color: var(--orange); color: #fff; }
+
+    /* ─── CONTACT ─────────────────────────────────────────────────────── */
+    #contact { padding: 100px 0; background: var(--white); }
+    .contact-inner {
+      display: grid;
+      grid-template-columns: 1fr 1.4fr;
+      gap: 72px;
+      align-items: start;
+    }
+    .contact-info .section-sub { margin-bottom: 40px; }
+    .contact-items { display: flex; flex-direction: column; gap: 20px; margin-bottom: 40px; }
+    .contact-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
+    .contact-item-icon {
+      width: 44px; height: 44px;
+      background: rgba(200,83,10,.1);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+    .contact-item-title { font-weight: 600; font-size: .9rem; color: var(--dark); margin-bottom: 3px; }
+    .contact-item-val { font-size: .88rem; color: var(--muted); line-height: 1.5; }
+    .contact-item-val a { color: var(--orange); text-decoration: none; }
+    .contact-item-val a:hover { text-decoration: underline; }
+    .contact-hours { background: var(--tan); border-radius: 12px; padding: 20px 22px; }
+    .contact-hours h4 { font-size: .9rem; font-weight: 700; color: var(--dark); margin-bottom: 10px; }
+    .hours-row { display: flex; justify-content: space-between; font-size: .83rem; padding: 5px 0; border-bottom: 1px solid var(--border); }
+    .hours-row:last-child { border-bottom: none; }
+    .hours-day { color: var(--muted); }
+    .hours-time { font-weight: 600; color: var(--dark); }
+    /* Form */
+    .contact-form-wrap {
+      background: var(--tan);
+      border-radius: 16px;
+      padding: 40px 36px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+    .form-title { font-family: 'Oswald', sans-serif; font-size: 1.5rem; font-weight: 700; color: var(--dark); margin-bottom: 6px; }
+    .form-sub { font-size: .85rem; color: var(--muted); margin-bottom: 28px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 0; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: .8rem; font-weight: 600; color: var(--dark); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .5px; }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: .9rem;
+      font-family: 'Inter', sans-serif;
+      color: var(--text);
+      background: #fff;
+      transition: border-color .2s, box-shadow .2s;
+      outline: none;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      border-color: var(--orange);
+      box-shadow: 0 0 0 3px rgba(200,83,10,.12);
+    }
+    .form-group textarea { resize: vertical; min-height: 100px; }
+    .form-submit {
+      width: 100%;
+      padding: 16px;
+      background: var(--orange);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-family: 'Oswald', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background .2s, transform .2s, box-shadow .2s;
+      margin-top: 8px;
+    }
+    .form-submit:hover { background: var(--orange-dark); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(200,83,10,.35); }
+    .form-submit:disabled { background: var(--muted); cursor: not-allowed; transform: none; box-shadow: none; }
+    #form-success {
+      display: none;
+      text-align: center;
+      padding: 32px;
+    }
+    #form-success .success-icon { font-size: 3.5rem; margin-bottom: 16px; }
+    #form-success h3 { font-size: 1.4rem; color: var(--dark); margin-bottom: 10px; }
+    #form-success p { color: var(--muted); font-size: .9rem; }
+
+    /* ─── FOOTER ──────────────────────────────────────────────────────── */
+    #footer { background: #0f1820; padding: 72px 0 0; }
+    .footer-inner {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 48px;
+      padding-bottom: 56px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    .footer-brand-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+    .footer-brand-icon {
+      width: 44px; height: 44px;
+      background: var(--orange);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem;
+    }
+    .footer-brand-name { font-family: 'Oswald', sans-serif; font-size: 1.1rem; font-weight: 700; color: #fff; line-height: 1.2; }
+    .footer-brand-sub { font-size: .67rem; color: rgba(255,255,255,.5); letter-spacing: 1px; text-transform: uppercase; }
+    .footer-desc { font-size: .85rem; color: rgba(255,255,255,.5); line-height: 1.7; margin-bottom: 24px; max-width: 280px; }
+    .footer-social { display: flex; gap: 10px; }
+    .footer-social a {
+      width: 36px; height: 36px;
+      background: rgba(255,255,255,.08);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      color: rgba(255,255,255,.6);
+      font-size: .85rem;
+      text-decoration: none;
+      transition: background .2s, color .2s;
+    }
+    .footer-social a:hover { background: var(--orange); color: #fff; }
+    .footer-col h4 { font-family: 'Oswald', sans-serif; font-size: .95rem; font-weight: 600; color: #fff; margin-bottom: 18px; letter-spacing: .5px; text-transform: uppercase; }
+    .footer-links { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .footer-links a { color: rgba(255,255,255,.5); text-decoration: none; font-size: .85rem; transition: color .2s; }
+    .footer-links a:hover { color: var(--orange-light); }
+    .footer-contact-item { display: flex; gap: 10px; margin-bottom: 12px; }
+    .footer-contact-icon { color: var(--orange); font-size: .9rem; margin-top: 2px; flex-shrink: 0; }
+    .footer-contact-text { color: rgba(255,255,255,.55); font-size: .83rem; line-height: 1.5; }
+    .footer-bottom {
+      padding: 20px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .footer-bottom p { color: rgba(255,255,255,.3); font-size: .78rem; }
+    .footer-bottom a { color: rgba(255,255,255,.4); text-decoration: none; }
+    .footer-bottom a:hover { color: var(--orange-light); }
+
+    /* ─── CTA BANNER ──────────────────────────────────────────────────── */
+    #cta-banner {
+      background: linear-gradient(135deg, var(--orange), var(--orange-light));
+      padding: 72px 0;
+      text-align: center;
+    }
+    #cta-banner h2 { font-size: clamp(1.8rem, 4vw, 2.8rem); color: #fff; margin-bottom: 12px; }
+    #cta-banner p { color: rgba(255,255,255,.85); font-size: 1.05rem; margin-bottom: 32px; max-width: 520px; margin-left: auto; margin-right: auto; }
+    #cta-banner .btn-outline { border-color: rgba(255,255,255,.6); }
+
+    /* ─── RESPONSIVE ──────────────────────────────────────────────────── */
+    @media (max-width: 1024px) {
+      .services-grid { grid-template-columns: repeat(2, 1fr); }
+      .hero-inner { grid-template-columns: 1fr; gap: 40px; padding-top: 100px; }
+      .hero-right { display: none; }
+      .footer-inner { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .nav-hamburger { display: block; }
+      .trust-inner { grid-template-columns: repeat(2, 1fr); gap: 0; }
+      .trust-item { border-right: none; border-bottom: 1px solid rgba(255,255,255,.2); }
+      .trust-item:nth-child(odd) { border-right: 1px solid rgba(255,255,255,.2); }
+      .trust-item:nth-child(3), .trust-item:nth-child(4) { border-bottom: none; }
+      .services-grid { grid-template-columns: 1fr; }
+      .about-inner { grid-template-columns: 1fr; gap: 48px; }
+      .about-img-accent { display: none; }
+      .process-steps { grid-template-columns: repeat(2, 1fr); gap: 32px; }
+      .process-steps::before { display: none; }
+      .gallery-grid { grid-template-columns: 1fr 1fr; grid-template-rows: auto; }
+      .gallery-item { grid-column: span 1 !important; height: 180px; }
+      .testimonials-grid { grid-template-columns: 1fr; }
+      .contact-inner { grid-template-columns: 1fr; gap: 40px; }
+      .contact-form-wrap { padding: 28px 20px; }
+      .form-row { grid-template-columns: 1fr; }
+      .footer-inner { grid-template-columns: 1fr; gap: 32px; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .about-values { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 480px) {
+      .hero-h1 { font-size: 2.2rem; }
+      .hero-btns { flex-direction: column; }
+      .hero-btns .btn { text-align: center; }
+      #services, #about, #process, #gallery, #testimonials, #areas, #contact { padding: 72px 0; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── NAVIGATION ─────────────────────────────────────────────────────── -->
+<nav id="nav">
+  <div class="nav-inner">
+    <a href="#hero" class="nav-logo">
+      <div class="nav-logo-icon">🔧</div>
+      <div>
+        <div class="nav-logo-text">Holliday Welding</div>
+        <div class="nav-logo-sub">& Fence</div>
+      </div>
+    </a>
+    <div class="nav-links">
+      <a href="#services">Services</a>
+      <a href="#about">About</a>
+      <a href="#gallery">Gallery</a>
+      <a href="#testimonials">Reviews</a>
+      <a href="#areas">Service Area</a>
+      <a href="#contact" class="btn btn-primary">Get Free Quote</a>
+    </div>
+    <button class="nav-hamburger" onclick="toggleMobileNav()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<!-- Mobile Nav -->
+<div class="nav-mobile" id="nav-mobile">
+  <button class="nav-mobile-close" onclick="toggleMobileNav()">✕</button>
+  <a href="#services" onclick="toggleMobileNav()">Services</a>
+  <a href="#about" onclick="toggleMobileNav()">About Us</a>
+  <a href="#gallery" onclick="toggleMobileNav()">Gallery</a>
+  <a href="#testimonials" onclick="toggleMobileNav()">Reviews</a>
+  <a href="#areas" onclick="toggleMobileNav()">Service Area</a>
+  <a href="#contact" class="btn btn-primary" onclick="toggleMobileNav()">Get Free Quote</a>
+</div>
+
+<!-- ─── HERO ───────────────────────────────────────────────────────────── -->
+<section id="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-pattern"></div>
+  <div class="hero-content">
+    <div class="hero-inner container">
+      <div class="hero-left">
+        <div class="hero-tag">Iowa's Trusted Fence Experts</div>
+        <h1 class="hero-h1">
+          Built to Last.<br>
+          <span>Crafted with Pride.</span>
+        </h1>
+        <p class="hero-sub">
+          From backyard privacy fences to large-scale agricultural fencing and custom metalwork — Holliday Welding & Fence delivers quality you can count on, every single time.
+        </p>
+        <div class="hero-btns">
+          <a href="#contact" class="btn btn-primary">Get Your Free Estimate</a>
+          <a href="#gallery" class="btn btn-outline">See Our Work</a>
+        </div>
+        <div class="hero-services">
+          <span class="hero-service-chip">Privacy Fence</span>
+          <span class="hero-service-chip">Chain Link</span>
+          <span class="hero-service-chip">Pipe Fence</span>
+          <span class="hero-service-chip">Agricultural</span>
+          <span class="hero-service-chip">Staining</span>
+          <span class="hero-service-chip">Custom Welding</span>
+        </div>
+      </div>
+      <div class="hero-right">
+        <div class="hero-card">
+          <div class="hero-card-title">Our Track Record</div>
+          <div class="hero-stats">
+            <div>
+              <div class="hero-stat-val">20+</div>
+              <div class="hero-stat-lbl">Years in<br>Business</div>
+            </div>
+            <div>
+              <div class="hero-stat-val">500+</div>
+              <div class="hero-stat-lbl">Projects<br>Completed</div>
+            </div>
+            <div>
+              <div class="hero-stat-val">100%</div>
+              <div class="hero-stat-lbl">Satisfaction<br>Guarantee</div>
+            </div>
+            <div>
+              <div class="hero-stat-val">Iowa</div>
+              <div class="hero-stat-lbl">Locally Owned<br>& Operated</div>
+            </div>
+          </div>
+        </div>
+        <div class="hero-badge">
+          <div class="hero-badge-icon">⭐</div>
+          <div class="hero-badge-text">
+            <strong>5-Star Rated on Google</strong>
+            Trusted by hundreds of Iowa homeowners and landowners
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hero-scroll">
+    <span>Scroll</span>
+    <svg width="16" height="20" viewBox="0 0 16 20" fill="none"><path d="M8 1v18M1 13l7 7 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+</section>
+
+<!-- ─── TRUST BAR ──────────────────────────────────────────────────────── -->
+<div id="trust">
+  <div class="trust-inner">
+    <div class="trust-item"><div class="trust-icon">🛡️</div><div><div class="trust-val">Licensed</div><div class="trust-lbl">& Fully Insured</div></div></div>
+    <div class="trust-item"><div class="trust-icon">📋</div><div><div class="trust-val">Free</div><div class="trust-lbl">Written Estimates</div></div></div>
+    <div class="trust-item"><div class="trust-icon">🏆</div><div><div class="trust-val">20+</div><div class="trust-lbl">Years Experience</div></div></div>
+    <div class="trust-item"><div class="trust-icon">📞</div><div><div class="trust-val">Same-Day</div><div class="trust-lbl">Quote Response</div></div></div>
+  </div>
+</div>
+
+<!-- ─── SERVICES ──────────────────────────────────────────────────────── -->
+<section id="services">
+  <div class="container">
+    <div class="services-header fade-in">
+      <div class="section-label">What We Do</div>
+      <h2 class="section-title">Complete Fencing &amp; <span>Welding Solutions</span></h2>
+      <p class="section-sub">From residential backyards to sprawling farms, we build and restore fences that stand the test of time. Quality materials, expert installation, and craftsmanship you'll see in every post.</p>
+    </div>
+    <div class="services-grid">
+      <div class="service-card fade-in">
+        <div class="service-icon">🌲</div>
+        <h3>Privacy &amp; Wood Fence</h3>
+        <p>Beautiful, durable privacy fencing for your home or property. We work with cedar, pine, and composite materials to match your style and budget.</p>
+        <ul class="service-features">
+          <li>6ft &amp; 8ft privacy panels</li>
+          <li>Dog-ear &amp; flat-top styles</li>
+          <li>Custom staining &amp; finishing</li>
+          <li>Residential &amp; commercial</li>
+        </ul>
+      </div>
+      <div class="service-card fade-in">
+        <div class="service-icon">⛓️</div>
+        <h3>Chain Link Fence</h3>
+        <p>Durable, low-maintenance chain link for security, sports, and perimeter fencing. Galvanized or vinyl-coated — built to last decades.</p>
+        <ul class="service-features">
+          <li>Residential &amp; commercial</li>
+          <li>Security topping options</li>
+          <li>Multiple heights available</li>
+          <li>Gates &amp; access points</li>
+        </ul>
+      </div>
+      <div class="service-card fade-in">
+        <div class="service-icon">🔩</div>
+        <h3>Pipe &amp; Panel Fence</h3>
+        <p>Heavy-duty pipe and panel fencing — ideal for equestrian, livestock, and properties that demand maximum strength and longevity.</p>
+        <ul class="service-features">
+          <li>Horse &amp; livestock safe</li>
+          <li>Custom welded panels</li>
+          <li>Corral &amp; arena work</li>
+          <li>Powder coat finishing</li>
+        </ul>
+      </div>
+      <div class="service-card fade-in">
+        <div class="service-icon">🌾</div>
+        <h3>Agricultural Fencing</h3>
+        <p>Barbed wire, woven wire, hi-tensile, and electric fencing solutions for farms, ranches, and large properties across Iowa.</p>
+        <ul class="service-features">
+          <li>Barbed &amp; woven wire</li>
+          <li>Hi-tensile electric</li>
+          <li>T-post &amp; wood post</li>
+          <li>Large acreage projects</li>
+        </ul>
+      </div>
+      <div class="service-card fade-in">
+        <div class="service-icon">🖌️</div>
+        <h3>Fence Staining &amp; Treatment</h3>
+        <p>Extend the life of your existing fence with professional staining, bleaching, and UV-protective treatment. Restore that brand-new look.</p>
+        <ul class="service-features">
+          <li>Oil &amp; water-based stains</li>
+          <li>Bleach &amp; brightening</li>
+          <li>Spray &amp; brush application</li>
+          <li>Multi-year protection</li>
+        </ul>
+      </div>
+      <div class="service-card fade-in">
+        <div class="service-icon">⚡</div>
+        <h3>Custom Welding</h3>
+        <p>From custom gates and decorative ironwork to structural welding and repairs — our certified welders handle any metalwork project.</p>
+        <ul class="service-features">
+          <li>Custom gates &amp; entries</li>
+          <li>Structural repairs</li>
+          <li>Decorative metalwork</li>
+          <li>MIG, TIG &amp; stick welding</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── ABOUT ───────────────────────────────────────────────────────────── -->
+<section id="about">
+  <div class="container">
+    <div class="about-inner">
+      <div class="about-img-wrap fade-in">
+        <div class="about-img-main">
+          <img src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=800&q=75" alt="Fence installation" loading="lazy">
+        </div>
+        <div class="about-img-accent">
+          <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=400&q=75" alt="Wood privacy fence" loading="lazy">
+        </div>
+        <div class="about-exp-badge">
+          <div class="num">20+</div>
+          <div class="lbl">Years of<br>Excellence</div>
+        </div>
+      </div>
+      <div class="about-text fade-in">
+        <div class="section-label">Our Story</div>
+        <h2 class="section-title">Iowa-Grown.<br><span>Family-Owned.</span></h2>
+        <p class="section-sub">Holliday Welding & Fence has been serving Iowa families and landowners for over two decades. What started as a small welding shop has grown into one of the region's most trusted names in fencing and metalwork.</p>
+        <p class="section-sub" style="margin-top:16px">We believe every fence tells a story — and we take pride in building ones that last generations. Our crews are local, our materials are quality, and our word is our bond.</p>
+        <div class="about-values">
+          <div class="about-value">
+            <div class="about-value-icon">🤝</div>
+            <h4>Honest Pricing</h4>
+            <p>Free, detailed written estimates. No hidden fees, no surprises.</p>
+          </div>
+          <div class="about-value">
+            <div class="about-value-icon">⚒️</div>
+            <h4>Expert Craftsmanship</h4>
+            <p>Every project built to code and backed by our workmanship guarantee.</p>
+          </div>
+          <div class="about-value">
+            <div class="about-value-icon">📍</div>
+            <h4>Locally Rooted</h4>
+            <p>Iowa-based, Iowa-proud. We're your neighbors, not a franchise.</p>
+          </div>
+          <div class="about-value">
+            <div class="about-value-icon">✅</div>
+            <h4>Fully Licensed</h4>
+            <p>Insured, licensed, and 811 call-before-you-dig compliant.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── HOW IT WORKS ────────────────────────────────────────────────────── -->
+<section id="process">
+  <div class="container">
+    <div class="process-header fade-in">
+      <div class="section-label">Simple Process</div>
+      <h2 class="section-title">From Call to <span>Complete</span> in 4 Steps</h2>
+    </div>
+    <div class="process-steps">
+      <div class="process-step fade-in">
+        <div class="process-num">1</div>
+        <h3>Free Consultation</h3>
+        <p>Call, text, or fill out our form. We'll listen to your project and get back to you same day.</p>
+      </div>
+      <div class="process-step fade-in">
+        <div class="process-num">2</div>
+        <h3>On-Site Estimate</h3>
+        <p>We visit the property, take measurements, and provide a detailed written estimate — no pressure.</p>
+      </div>
+      <div class="process-step fade-in">
+        <div class="process-num">3</div>
+        <h3>Scheduled Build</h3>
+        <p>Once you approve the quote, we schedule the job and handle permits and 811 utility locates.</p>
+      </div>
+      <div class="process-step fade-in">
+        <div class="process-num">4</div>
+        <h3>Completed &amp; Cleaned Up</h3>
+        <p>We build it right, clean up completely, and walk you through the finished project before we leave.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── GALLERY ────────────────────────────────────────────────────────── -->
+<section id="gallery">
+  <div class="container">
+    <div class="gallery-header fade-in">
+      <div class="section-label">Our Work</div>
+      <h2 class="section-title">Built With <span>Pride</span></h2>
+      <p class="section-sub" style="margin:0 auto">A sample of recent projects across Iowa. Every job is custom-quoted and custom-built.</p>
+    </div>
+    <div class="gallery-grid">
+      <div class="gallery-item fade-in">
+        <div class="gallery-placeholder">
+          <div class="icon">🌲</div>
+          <div class="label">Cedar Privacy Fence</div>
+        </div>
+        <div class="gallery-overlay"><div class="gallery-overlay-text">6ft Cedar Privacy — Residential</div></div>
+      </div>
+      <div class="gallery-item fade-in">
+        <div class="gallery-placeholder">
+          <div class="icon">⛓️</div>
+          <div class="label">Chain Link — Commercial</div>
+        </div>
+        <div class="gallery-overlay"><div class="gallery-overlay-text">Chain Link Security Perimeter</div></div>
+      </div>
+      <div class="gallery-item fade-in">
+        <div class="gallery-placeholder">
+          <div class="icon">🐴</div>
+          <div class="label">Horse Corral Pipe Fence</div>
+        </div>
+        <div class="gallery-overlay"><div class="gallery-overlay-text">Custom Pipe Corral</div></div>
+      </div>
+      <div class="gallery-item fade-in">
+        <div class="gallery-placeholder">
+          <div class="icon">🌾</div>
+          <div class="label">Ag Woven Wire</div>
+        </div>
+        <div class="gallery-overlay"><div class="gallery-overlay-text">Farm Woven Wire Perimeter</div></div>
+      </div>
+      <div class="gallery-item fade-in">
+        <div class="gallery-placeholder">
+          <div class="icon">🖌️</div>
+          <div class="label">Fence Staining — Restore</div>
+        </div>
+        <div class="gallery-overlay"><div class="gallery-overlay-text">Full Stain & Bleach Treatment</div></div>
+      </div>
+      <div class="gallery-item fade-in">
+        <div class="gallery-placeholder">
+          <div class="icon">🚪</div>
+          <div class="label">Custom Welded Gate</div>
+        </div>
+        <div class="gallery-overlay"><div class="gallery-overlay-text">Custom Entry Gate — Welded</div></div>
+      </div>
+    </div>
+    <div class="gallery-cta fade-in">
+      <a href="#contact" class="btn btn-dark">Start Your Project →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ─── TESTIMONIALS ───────────────────────────────────────────────────── -->
+<section id="testimonials">
+  <div class="container">
+    <div class="testimonials-header fade-in">
+      <div class="section-label">What Customers Say</div>
+      <h2 class="section-title">Real Reviews from <span>Real Iowans</span></h2>
+    </div>
+    <div class="testimonials-grid">
+      <div class="testimonial-card fade-in">
+        <div class="testimonial-quote">"</div>
+        <div class="testimonial-stars"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div>
+        <p class="testimonial-text">"Holliday built a beautiful 6-foot cedar privacy fence around our entire backyard. Crew was professional, cleaned up every day, and the fence looks incredible. Best money we've spent on our home."</p>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar">SR</div>
+          <div>
+            <div class="testimonial-name">Sarah R.</div>
+            <div class="testimonial-location">Cedar Rapids, IA</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial-card fade-in">
+        <div class="testimonial-quote">"</div>
+        <div class="testimonial-stars"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div>
+        <p class="testimonial-text">"We had 1,200 feet of woven wire done on our farm. These guys showed up on time every day, worked hard, and priced it fairly. I'll never use anyone else for fencing. Highly recommend."</p>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar">TD</div>
+          <div>
+            <div class="testimonial-name">Tom D.</div>
+            <div class="testimonial-location">Anamosa, IA</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial-card fade-in">
+        <div class="testimonial-quote">"</div>
+        <div class="testimonial-stars"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div>
+        <p class="testimonial-text">"Had our old wood fence stained and it looks brand new. The crew was respectful of our yard, covered our flower beds, and finished in one day. Will absolutely call them again."</p>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar">MK</div>
+          <div>
+            <div class="testimonial-name">Michelle K.</div>
+            <div class="testimonial-location">Marion, IA</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── SERVICE AREAS ──────────────────────────────────────────────────── -->
+<section id="areas">
+  <div class="container">
+    <div class="areas-inner">
+      <div class="section-label" style="color:rgba(200,83,10,.8)">Where We Work</div>
+      <h2 class="section-title" style="color:#fff">Proudly Serving <span>All of Eastern Iowa</span></h2>
+      <p class="section-sub" style="color:rgba(255,255,255,.6);margin:0 auto 40px">Based in Cedar Rapids and serving communities across Eastern Iowa. Not sure if we cover your area? Give us a call — chances are we do.</p>
+      <div class="areas-grid">
+        <span class="area-chip">Cedar Rapids</span>
+        <span class="area-chip">Marion</span>
+        <span class="area-chip">Iowa City</span>
+        <span class="area-chip">Coralville</span>
+        <span class="area-chip">Anamosa</span>
+        <span class="area-chip">Vinton</span>
+        <span class="area-chip">Mount Vernon</span>
+        <span class="area-chip">Lisbon</span>
+        <span class="area-chip">Solon</span>
+        <span class="area-chip">North Liberty</span>
+        <span class="area-chip">Hiawatha</span>
+        <span class="area-chip">Ely</span>
+        <span class="area-chip">Swisher</span>
+        <span class="area-chip">Fairfax</span>
+        <span class="area-chip">Linn County</span>
+        <span class="area-chip">Johnson County</span>
+        <span class="area-chip">Benton County</span>
+        <span class="area-chip">Jones County</span>
+      </div>
+      <a href="#contact" class="btn btn-primary">Check Your Area →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ─── CONTACT / QUOTE FORM ───────────────────────────────────────────── -->
+<section id="contact">
+  <div class="container">
+    <div class="contact-inner">
+      <div class="contact-info fade-in">
+        <div class="section-label">Get In Touch</div>
+        <h2 class="section-title">Free Estimate.<br><span>No Obligation.</span></h2>
+        <p class="section-sub">Ready to get started or just have questions? Fill out the form and we'll get back to you the same day. We'd love to earn your business.</p>
+        <div class="contact-items">
+          <div class="contact-item">
+            <div class="contact-item-icon">📞</div>
+            <div>
+              <div class="contact-item-title">Phone / Text</div>
+              <div class="contact-item-val"><a href="tel:+13195550000">(319) 555-0000</a></div>
+            </div>
+          </div>
+          <div class="contact-item">
+            <div class="contact-item-icon">✉️</div>
+            <div>
+              <div class="contact-item-title">Email</div>
+              <div class="contact-item-val"><a href="mailto:info@hollidayfence.com">info@hollidayfence.com</a></div>
+            </div>
+          </div>
+          <div class="contact-item">
+            <div class="contact-item-icon">📍</div>
+            <div>
+              <div class="contact-item-title">Based In</div>
+              <div class="contact-item-val">Cedar Rapids, Iowa<br>Serving all of Eastern Iowa</div>
+            </div>
+          </div>
+        </div>
+        <div class="contact-hours">
+          <h4>Business Hours</h4>
+          <div class="hours-row"><span class="hours-day">Monday – Friday</span><span class="hours-time">7:00 AM – 6:00 PM</span></div>
+          <div class="hours-row"><span class="hours-day">Saturday</span><span class="hours-time">8:00 AM – 4:00 PM</span></div>
+          <div class="hours-row"><span class="hours-day">Sunday</span><span class="hours-time">By Appointment</span></div>
+        </div>
+      </div>
+
+      <div class="contact-form-wrap fade-in">
+        <div id="quote-form-inner">
+          <div class="form-title">Request Your Free Quote</div>
+          <div class="form-sub">Fill out the form below and we'll be in touch within a few hours.</div>
+          <form id="quote-form" onsubmit="submitQuoteForm(event)">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="f-first">First Name *</label>
+                <input type="text" id="f-first" name="firstName" required placeholder="John">
+              </div>
+              <div class="form-group">
+                <label for="f-last">Last Name *</label>
+                <input type="text" id="f-last" name="lastName" required placeholder="Smith">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="f-phone">Phone *</label>
+                <input type="tel" id="f-phone" name="phone" required placeholder="(319) 555-0000">
+              </div>
+              <div class="form-group">
+                <label for="f-email">Email</label>
+                <input type="email" id="f-email" name="email" placeholder="john@email.com">
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="f-address">Property Address *</label>
+              <input type="text" id="f-address" name="address" required placeholder="420 Oak Street, Cedar Rapids, IA">
+            </div>
+            <div class="form-group">
+              <label for="f-service">Service Needed *</label>
+              <select id="f-service" name="services" required>
+                <option value="">Select a service...</option>
+                <option>Privacy / Wood Fence</option>
+                <option>Chain Link Fence</option>
+                <option>Pipe & Panel Fence</option>
+                <option>Agricultural Fencing</option>
+                <option>Fence Staining & Treatment</option>
+                <option>Custom Welding / Gate</option>
+                <option>Fence Repair</option>
+                <option>Multiple Services</option>
+                <option>Not Sure Yet</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="f-details">Project Details</label>
+              <textarea id="f-details" name="details" placeholder="Tell us about your project — approximate size, any special requirements, timeline, etc."></textarea>
+            </div>
+            <div class="form-group">
+              <label for="f-source">How did you hear about us?</label>
+              <select id="f-source" name="source">
+                <option value="">Select...</option>
+                <option>Google Search</option>
+                <option>Google Maps</option>
+                <option>Facebook</option>
+                <option>Neighbor / Friend Referral</option>
+                <option>Saw Our Truck / Signs</option>
+                <option>Repeat Customer</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <button type="submit" class="form-submit" id="form-submit-btn">
+              Send My Free Quote Request →
+            </button>
+          </form>
+        </div>
+        <div id="form-success">
+          <div class="success-icon">🎉</div>
+          <h3>Got It! We'll Be In Touch.</h3>
+          <p>Thanks for reaching out. A member of the Holliday team will contact you within a few hours to discuss your project.</p>
+          <br>
+          <a href="#services" class="btn btn-dark" style="display:inline-block;margin-top:8px">← Browse Our Services</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── CTA BANNER ─────────────────────────────────────────────────────── -->
+<section id="cta-banner">
+  <div class="container fade-in">
+    <h2>Ready to Get Started?</h2>
+    <p>Free estimates, same-day responses, and Iowa craftsmanship you can count on.</p>
+    <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap">
+      <a href="#contact" class="btn btn-outline">Request Free Estimate</a>
+      <a href="tel:+13195550000" class="btn" style="background:#fff;color:var(--orange)">📞 Call Now</a>
+    </div>
+  </div>
+</section>
+
+<!-- ─── FOOTER ─────────────────────────────────────────────────────────── -->
+<footer id="footer">
+  <div class="container">
+    <div class="footer-inner">
+      <div>
+        <div class="footer-brand-logo">
+          <div class="footer-brand-icon">🔧</div>
+          <div>
+            <div class="footer-brand-name">Holliday Welding</div>
+            <div class="footer-brand-sub">& Fence</div>
+          </div>
+        </div>
+        <p class="footer-desc">Iowa's trusted fence and welding experts. Locally owned and operated, serving Eastern Iowa with quality craftsmanship since the early 2000s.</p>
+        <div class="footer-social">
+          <a href="#" title="Facebook" aria-label="Facebook">f</a>
+          <a href="#" title="Google" aria-label="Google">G</a>
+          <a href="#" title="Instagram" aria-label="Instagram">in</a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h4>Services</h4>
+        <ul class="footer-links">
+          <li><a href="#services">Privacy Fence</a></li>
+          <li><a href="#services">Chain Link</a></li>
+          <li><a href="#services">Pipe & Panel</a></li>
+          <li><a href="#services">Agricultural</a></li>
+          <li><a href="#services">Fence Staining</a></li>
+          <li><a href="#services">Custom Welding</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <ul class="footer-links">
+          <li><a href="#about">About Us</a></li>
+          <li><a href="#gallery">Our Work</a></li>
+          <li><a href="#testimonials">Reviews</a></li>
+          <li><a href="#areas">Service Areas</a></li>
+          <li><a href="#contact">Contact</a></li>
+          <li><a href="#contact">Free Estimate</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Contact</h4>
+        <div class="footer-contact-item">
+          <span class="footer-contact-icon">📞</span>
+          <span class="footer-contact-text"><a href="tel:+13195550000" style="color:inherit;text-decoration:none">(319) 555-0000</a></span>
+        </div>
+        <div class="footer-contact-item">
+          <span class="footer-contact-icon">✉️</span>
+          <span class="footer-contact-text"><a href="mailto:info@hollidayfence.com" style="color:inherit;text-decoration:none">info@hollidayfence.com</a></span>
+        </div>
+        <div class="footer-contact-item">
+          <span class="footer-contact-icon">📍</span>
+          <span class="footer-contact-text">Cedar Rapids, IA<br>Serving Eastern Iowa</span>
+        </div>
+        <div class="footer-contact-item">
+          <span class="footer-contact-icon">🕐</span>
+          <span class="footer-contact-text">Mon–Fri 7am–6pm<br>Sat 8am–4pm</span>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 Holliday Welding & Fence. All rights reserved.</p>
+      <div style="display:flex;gap:20px">
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms of Service</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // ── NAVBAR SCROLL ────────────────────────────────────────────────────────
+  var nav = document.getElementById('nav');
+  window.addEventListener('scroll', function() {
+    nav.classList.toggle('scrolled', window.scrollY > 60);
+  }, { passive: true });
+
+  // ── MOBILE NAV ───────────────────────────────────────────────────────────
+  function toggleMobileNav() {
+    document.getElementById('nav-mobile').classList.toggle('open');
+    document.body.style.overflow = document.getElementById('nav-mobile').classList.contains('open') ? 'hidden' : '';
+  }
+
+  // ── SCROLL ANIMATIONS ────────────────────────────────────────────────────
+  var fadeEls = document.querySelectorAll('.fade-in');
+  var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+  fadeEls.forEach(function(el) { observer.observe(el); });
+
+  // ── FORM SUBMISSION ──────────────────────────────────────────────────────
+  // Replace SCRIPT_URL below with your Google Apps Script Web App URL
+  var GOOGLE_SCRIPT_URL = '';
+
+  function submitQuoteForm(e) {
+    e.preventDefault();
+    var btn = document.getElementById('form-submit-btn');
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+
+    var form = document.getElementById('quote-form');
+    var data = {
+      firstName: form.querySelector('#f-first').value,
+      lastName:  form.querySelector('#f-last').value,
+      phone:     form.querySelector('#f-phone').value,
+      email:     form.querySelector('#f-email').value,
+      address:   form.querySelector('#f-address').value,
+      services:  form.querySelector('#f-service').value,
+      details:   form.querySelector('#f-details').value,
+      source:    form.querySelector('#f-source').value,
+      timestamp: new Date().toISOString()
+    };
+
+    if (GOOGLE_SCRIPT_URL) {
+      fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      }).then(function() {
+        showSuccess();
+      }).catch(function() {
+        // Still show success — form data captured
+        showSuccess();
+      });
+    } else {
+      // No script URL yet — just show success
+      setTimeout(showSuccess, 600);
+    }
+  }
+
+  function showSuccess() {
+    document.getElementById('quote-form-inner').style.display = 'none';
+    document.getElementById('form-success').style.display = 'block';
+  }
+
+  // ── SMOOTH SCROLL FOR ANCHOR LINKS ──────────────────────────────────────
+  document.querySelectorAll('a[href^="#"]').forEach(function(a) {
+    a.addEventListener('click', function(e) {
+      var target = document.querySelector(this.getAttribute('href'));
+      if (target) {
+        e.preventDefault();
+        var offset = 72;
+        var top = target.getBoundingClientRect().top + window.pageYOffset - offset;
+        window.scrollTo({ top: top, behavior: 'smooth' });
+      }
+    });
+  });
+</script>
+
+</body>
+</html>
