@@ -6825,6 +6825,8 @@ function handleGoogleCredential(response) {
 var _voiceRecognition = null;
 var _voiceTranscript  = '';
 var _voiceRecording   = false;
+var _voiceBase        = '';   // text kept across auto-restarted sessions
+var _voiceSessionText = '';   // finals from the current active session
 
 function openVoiceInput() {
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -6858,46 +6860,52 @@ function toggleVoiceRecording() {
   if (_voiceRecording) { stopVoiceRecording(); } else { startVoiceRecording(); }
 }
 
-function startVoiceRecording() {
-  stopVoiceRecording();
-  _voiceTranscript = '';
-  document.getElementById('voice-transcript-live').textContent = '';
-  document.getElementById('voice-transcript-live').style.display = 'block';
-  document.getElementById('voice-result-area').style.display = 'none';
-
+function _startVoiceSession() {
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return null;
   var r = new SR();
-  r.continuous = true;
+  r.continuous     = true;
   r.interimResults = true;
   r.lang = 'en-US';
-  _voiceRecognition = r;
 
   r.onstart = function() {
-    _voiceRecording = true;
     document.getElementById('voice-mic-btn').classList.add('recording');
     document.getElementById('voice-status').textContent = '🔴 Recording — speak clearly, then tap mic to stop';
   };
 
   r.onresult = function(e) {
-    var finalText = '', interimText = '';
+    var finals = '', interim = '';
+    // Always rebuild from index 0 — avoids duplication when browser re-sends results
     for (var i = 0; i < e.results.length; i++) {
-      if (e.results[i].isFinal) finalText += e.results[i][0].transcript + ' ';
-      else interimText += e.results[i][0].transcript;
+      if (e.results[i].isFinal) finals += e.results[i][0].transcript + ' ';
+      else interim += e.results[i][0].transcript;
     }
-    _voiceTranscript = finalText;
-    document.getElementById('voice-transcript-live').textContent = (finalText + interimText).trim();
+    _voiceSessionText = finals;
+    document.getElementById('voice-transcript-live').textContent = (_voiceBase + finals + interim).trim();
   };
 
-  r.onerror = function(e) {
-    document.getElementById('voice-status').textContent = 'Mic error: ' + e.error + '. Try again.';
+  r.onerror = function(ev) {
+    // no-speech and aborted are normal — browser will fire onend and we handle it there
+    if (ev.error === 'no-speech' || ev.error === 'aborted') return;
+    document.getElementById('voice-status').textContent = 'Mic error: ' + ev.error + '. Try again.';
     _voiceRecording = false;
     document.getElementById('voice-mic-btn').classList.remove('recording');
   };
 
   r.onend = function() {
-    _voiceRecording = false;
+    if (_voiceRecording) {
+      // Browser ended session mid-recording (common on mobile after a pause)
+      // Save what we have and restart seamlessly
+      _voiceBase += _voiceSessionText;
+      _voiceSessionText = '';
+      var next = _startVoiceSession();
+      if (next) { _voiceRecognition = next; try { next.start(); } catch(e) {} }
+      return;
+    }
+    // User manually stopped
     document.getElementById('voice-mic-btn').classList.remove('recording');
-    var t = _voiceTranscript.trim();
+    var t = (_voiceBase + _voiceSessionText).trim();
+    _voiceTranscript = t;
     if (t) {
       document.getElementById('voice-status').textContent = '✓ Done recording. Review and tap Fill Form.';
       document.getElementById('voice-transcript-edit').value = t;
@@ -6907,12 +6915,25 @@ function startVoiceRecording() {
     }
   };
 
-  r.start();
+  return r;
+}
+
+function startVoiceRecording() {
+  stopVoiceRecording();
+  _voiceBase = '';
+  _voiceSessionText = '';
+  _voiceTranscript = '';
+  document.getElementById('voice-transcript-live').textContent = '';
+  document.getElementById('voice-transcript-live').style.display = 'block';
+  document.getElementById('voice-result-area').style.display = 'none';
+  _voiceRecording = true;
+  _voiceRecognition = _startVoiceSession();
+  if (_voiceRecognition) try { _voiceRecognition.start(); } catch(e) {}
 }
 
 function stopVoiceRecording() {
+  _voiceRecording = false;  // set FIRST so onend knows this was intentional
   if (_voiceRecognition) { try { _voiceRecognition.stop(); } catch(e) {} _voiceRecognition = null; }
-  _voiceRecording = false;
 }
 
 async function applyVoiceInput() {
