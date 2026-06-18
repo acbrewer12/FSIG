@@ -741,7 +741,19 @@
     @keyframes voicePulse { 0%,100%{box-shadow:0 0 0 0 rgba(192,57,43,.55)} 55%{box-shadow:0 0 0 20px rgba(192,57,43,0)} }
     #voice-transcript-live { background:#f7f6f2; border:1px solid var(--border); border-radius:6px; padding:10px 12px; font-size:.85rem; min-height:52px; max-height:130px; overflow-y:auto; color:var(--text); white-space:pre-wrap; }
     #voice-transcript-edit { width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:6px; font-size:.85rem; resize:vertical; font-family:inherit; box-sizing:border-box; background:#fff; }
+    /* ── Job Photos ── */
+    .photo-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(90px,1fr)); gap:8px; margin-top:10px; }
+    .photo-thumb { position:relative; width:100%; aspect-ratio:1; border-radius:5px; overflow:hidden; border:1px solid var(--border); cursor:pointer; }
+    .photo-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+    .photo-thumb .photo-remove { position:absolute; top:3px; right:3px; background:rgba(0,0,0,.6); color:#fff; border:none; border-radius:50%; width:20px; height:20px; font-size:12px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; }
+    .photo-count { font-size:.75rem; color:var(--muted); margin-top:6px; }
+    /* ── Lead notification toast ── */
+    #lead-toast { position:fixed; top:70px; left:50%; transform:translateX(-50%); background:#C8530A; color:#fff; padding:12px 18px; border-radius:8px; box-shadow:0 4px 18px rgba(0,0,0,.3); z-index:9990; display:none; align-items:center; gap:12px; min-width:300px; max-width:90vw; font-size:.88rem; }
+    #lead-toast .toast-msg { flex:1; font-weight:600; }
+    #lead-toast .toast-view { background:rgba(255,255,255,.25); border:1px solid rgba(255,255,255,.5); color:#fff; padding:4px 12px; border-radius:4px; cursor:pointer; font-size:.82rem; font-family:inherit; white-space:nowrap; }
+    #lead-toast .toast-close { background:none; border:none; color:#fff; font-size:1.1rem; cursor:pointer; padding:0 2px; line-height:1; }
   </style>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
@@ -1007,6 +1019,24 @@
         style="width:100%;padding:8px 10px;border:1px solid #90caf9;border-radius:5px;font-size:.88rem;resize:vertical;font-family:inherit;background:#e3f2fd"></textarea>
       <div style="font-size:.72rem;color:#1565c0;margin-top:3px">Change order notes print on the customer invoice</div>
     </div>
+  </div>
+
+  <!-- Job Photos -->
+  <div class="card">
+    <h2>&#128247; Job Photos</h2>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+      <input id="companycam-url" type="url" placeholder="https://app.companycam.com/projects/..."
+        style="flex:1;min-width:200px;padding:7px 10px;border:1px solid var(--border);border-radius:5px;font-size:.85rem">
+      <button class="print-btn" onclick="openCompanyCam()" style="padding:7px 14px;background:#1565C0;font-size:.82rem;flex-shrink:0">Open</button>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <label class="print-btn" style="padding:7px 14px;font-size:.82rem;cursor:pointer;display:inline-block">
+        &#128247; Add Photos
+        <input type="file" accept="image/*" multiple style="display:none" onchange="handlePhotoUpload(this)">
+      </label>
+      <span id="photo-count" class="photo-count">0/10 photos</span>
+    </div>
+    <div id="photo-grid" class="photo-grid"></div>
   </div>
 
   <!-- Fence Layout Planner / Site Plan Fence Layout (visible in both modes) -->
@@ -1822,6 +1852,8 @@
 
   // In-memory checklist state for the current job
   let _jobChecklist = { type: '', items: [] };
+  // In-memory photos state for the current job
+  var _jobPhotos = []; // [{dataUrl, name}]
 
   function renderJobChecklist() {
     const container = document.getElementById('checklist-items');
@@ -1875,6 +1907,66 @@
     _jobChecklist.items.push({ text, checked: false });
     inp.value = '';
     renderJobChecklist();
+  }
+
+  function openCompanyCam() {
+    var url = (document.getElementById('companycam-url') || {}).value || '';
+    if (url) window.open(url, '_blank');
+  }
+
+  function handlePhotoUpload(input) {
+    var files = Array.from(input.files || []);
+    var remaining = 10 - _jobPhotos.length;
+    if (remaining <= 0) { alert('Maximum 10 photos per job.'); input.value=''; return; }
+    files = files.slice(0, remaining);
+    var pending = files.length;
+    if (!pending) return;
+    files.forEach(function(file) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var img = new Image();
+        img.onload = function() {
+          var maxW = 800;
+          var w = img.width, h = img.height;
+          if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+          var canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          var dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          _jobPhotos.push({ dataUrl: dataUrl, name: file.name });
+          pending--;
+          if (pending === 0) renderPhotoGrid();
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+    input.value = '';
+  }
+
+  function removePhoto(idx) {
+    _jobPhotos.splice(idx, 1);
+    renderPhotoGrid();
+  }
+
+  function viewPhoto(idx) {
+    var p = _jobPhotos[idx];
+    if (!p) return;
+    var win = window.open('', '_blank');
+    win.document.write('<html><body style="margin:0;background:#000;display:flex;justify-content:center;align-items:center;min-height:100vh"><img src="' + p.dataUrl + '" style="max-width:100%;max-height:100vh"></body></html>');
+    win.document.close();
+  }
+
+  function renderPhotoGrid() {
+    var grid = document.getElementById('photo-grid');
+    var countEl = document.getElementById('photo-count');
+    if (!grid) return;
+    countEl && (countEl.textContent = _jobPhotos.length + '/10 photos');
+    if (!_jobPhotos.length) { grid.innerHTML = ''; return; }
+    grid.innerHTML = _jobPhotos.map(function(p, i) {
+      return '<div class="photo-thumb"><img src="' + p.dataUrl + '" alt="' + (p.name||'photo') + '" onclick="viewPhoto(' + i + ')">' +
+             '<button class="photo-remove" onclick="event.stopPropagation();removePhoto(' + i + ')" title="Remove">&#10005;</button></div>';
+    }).join('');
   }
 
   // ── Gates data model ──
@@ -3096,6 +3188,14 @@
 
       <!-- PAGE 5: Site Plan -->
       ${plannerSvgPage}
+      ${_jobPhotos.length ? `
+      <!-- Photos (internal copy) -->
+      <div style="page-break-before:always;font-family:Arial,sans-serif;padding:24px">
+        <div style="font-size:1rem;font-weight:700;margin-bottom:12px;border-bottom:2px solid #C8530A;padding-bottom:6px">&#128247; Job Photos (${_jobPhotos.length})</div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px">
+          ${_jobPhotos.map(function(p){ return '<img src="' + p.dataUrl + '" style="width:100px;height:100px;object-fit:cover;border-radius:4px;border:1px solid #ccc">'; }).join('')}
+        </div>
+      </div>` : ''}
     `;
   }
 
@@ -3425,6 +3525,8 @@
         return buildPlannerSvgOverlay(pts, _planSegments, getPlanBbox(pts), 580, 280);
       })(),
       onHandItems: JSON.parse(JSON.stringify(onHandItems)),
+      photos: _jobPhotos.slice(),
+      companyCamUrl: document.getElementById('companycam-url')?.value || '',
       partsCalc: {
         type:             document.getElementById('parts-type')?.value,
         lf:               document.getElementById('parts-lf')?.value,
@@ -3614,6 +3716,11 @@
     var fmb = document.getElementById('fence-close-btn');
     if (fmb) fmb.style.background = fenceMapClosed ? '#2E7D32' : '#6A1B9A';
     try { drawFenceMap(); } catch(e) {}
+    // Restore photos
+    _jobPhotos = (s.photos || []).slice();
+    var ccEl = document.getElementById('companycam-url');
+    if (ccEl) ccEl.value = s.companyCamUrl || '';
+    renderPhotoGrid();
     window.scrollTo(0, 0);
   }
 
@@ -4504,6 +4611,11 @@
     const addRow = document.getElementById('checklist-add-row');
     if (addRow) addRow.style.display = 'none';
     renderJobChecklist();
+    // Clear photos
+    _jobPhotos = [];
+    var ccUrlEl = document.getElementById('companycam-url');
+    if (ccUrlEl) ccUrlEl.value = '';
+    renderPhotoGrid();
     // Clear site planner
     clearPlanningMap();
     clearPlanSnapshot();
@@ -6279,7 +6391,23 @@ ${propPts.map(p => `        ${(+p.lng).toFixed(8)},${(+p.lat).toFixed(8)},0`).jo
     <input id="login-pin" type="password" inputmode="numeric" maxlength="6" placeholder="&#8226;&#8226;&#8226;&#8226;" autocomplete="off" onkeydown="if(event.key==='Enter')doLogin()">
     <button class="login-submit" onclick="doLogin()">Sign In</button>
     <div id="login-error"></div>
+    <div id="google-signin-wrap" style="display:none;margin-top:16px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <div style="flex:1;height:1px;background:var(--border)"></div>
+        <span style="font-size:.78rem;color:var(--muted)">or</span>
+        <div style="flex:1;height:1px;background:var(--border)"></div>
+      </div>
+      <div id="google-signin-btn" style="display:flex;justify-content:center"></div>
+      <div id="google-signin-error" style="font-size:.78rem;color:#c00;text-align:center;margin-top:8px"></div>
+    </div>
   </div>
+</div>
+
+<!-- Lead Notification Toast -->
+<div id="lead-toast">
+  <span class="toast-msg" id="lead-toast-msg">&#128276; New Lead</span>
+  <button class="toast-view" onclick="toastViewLead()">View</button>
+  <button class="toast-close" onclick="dismissLeadToast()">&#10005;</button>
 </div>
 
 <!-- Admin PIN Management Modal -->
@@ -6324,6 +6452,37 @@ ${propPts.map(p => `        ${(+p.lng).toFixed(8)},${(+p.lat).toFixed(8)},0`).jo
         </label>
       </div>
       <button onclick="saveAdminChecklists()" class="print-btn" style="width:100%;background:#2E7D32;margin-top:10px">Save Checklists</button>
+    </div>
+    <div style="border-top:1px solid var(--border);padding-top:16px;margin-top:4px">
+      <div style="font-size:.8rem;font-weight:700;color:var(--brand);margin-bottom:8px">&#128202; Google Sheets &#8594; Leads</div>
+      <div style="font-size:.73rem;color:var(--muted);margin-bottom:8px">Connect a Google Apps Script Web App to auto-create leads from new form submissions.</div>
+      <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:4px">Apps Script URL<br>
+        <input id="gsheets-script-url" type="url" placeholder="https://script.google.com/macros/s/.../exec"
+          style="width:100%;padding:7px 8px;border:1px solid var(--border);border-radius:4px;font-size:.8rem;margin-top:3px;box-sizing:border-box">
+      </label>
+      <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:8px">Check every<br>
+        <select id="gsheets-interval" style="width:100%;padding:7px 8px;border:1px solid var(--border);border-radius:4px;font-size:.8rem;margin-top:3px">
+          <option value="1">1 minute</option>
+          <option value="5" selected>5 minutes</option>
+          <option value="15">15 minutes</option>
+          <option value="0">Off</option>
+        </select>
+      </label>
+      <button onclick="saveGsheetsConfig()" class="print-btn" style="width:100%;background:#1565C0;margin-bottom:8px">Save &amp; Start</button>
+      <div style="font-size:.75rem;color:var(--muted)">Status: <span id="gsheets-status">Not configured</span></div>
+    </div>
+    <div style="border-top:1px solid var(--border);padding-top:16px;margin-top:4px">
+      <div style="font-size:.8rem;font-weight:700;color:var(--brand);margin-bottom:8px">&#128275; Google Sign-In</div>
+      <div style="font-size:.73rem;color:var(--muted);margin-bottom:8px">Allow team members to sign in with their Google account.</div>
+      <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:6px">Google Client ID<br>
+        <input id="google-client-id" type="text" placeholder="xxxx.apps.googleusercontent.com"
+          style="width:100%;padding:7px 8px;border:1px solid var(--border);border-radius:4px;font-size:.8rem;margin-top:3px;box-sizing:border-box">
+      </label>
+      <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:8px">Email &#8594; Role mapping (one per line, format: email@domain.com=admin)<br>
+        <textarea id="google-email-roles" rows="4" placeholder="boss@company.com=admin&#10;foreman@company.com=fencer"
+          style="width:100%;padding:7px 8px;border:1px solid var(--border);border-radius:4px;font-size:.78rem;margin-top:3px;resize:vertical;font-family:inherit;box-sizing:border-box"></textarea>
+      </label>
+      <button onclick="saveGoogleAuth()" class="print-btn" style="width:100%;background:#C8530A">Save Google Auth</button>
     </div>
   </div>
 </div>
@@ -6433,6 +6592,22 @@ function openAdminPanel() {
     var ta = document.getElementById('admin-cl-' + type);
     if (ta) ta.value = getChecklist(type).join('\n');
   });
+  // Load gsheets config
+  var gsCfg = {};
+  try { gsCfg = JSON.parse(localStorage.getItem('fsig-gsheets') || '{}'); } catch(e) {}
+  var gsUrl = document.getElementById('gsheets-script-url');
+  if (gsUrl) gsUrl.value = gsCfg.url || '';
+  var gsInt = document.getElementById('gsheets-interval');
+  if (gsInt && gsCfg.interval !== undefined) gsInt.value = String(gsCfg.interval);
+  var gsSt = document.getElementById('gsheets-status');
+  if (gsSt) gsSt.textContent = gsCfg.url ? (gsCfg.interval === 0 ? 'Polling off.' : 'Polling every ' + gsCfg.interval + ' min.') : 'Not configured';
+  // Load Google auth config
+  var gaCfg = {};
+  try { gaCfg = JSON.parse(localStorage.getItem('fsig-google-auth') || '{}'); } catch(e) {}
+  var gaId = document.getElementById('google-client-id');
+  if (gaId) gaId.value = gaCfg.clientId || '';
+  var gaRoles = document.getElementById('google-email-roles');
+  if (gaRoles) gaRoles.value = gaCfg.emailRoles || '';
   document.getElementById('admin-pin-modal').style.display = 'flex';
 }
 
@@ -6469,10 +6644,12 @@ function saveAdminPins() {
     if (s && s.role) {
       _applyRole(s.role);
       document.getElementById('login-screen').style.display = 'none';
+      startGsheetsPolling();
       return;
     }
   } catch(e) {}
-  // No valid session — login screen stays visible (default display:flex)
+  // No valid session — show login screen; initialize Google Sign-In
+  initGoogleSignIn();
 })();
 
 // ── Voice Fill ───────────────────────────────────────────────────────────────
@@ -6482,6 +6659,167 @@ function saveClaudeKey() {
   var key = (document.getElementById('claude-api-key-input') || {}).value || '';
   localStorage.setItem('fsig-claude-key', key.trim());
   alert('Claude API key saved.');
+}
+
+// ── Google Sheets Lead Polling ───────────────────────────────────────────────
+var _gsheetsTimer = null;
+var _gsheetsLastCount = parseInt(localStorage.getItem('fsig-gsheets-count') || '0', 10);
+
+function saveGsheetsConfig() {
+  var url = (document.getElementById('gsheets-script-url') || {}).value || '';
+  var interval = parseInt((document.getElementById('gsheets-interval') || {}).value || '5', 10);
+  localStorage.setItem('fsig-gsheets', JSON.stringify({ url: url, interval: interval }));
+  startGsheetsPolling();
+  var st = document.getElementById('gsheets-status');
+  if (st) st.textContent = interval === 0 ? 'Polling off.' : 'Polling every ' + interval + ' min.';
+  alert('Google Sheets config saved.');
+}
+
+function startGsheetsPolling() {
+  if (_gsheetsTimer) { clearInterval(_gsheetsTimer); _gsheetsTimer = null; }
+  var cfg = {};
+  try { cfg = JSON.parse(localStorage.getItem('fsig-gsheets') || '{}'); } catch(e) {}
+  if (!cfg.url || !cfg.interval || cfg.interval === 0) {
+    var st = document.getElementById('gsheets-status');
+    if (st) st.textContent = cfg.url ? 'Polling off.' : 'Not configured';
+    return;
+  }
+  var st = document.getElementById('gsheets-status');
+  if (st) st.textContent = 'Polling every ' + cfg.interval + ' min.';
+  _gsheetsTimer = setInterval(gsheetsCheck, cfg.interval * 60000);
+}
+
+function gsheetsCheck() {
+  var cfg = {};
+  try { cfg = JSON.parse(localStorage.getItem('fsig-gsheets') || '{}'); } catch(e) {}
+  if (!cfg.url) return;
+  fetch(cfg.url)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var rows = (data && Array.isArray(data.rows)) ? data.rows : [];
+      var newCount = rows.length;
+      if (newCount > _gsheetsLastCount) {
+        var newRows = rows.slice(_gsheetsLastCount);
+        newRows.forEach(function(row) { gsheetsCreateLead(row); });
+        _gsheetsLastCount = newCount;
+        localStorage.setItem('fsig-gsheets-count', String(newCount));
+      }
+    })
+    .catch(function(e) { console.warn('Gsheets poll error:', e); });
+}
+
+function gsheetsCreateLead(row) {
+  // Build a pipeline lead from the row
+  var name = [row.firstName || '', row.lastName || ''].filter(Boolean).join(' ') || 'New Lead';
+  var phone = row.phone || '';
+  var email = row.email || '';
+  var address = row.address || '';
+  var service = row.services || row.service || '';
+  var details = row.details || '';
+  var source = row.source || 'Website';
+
+  // Create pipeline lead
+  var leads = [];
+  try { leads = JSON.parse(localStorage.getItem('fsig-pipeline') || '[]'); } catch(e) {}
+  var lead = {
+    id: Date.now() + Math.random(),
+    name: name,
+    phone: phone,
+    email: email,
+    address: address,
+    service: service,
+    notes: details,
+    source: source,
+    stage: 'lead',
+    created: new Date().toISOString(),
+    fromSheet: true
+  };
+  leads.push(lead);
+  localStorage.setItem('fsig-pipeline', JSON.stringify(leads));
+  if (typeof renderPipeline === 'function') renderPipeline();
+
+  // Show toast notification
+  showLeadToast('&#128276; New Lead: ' + name + (service ? ' — ' + service : ''));
+
+  // Try browser Notification API
+  if (window.Notification && Notification.permission === 'granted') {
+    new Notification('New Lead: ' + name, { body: service || address || email, icon: '' });
+  } else if (window.Notification && Notification.permission !== 'denied') {
+    Notification.requestPermission();
+  }
+}
+
+var _leadToastTimer = null;
+function showLeadToast(msg) {
+  var t = document.getElementById('lead-toast');
+  var m = document.getElementById('lead-toast-msg');
+  if (!t) return;
+  if (m) m.innerHTML = msg;
+  t.style.display = 'flex';
+  if (_leadToastTimer) clearTimeout(_leadToastTimer);
+  _leadToastTimer = setTimeout(dismissLeadToast, 8000);
+}
+
+function dismissLeadToast() {
+  var t = document.getElementById('lead-toast');
+  if (t) t.style.display = 'none';
+  if (_leadToastTimer) { clearTimeout(_leadToastTimer); _leadToastTimer = null; }
+}
+
+function toastViewLead() {
+  dismissLeadToast();
+  // Scroll to pipeline section
+  var pipeEl = document.getElementById('pipeline-section') || document.querySelector('[data-section="pipeline"]') || document.querySelector('.pipeline-board');
+  if (pipeEl) pipeEl.scrollIntoView({ behavior: 'smooth' });
+}
+
+// ── Google Sign-In ───────────────────────────────────────────────────────────
+function saveGoogleAuth() {
+  var clientId = (document.getElementById('google-client-id') || {}).value || '';
+  var emailRoles = (document.getElementById('google-email-roles') || {}).value || '';
+  localStorage.setItem('fsig-google-auth', JSON.stringify({ clientId: clientId.trim(), emailRoles: emailRoles.trim() }));
+  alert('Google Auth settings saved.');
+  initGoogleSignIn();
+}
+
+function initGoogleSignIn() {
+  var config = {};
+  try { config = JSON.parse(localStorage.getItem('fsig-google-auth') || '{}'); } catch(e) {}
+  var wrap = document.getElementById('google-signin-wrap');
+  if (!config.clientId) { if (wrap) wrap.style.display = 'none'; return; }
+  if (!window.google || !window.google.accounts || !window.google.accounts.id) {
+    // Library not yet loaded; try again shortly
+    setTimeout(initGoogleSignIn, 500);
+    return;
+  }
+  try {
+    google.accounts.id.initialize({ client_id: config.clientId, callback: handleGoogleCredential });
+    google.accounts.id.renderButton(document.getElementById('google-signin-btn'), { theme: 'outline', size: 'large', width: 280 });
+    if (wrap) wrap.style.display = 'block';
+  } catch(e) { console.warn('Google Sign-In init error:', e); }
+}
+
+function handleGoogleCredential(response) {
+  // Decode JWT payload (no verification needed for client-side role lookup)
+  var parts = (response.credential || '').split('.');
+  if (parts.length < 2) { document.getElementById('google-signin-error').textContent = 'Invalid credential.'; return; }
+  var payload = {};
+  try { payload = JSON.parse(atob(parts[1].replace(/-/g,'+').replace(/_/g,'/'))); } catch(e) { document.getElementById('google-signin-error').textContent = 'Could not read credential.'; return; }
+  var email = (payload.email || '').toLowerCase().trim();
+  var config = {};
+  try { config = JSON.parse(localStorage.getItem('fsig-google-auth') || '{}'); } catch(e) {}
+  var roleMap = {};
+  (config.emailRoles || '').split('\n').forEach(function(line) {
+    var parts2 = line.trim().split('=');
+    if (parts2.length === 2) roleMap[parts2[0].trim().toLowerCase()] = parts2[1].trim().toLowerCase();
+  });
+  var role = roleMap[email];
+  var errEl = document.getElementById('google-signin-error');
+  if (!role) { if (errEl) errEl.textContent = 'Your Google account is not authorized.'; return; }
+  sessionStorage.setItem('fsig-session', JSON.stringify({ role: role, time: Date.now(), googleEmail: email }));
+  _applyRole(role);
+  document.getElementById('login-screen').style.display = 'none';
+  startGsheetsPolling();
 }
 
 var _voiceRecognition = null;
