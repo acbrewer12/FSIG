@@ -766,6 +766,11 @@
     #lead-toast .toast-msg { flex:1; font-weight:600; }
     #lead-toast .toast-view { background:rgba(255,255,255,.25); border:1px solid rgba(255,255,255,.5); color:#fff; padding:4px 12px; border-radius:4px; cursor:pointer; font-size:.82rem; font-family:inherit; white-space:nowrap; }
     #lead-toast .toast-close { background:none; border:none; color:#fff; font-size:1.1rem; cursor:pointer; padding:0 2px; line-height:1; }
+    /* ── Auto-update banner ── */
+    #update-banner { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#1565C0; color:#fff; padding:12px 18px; border-radius:8px; box-shadow:0 4px 18px rgba(0,0,0,.35); z-index:9991; display:none; align-items:center; gap:12px; min-width:300px; max-width:90vw; font-size:.88rem; }
+    #update-banner .toast-msg { flex:1; font-weight:600; }
+    #update-banner .toast-view { background:rgba(255,255,255,.25); border:1px solid rgba(255,255,255,.5); color:#fff; padding:4px 12px; border-radius:4px; cursor:pointer; font-size:.82rem; font-family:inherit; white-space:nowrap; }
+    #update-banner .toast-close { background:none; border:none; color:#fff; font-size:1.1rem; cursor:pointer; padding:0 2px; line-height:1; }
   </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -4063,6 +4068,21 @@
       renderPipeline();
     } catch(e) {}
     try { restoreStainOnHand(); updateStainOnHand(); } catch(e) {}
+
+    // Auto-update restore: if we just reloaded after a version change, restore saved work
+    var wasUpdated = localStorage.getItem('fsig-update-pending') === '1';
+    if (wasUpdated) {
+      localStorage.removeItem('fsig-update-pending');
+      setTimeout(function() {
+        try {
+          var restored = restoreDraft();
+          if (restored) showLeadToast('&#10003; App updated — your work has been restored');
+        } catch(e) {}
+        try { startVersionPolling(); } catch(e) {}
+      }, 300);
+    } else {
+      try { startVersionPolling(); } catch(e) {}
+    }
   });
   var PIPE_STAGES = [
     { id:'lead',        label:'Lead / Needs Bid', color:'#C8530A' },
@@ -6611,6 +6631,13 @@ ${propPts.map(p => `        ${(+p.lng).toFixed(8)},${(+p.lat).toFixed(8)},0`).jo
   <button class="toast-close" onclick="dismissLeadToast()">&#10005;</button>
 </div>
 
+<!-- Auto-Update Banner -->
+<div id="update-banner">
+  <span class="toast-msg" id="update-banner-msg">&#128260; New version available — updating in <span id="update-countdown">5</span>s</span>
+  <button class="toast-view" onclick="applyUpdate()">Update Now</button>
+  <button class="toast-close" onclick="dismissUpdateBanner()">&#10005;</button>
+</div>
+
 <!-- Admin PIN Management Modal -->
 <div id="admin-pin-modal">
   <div style="background:#fff;border-radius:12px;padding:28px;max-width:360px;width:92%;box-shadow:0 8px 32px rgba(0,0,0,.35);max-height:90vh;overflow-y:auto">
@@ -6972,6 +6999,106 @@ function toastViewLead() {
   // Scroll to pipeline section
   var pipeEl = document.getElementById('pipeline-section') || document.querySelector('[data-section="pipeline"]') || document.querySelector('.pipeline-board');
   if (pipeEl) pipeEl.scrollIntoView({ behavior: 'smooth' });
+}
+
+// ── Auto-Update: draft save / restore ───────────────────────────────────────
+var _DRAFT_ID = -9999;
+
+function saveDraft() {
+  try {
+    var state = getJobState();
+    state._draftTime = Date.now();
+    state._appMode   = localStorage.getItem('fsig-app-mode') || 'fence';
+    localStorage.setItem('fsig-draft', JSON.stringify(state));
+  } catch(e) {}
+}
+
+function restoreDraft() {
+  try {
+    var raw = localStorage.getItem('fsig-draft');
+    if (!raw) return false;
+    var state = JSON.parse(raw);
+    if (!state || !state._draftTime) return false;
+    if (Date.now() - state._draftTime > 3600000) { localStorage.removeItem('fsig-draft'); return false; }
+
+    // Restore app mode first
+    if (state._appMode) {
+      localStorage.setItem('fsig-app-mode', state._appMode);
+      if (typeof setAppMode === 'function') setAppMode(state._appMode);
+    }
+
+    // Inject as a temporary job entry so loadJob() handles all field restoration
+    var jobs = [];
+    try { jobs = JSON.parse(localStorage.getItem('fsig-jobs') || '[]'); } catch(e) {}
+    jobs = jobs.filter(function(j) { return j.id !== _DRAFT_ID; });
+    jobs.unshift({ id: _DRAFT_ID, label: '__draft__', status: state.jobStatus || 'pending', jobType: state._appMode, state: state });
+    localStorage.setItem('fsig-jobs', JSON.stringify(jobs));
+
+    loadJob(_DRAFT_ID);
+
+    // Remove the temporary entry after restoration
+    jobs = jobs.filter(function(j) { return j.id !== _DRAFT_ID; });
+    localStorage.setItem('fsig-jobs', JSON.stringify(jobs));
+    localStorage.removeItem('fsig-draft');
+    return true;
+  } catch(e) {
+    localStorage.removeItem('fsig-draft');
+    return false;
+  }
+}
+
+// ── Auto-Update: version polling ─────────────────────────────────────────────
+var _versionEtag    = null;
+var _versionTimer   = null;
+var _updateCountdownTimer = null;
+
+function startVersionPolling() {
+  if (_versionTimer) clearInterval(_versionTimer);
+  // Record fingerprint of current page version
+  fetch(location.pathname + '?_v=' + Date.now(), { method: 'HEAD', cache: 'no-store' })
+    .then(function(r) {
+      _versionEtag = r.headers.get('ETag') || r.headers.get('Last-Modified') || '';
+    })
+    .catch(function() {});
+  _versionTimer = setInterval(checkForUpdate, 5 * 60 * 1000); // every 5 min
+}
+
+function checkForUpdate() {
+  fetch(location.pathname + '?_v=' + Date.now(), { method: 'HEAD', cache: 'no-store' })
+    .then(function(r) {
+      var etag = r.headers.get('ETag') || r.headers.get('Last-Modified') || '';
+      if (!etag || !_versionEtag || etag === _versionEtag) return;
+      _versionEtag = etag; // prevent double-trigger
+      saveDraft();
+      localStorage.setItem('fsig-update-pending', '1');
+      showUpdateBanner();
+    })
+    .catch(function() {});
+}
+
+function showUpdateBanner() {
+  var banner = document.getElementById('update-banner');
+  if (!banner) { applyUpdate(); return; }
+  banner.style.display = 'flex';
+  var count = 5;
+  var cd = document.getElementById('update-countdown');
+  if (_updateCountdownTimer) clearInterval(_updateCountdownTimer);
+  _updateCountdownTimer = setInterval(function() {
+    count--;
+    if (cd) cd.textContent = count;
+    if (count <= 0) { clearInterval(_updateCountdownTimer); applyUpdate(); }
+  }, 1000);
+}
+
+function dismissUpdateBanner() {
+  var banner = document.getElementById('update-banner');
+  if (banner) banner.style.display = 'none';
+  if (_updateCountdownTimer) { clearInterval(_updateCountdownTimer); _updateCountdownTimer = null; }
+}
+
+function applyUpdate() {
+  dismissUpdateBanner();
+  location.reload(true);
 }
 
 // ── Google Sheets Push ──────────────────────────────────────────────────────
