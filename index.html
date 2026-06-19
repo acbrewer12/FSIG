@@ -1418,14 +1418,15 @@
         <div class="oh-row">
           <div class="oh-field">
             <label>Gallons on hand</label>
-            <input type="number" id="oh-stain-qty" step="0.5" min="0" placeholder="0" oninput="updateStainOnHand()">
+            <input type="number" id="oh-stain-qty" step="0.5" min="0" value="65" oninput="updateStainOnHand()">
           </div>
           <div class="oh-field">
             <label>Total paid ($)</label>
-            <input type="number" id="oh-stain-paid" step="0.01" min="0" placeholder="0.00" oninput="updateStainOnHand()">
+            <input type="number" id="oh-stain-paid" step="0.01" min="0" value="250" oninput="updateStainOnHand()">
           </div>
         </div>
         <div class="oh-calc" id="oh-stain-calc">—</div>
+        <div style="font-size:.72rem;color:var(--muted);margin-bottom:5px">Standard order: 13 × 5-gal buckets = 65 gal / $250</div>
         <div class="oh-status" id="oh-stain-status"></div>
       </div>
       <div class="oh-section">
@@ -1492,7 +1493,7 @@
         </tr>
         <tr>
           <td>Cost per Gallon ($)</td>
-          <td><input type="number" id="s-gal-cost" value="35.33" step="0.01" min="0" /></td>
+          <td><input type="number" id="s-gal-cost" value="3.85" step="0.01" min="0" /></td>
         </tr>
         <tr>
           <td>Material Cost</td>
@@ -4004,6 +4005,7 @@
       _pipeTab = m;
       renderPipeline();
     } catch(e) {}
+    try { updateStainOnHand(); } catch(e) {}
   });
   var PIPE_STAGES = [
     { id:'lead',        label:'Lead / Needs Bid', color:'#C8530A' },
