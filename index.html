@@ -7018,11 +7018,16 @@ function openAdminPanel() {
     var ta = document.getElementById('admin-cl-' + type);
     if (ta) ta.value = getChecklist(type).join('\n');
   });
-  // Load gsheets config
+  // Load gsheets config — seed built-in URL if not yet set
   var gsCfg = {};
   try { gsCfg = JSON.parse(localStorage.getItem('fsig-gsheets') || '{}'); } catch(e) {}
+  if (!gsCfg.url) {
+    gsCfg.url = FSIG_SHEETS_URL;
+    gsCfg.interval = gsCfg.interval || 5;
+    try { localStorage.setItem('fsig-gsheets', JSON.stringify(gsCfg)); } catch(e) {}
+  }
   var gsUrl = document.getElementById('gsheets-script-url');
-  if (gsUrl) gsUrl.value = gsCfg.url || '';
+  if (gsUrl) gsUrl.value = gsCfg.url || FSIG_SHEETS_URL;
   var gsInt = document.getElementById('gsheets-interval');
   if (gsInt && gsCfg.interval !== undefined) gsInt.value = String(gsCfg.interval);
   var gsSt = document.getElementById('gsheets-status');
@@ -7208,6 +7213,9 @@ function toastViewLead() {
   var pipeEl = document.getElementById('pipeline-section') || document.querySelector('[data-section="pipeline"]') || document.querySelector('.pipeline-board');
   if (pipeEl) pipeEl.scrollIntoView({ behavior: 'smooth' });
 }
+
+// ── Built-in Google Sheets URL ───────────────────────────────────────────────
+var FSIG_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxSlofCLqHaQgVNys7wVwjvDVO-VAYg7VVbSeYv47eZ4ploaPamXzr6e-nZsvpzlfNMwQ/exec';
 
 // ── Auto-Update: draft save / restore ───────────────────────────────────────
 var _DRAFT_ID = -9999;
