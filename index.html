@@ -4266,8 +4266,11 @@
       renderPipeline();
     } catch(e) {}
     try { renderInventory(); } catch(e) {}
-    // Auto-sync inventory from Sheets on load (silent — no toasts)
-    setTimeout(function() { try { syncInventoryFromSheets(true); } catch(e) {} }, 2000);
+    // Auto-sync settings + inventory from Sheets on load (silent)
+    setTimeout(function() {
+      try { syncSettingsFromSheets(true); } catch(e) {}
+      try { syncInventoryFromSheets(true); } catch(e) {}
+    }, 2000);
 
     // Auto-update restore: if we just reloaded after a version change, restore saved work
     var wasUpdated = localStorage.getItem('fsig-update-pending') === '1';
@@ -5683,6 +5686,7 @@
   function saveGmapsKey() {
     const key = (document.getElementById('gmaps-api-key')?.value || '').trim();
     localStorage.setItem('fsig-gmaps-key', key);
+    pushSetting('fsig-gmaps-key', key);
     // Tear down existing map and reinitialize
     if (planMap) {
       planLayers.forEach(l => _mapRemoveLayer(l));
@@ -7047,7 +7051,9 @@ function saveAdminChecklists() {
     var lines = ta.value.split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
     result[type] = lines;
   });
-  localStorage.setItem('fsig-checklists', JSON.stringify(result));
+  var clVal = JSON.stringify(result);
+  localStorage.setItem('fsig-checklists', clVal);
+  pushSetting('fsig-checklists', clVal);
   alert('Checklists saved.');
 }
 
@@ -7060,7 +7066,9 @@ function saveAdminPins() {
     var v = el ? el.value.trim() : '';
     pins[r] = v || _DEFAULT_PINS[r];
   });
-  localStorage.setItem('fsig-pins', JSON.stringify(pins));
+  var pinsVal = JSON.stringify(pins);
+  localStorage.setItem('fsig-pins', pinsVal);
+  pushSetting('fsig-pins', pinsVal);
   closeAdminPanel();
   alert('PINs saved.');
 }
@@ -7086,6 +7094,7 @@ function getClaudeKey() { return localStorage.getItem('fsig-claude-key') || ''; 
 function saveClaudeKey() {
   var key = (document.getElementById('claude-api-key-input') || {}).value || '';
   localStorage.setItem('fsig-claude-key', key.trim());
+  pushSetting('fsig-claude-key', key.trim());
   alert('Claude API key saved.');
 }
 
@@ -7096,7 +7105,9 @@ var _gsheetsLastCount = parseInt(localStorage.getItem('fsig-gsheets-count') || '
 function saveGsheetsConfig() {
   var url = (document.getElementById('gsheets-script-url') || {}).value || '';
   var interval = parseInt((document.getElementById('gsheets-interval') || {}).value || '5', 10);
-  localStorage.setItem('fsig-gsheets', JSON.stringify({ url: url, interval: interval }));
+  var gsCfgVal = JSON.stringify({ url: url, interval: interval });
+  localStorage.setItem('fsig-gsheets', gsCfgVal);
+  if (url) pushSetting('fsig-gsheets', gsCfgVal);
   startGsheetsPolling();
   var st = document.getElementById('gsheets-status');
   if (st) st.textContent = interval === 0 ? 'Polling off.' : 'Polling every ' + interval + ' min.';
@@ -7134,8 +7145,9 @@ function gsheetsCheck() {
       }
     })
     .catch(function(e) { console.warn('Gsheets poll error:', e); });
-  // Also silently sync inventory on every poll
-  if (typeof syncInventoryFromSheets === 'function') syncInventoryFromSheets(true);
+  // Also silently sync settings + inventory on every poll
+  if (typeof syncSettingsFromSheets   === 'function') syncSettingsFromSheets(true);
+  if (typeof syncInventoryFromSheets  === 'function') syncInventoryFromSheets(true);
 }
 
 function gsheetsCreateLead(row) {
@@ -7318,11 +7330,92 @@ function pushToSheets(type, data) {
   }).catch(function() {});
 }
 
+// ── Settings Sync ────────────────────────────────────────────────────────────
+var SYNCED_SETTING_KEYS = [
+  'fsig-gsheets','fsig-claude-key','fsig-gmaps-key',
+  'fsig-google-auth','fsig-pins','fsig-checklists',
+  'fsig-inventory','fsig-app-mode'
+];
+
+function pushSetting(key, value) {
+  var cfg = {};
+  try { cfg = JSON.parse(localStorage.getItem('fsig-gsheets') || '{}'); } catch(e) {}
+  if (!cfg.url) return;
+  var strVal = (typeof value === 'string') ? value : JSON.stringify(value);
+  fetch(cfg.url, {
+    method: 'POST', mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'settings', key: key, value: strVal })
+  }).catch(function() {});
+}
+
+function syncSettingsFromSheets(silent) {
+  var cfg = {};
+  try { cfg = JSON.parse(localStorage.getItem('fsig-gsheets') || '{}'); } catch(e) {}
+  if (!cfg.url) return;
+  fetch(cfg.url + '?type=settings')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var settings = data.settings || {};
+      var applied = 0;
+      SYNCED_SETTING_KEYS.forEach(function(key) {
+        if (!(key in settings) || !settings[key]) return;
+        // Don't overwrite fsig-gsheets with an empty URL
+        if (key === 'fsig-gsheets') {
+          try { if (!JSON.parse(settings[key]).url) return; } catch(e) { return; }
+        }
+        localStorage.setItem(key, settings[key]);
+        applied++;
+      });
+      if (applied > 0) _applySettingsToUI(settings);
+      if (!silent) showLeadToast('&#10003; Settings synced (' + applied + ' keys)');
+    })
+    .catch(function() { if (!silent) console.warn('Settings sync failed'); });
+}
+
+function _applySettingsToUI(settings) {
+  var sv = function(id, val) { var el=document.getElementById(id); if(el && val) el.value=val; };
+  try {
+    if (settings['fsig-gsheets']) {
+      var gs = JSON.parse(settings['fsig-gsheets']);
+      sv('gsheets-script-url', gs.url);
+      sv('gsheets-interval', gs.interval);
+    }
+  } catch(e) {}
+  sv('claude-api-key-input', settings['fsig-claude-key']);
+  sv('gmaps-api-key', settings['fsig-gmaps-key']);
+  try {
+    if (settings['fsig-google-auth']) {
+      var ga = JSON.parse(settings['fsig-google-auth']);
+      sv('google-client-id', ga.clientId);
+      sv('google-email-roles', ga.emailRoles);
+      if (typeof initGoogleSignIn === 'function') initGoogleSignIn();
+    }
+  } catch(e) {}
+  try {
+    if (settings['fsig-checklists']) {
+      var cl = JSON.parse(settings['fsig-checklists']);
+      ['residential','chainlink','pipe','ag','stain'].forEach(function(t) {
+        var ta = document.getElementById('admin-cl-' + t);
+        if (ta && cl[t]) ta.value = Array.isArray(cl[t]) ? cl[t].join('\n') : cl[t];
+      });
+    }
+  } catch(e) {}
+  try {
+    if (settings['fsig-inventory']) renderInventory();
+  } catch(e) {}
+  try {
+    if (settings['fsig-app-mode'] && typeof setAppMode === 'function') setAppMode(settings['fsig-app-mode']);
+  } catch(e) {}
+}
+
 // ── Google Sign-In ───────────────────────────────────────────────────────────
 function saveGoogleAuth() {
   var clientId = (document.getElementById('google-client-id') || {}).value || '';
   var emailRoles = (document.getElementById('google-email-roles') || {}).value || '';
-  localStorage.setItem('fsig-google-auth', JSON.stringify({ clientId: clientId.trim(), emailRoles: emailRoles.trim() }));
+  var gaVal = JSON.stringify({ clientId: clientId.trim(), emailRoles: emailRoles.trim() });
+  localStorage.setItem('fsig-google-auth', gaVal);
+  pushSetting('fsig-google-auth', gaVal);
   alert('Google Auth settings saved.');
   initGoogleSignIn();
 }

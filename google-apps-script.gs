@@ -5,12 +5,14 @@ var SHEET_LEADS     = 'Website Leads';
 var SHEET_JOBS      = 'Jobs';
 var SHEET_PIPELINE  = 'Pipeline';
 var SHEET_INVENTORY = 'Inventory';
+var SHEET_SETTINGS  = 'Settings';
 
 // ── GET: route by ?type= parameter ─────────────────────────────────────────
 function doGet(e) {
   var type = (e && e.parameter && e.parameter.type) || 'leads';
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   if (type === 'inventory') return getSheetRows(ss, SHEET_INVENTORY, 'items');
+  if (type === 'settings')  return getSettings(ss);
   return getSheetRows(ss, SHEET_LEADS, 'rows');
 }
 
@@ -27,6 +29,17 @@ function getSheetRows(ss, sheetName, key) {
   var out = {};
   out[key] = data;
   return jsonOut(out);
+}
+
+function getSettings(ss) {
+  var sheet = getOrCreateSheet(ss, SHEET_SETTINGS);
+  if (sheet.getLastRow() <= 1) return jsonOut({ settings: {} });
+  var rows = sheet.getDataRange().getValues();
+  var settings = {};
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][0]) settings[rows[i][0]] = rows[i][1];
+  }
+  return jsonOut({ settings: settings });
 }
 
 // ── POST: write to the appropriate sheet by type ────────────────────────────
@@ -53,9 +66,32 @@ function doPost(e) {
       payload);
   } else if (type === 'inventory') {
     upsertInventoryItem(ss, payload);
+  } else if (type === 'settings') {
+    upsertSetting(ss, payload);
   }
 
   return jsonOut({ ok: true, type: type });
+}
+
+// ── Settings upsert: find row by key and update, or append ─────────────────
+function upsertSetting(ss, data) {
+  var sheet = getOrCreateSheet(ss, SHEET_SETTINGS);
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(['key', 'value', 'updatedAt']);
+    sheet.getRange(1, 1, 1, 3).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+  var updatedAt = new Date().toISOString();
+  if (data.key && sheet.getLastRow() > 1) {
+    var rows = sheet.getDataRange().getValues();
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i][0] === data.key) {
+        sheet.getRange(i + 1, 1, 1, 3).setValues([[data.key, data.value, updatedAt]]);
+        return;
+      }
+    }
+  }
+  sheet.appendRow([data.key, data.value, updatedAt]);
 }
 
 // ── Inventory upsert: find row by id and update, or append ─────────────────
@@ -73,8 +109,6 @@ function upsertInventoryItem(ss, data) {
     var p = parseFloat(data.paid) || 0;
     data.costPerUnit = (q > 0 && p > 0) ? String((p / q).toFixed(2)) : '0';
   }
-
-  // Try to find existing row by id
   if (data.id && sheet.getLastRow() > 1) {
     var allData = sheet.getDataRange().getValues();
     var idCol = allData[0].indexOf('id');
@@ -88,8 +122,6 @@ function upsertInventoryItem(ss, data) {
       }
     }
   }
-
-  // Append new
   var row = headers.map(function(h) { return data[h] !== undefined ? String(data[h]) : ''; });
   sheet.appendRow(row);
 }
