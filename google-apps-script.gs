@@ -1,19 +1,22 @@
 // Holliday Welding & Fence — Google Sheets Integration
-// Paste this entire file into Google Apps Script (script.google.com)
-// Then: Deploy → New deployment → Web App → Execute as "Me" → Anyone can access
-
 var SPREADSHEET_ID = ''; // <-- Paste your Google Spreadsheet ID here
 
-var SHEET_LEADS    = 'Website Leads';
-var SHEET_JOBS     = 'Jobs';
-var SHEET_PIPELINE = 'Pipeline';
+var SHEET_LEADS     = 'Website Leads';
+var SHEET_JOBS      = 'Jobs';
+var SHEET_PIPELINE  = 'Pipeline';
+var SHEET_INVENTORY = 'Inventory';
 
-// ── GET: return website leads for FSIG app polling ─────────────────────────
+// ── GET: route by ?type= parameter ─────────────────────────────────────────
 function doGet(e) {
+  var type = (e && e.parameter && e.parameter.type) || 'leads';
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = getOrCreateSheet(ss, SHEET_LEADS);
-  var lastRow = sheet.getLastRow();
-  if (lastRow <= 1) return jsonOut({ rows: [] });
+  if (type === 'inventory') return getSheetRows(ss, SHEET_INVENTORY, 'items');
+  return getSheetRows(ss, SHEET_LEADS, 'rows');
+}
+
+function getSheetRows(ss, sheetName, key) {
+  var sheet = getOrCreateSheet(ss, sheetName);
+  if (sheet.getLastRow() <= 1) return jsonOut(key === 'items' ? { items: [] } : { rows: [] });
   var rows = sheet.getDataRange().getValues();
   var headers = rows[0];
   var data = rows.slice(1).map(function(row) {
@@ -21,17 +24,15 @@ function doGet(e) {
     headers.forEach(function(h, i) { obj[h] = row[i]; });
     return obj;
   });
-  return jsonOut({ rows: data });
+  var out = {};
+  out[key] = data;
+  return jsonOut(out);
 }
 
 // ── POST: write to the appropriate sheet by type ────────────────────────────
 function doPost(e) {
   var payload;
-  try {
-    payload = JSON.parse(e.postData.contents);
-  } catch(err) {
-    return jsonOut({ ok: false, error: 'bad json' });
-  }
+  try { payload = JSON.parse(e.postData.contents); } catch(err) { return jsonOut({ ok: false, error: 'bad json' }); }
 
   var type = (payload.type || 'contact').toLowerCase();
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -50,17 +51,53 @@ function doPost(e) {
     writeRow(ss, SHEET_PIPELINE,
       ['timestamp','name','phone','address','type','status','bidAmount','startDate','notes'],
       payload);
+  } else if (type === 'inventory') {
+    upsertInventoryItem(ss, payload);
   }
 
   return jsonOut({ ok: true, type: type });
 }
 
+// ── Inventory upsert: find row by id and update, or append ─────────────────
+function upsertInventoryItem(ss, data) {
+  var headers = ['id','name','category','unit','qty','paid','costPerUnit','reorderAt','notes','updatedAt'];
+  var sheet = getOrCreateSheet(ss, SHEET_INVENTORY);
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(headers);
+    sheet.getRange(1,1,1,headers.length).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+  data.updatedAt = new Date().toISOString();
+  if (data.qty !== undefined && data.paid !== undefined) {
+    var q = parseFloat(data.qty) || 0;
+    var p = parseFloat(data.paid) || 0;
+    data.costPerUnit = (q > 0 && p > 0) ? String((p / q).toFixed(2)) : '0';
+  }
+
+  // Try to find existing row by id
+  if (data.id && sheet.getLastRow() > 1) {
+    var allData = sheet.getDataRange().getValues();
+    var idCol = allData[0].indexOf('id');
+    for (var i = 1; i < allData.length; i++) {
+      if (String(allData[i][idCol]) === String(data.id)) {
+        var updatedRow = headers.map(function(h) {
+          return data[h] !== undefined ? String(data[h]) : String(allData[i][headers.indexOf(h)] || '');
+        });
+        sheet.getRange(i + 1, 1, 1, headers.length).setValues([updatedRow]);
+        return;
+      }
+    }
+  }
+
+  // Append new
+  var row = headers.map(function(h) { return data[h] !== undefined ? String(data[h]) : ''; });
+  sheet.appendRow(row);
+}
+
 // ── helpers ─────────────────────────────────────────────────────────────────
 function getOrCreateSheet(ss, name) {
   var sheet = ss.getSheetByName(name);
-  if (!sheet) {
-    sheet = ss.insertSheet(name);
-  }
+  if (!sheet) sheet = ss.insertSheet(name);
   return sheet;
 }
 

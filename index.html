@@ -213,19 +213,36 @@
     .cost-section.stain  .section-label { background: var(--accent); color: #fff; }
     .cost-section.bleach .section-label { background: #1565C0; color: #fff; }
 
-    /* ── ON HAND MATERIALS ── */
-    .oh-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
-    .oh-section { background:var(--bg-alt); border-radius:8px; padding:14px 16px; }
-    .oh-label { font-weight:700; font-size:.85rem; color:var(--text); margin-bottom:10px; padding-bottom:7px; border-bottom:1px solid var(--border); }
-    .oh-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px; }
-    .oh-field { display:flex; flex-direction:column; gap:3px; }
-    .oh-field label { font-size:.72rem; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.03em; }
-    .oh-field input { padding:6px 8px; border:1px solid var(--border); border-radius:5px; font-size:.9rem; color:var(--text); background:#fff; width:100%; }
-    .oh-calc { font-size:.95rem; font-weight:700; color:var(--accent); min-height:1.2em; margin-bottom:6px; }
-    .oh-status { font-size:.8rem; font-weight:600; padding:5px 9px; border-radius:4px; display:none; line-height:1.4; }
-    .oh-status.ok   { background:#e8f5e9; color:#2e7d32; display:block; }
-    .oh-status.warn { background:#fff3e0; color:#bf360c; display:block; }
-    @media(max-width:600px){ .oh-grid{ grid-template-columns:1fr; } .oh-row{ grid-template-columns:1fr 1fr; } }
+    /* ── Inventory / On Hand ── */
+    .inv-item { background:var(--bg-alt); border-radius:8px; padding:12px 14px; margin-bottom:10px; }
+    .inv-item-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+    .inv-item-name { font-weight:700; font-size:.9rem; }
+    .inv-body { display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap; margin-bottom:6px; }
+    .inv-qty-wrap { display:flex; align-items:center; gap:5px; }
+    .inv-qty-btn { background:var(--accent); color:#fff; border:none; border-radius:4px; width:28px; height:28px; font-size:1.1rem; cursor:pointer; font-weight:700; line-height:1; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .inv-qty-input { width:72px; padding:5px 7px; border:1px solid var(--border); border-radius:5px; font-size:.9rem; font-weight:700; text-align:center; color:var(--text); background:#fff; }
+    .inv-unit-label { font-size:.78rem; color:var(--muted); font-weight:600; min-width:24px; }
+    .inv-paid-wrap { display:flex; flex-direction:column; gap:2px; }
+    .inv-paid-wrap label { font-size:.7rem; color:var(--muted); font-weight:700; text-transform:uppercase; }
+    .inv-paid-input { width:90px; padding:5px 7px; border:1px solid var(--border); border-radius:5px; font-size:.88rem; }
+    .inv-cpg { font-size:.92rem; font-weight:700; color:var(--accent); min-width:80px; }
+    .inv-status { font-size:.78rem; font-weight:600; padding:4px 8px; border-radius:4px; margin-top:4px; display:inline-block; }
+    .inv-status.ok   { background:#e8f5e9; color:#2e7d32; }
+    .inv-status.warn { background:#fff3e0; color:#bf360c; }
+    .inv-low-banner  { background:#fff3e0; border:1px solid #f57c00; border-radius:6px; padding:9px 13px; margin-bottom:12px; font-size:.82rem; color:#e65100; display:none; }
+    .inv-cat-badge { font-size:.68rem; font-weight:700; text-transform:uppercase; padding:2px 7px; border-radius:3px; }
+    .inv-cat-stain    { background:#fff8e1; color:#e65100; }
+    .inv-cat-fence    { background:#e8f5e9; color:#2e7d32; }
+    .inv-cat-hardware { background:#e3f2fd; color:#1565c0; }
+    .inv-cat-other    { background:#f3e5f5; color:#6a1b9a; }
+    .inv-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px; }
+    .inv-form-field { display:flex; flex-direction:column; gap:3px; }
+    .inv-form-field label { font-size:.7rem; color:var(--muted); font-weight:700; text-transform:uppercase; }
+    .inv-form-field input, .inv-form-field select { padding:7px 9px; border:1px solid var(--border); border-radius:5px; font-size:.88rem; color:var(--text); background:#fff; width:100%; box-sizing:border-box; }
+    .oh-calc { font-size:.95rem; font-weight:700; color:var(--accent); }
+    .oh-status { font-size:.8rem; font-weight:600; padding:5px 9px; border-radius:4px; }
+    .oh-status.ok   { background:#e8f5e9; color:#2e7d32; }
+    .oh-status.warn { background:#fff3e0; color:#bf360c; }
 
     table.cost-tbl {
       width: 100%;
@@ -1401,63 +1418,70 @@
     </div>
   </div>
 
-  <!-- On Hand Materials -->
+  <!-- On Hand Materials / Inventory -->
   <div class="card" data-section="stain">
-    <h2>On Hand — Stain Materials</h2>
-    <p style="font-size:.8rem;color:var(--muted);margin:-4px 0 14px">Enter what you have and what you paid — cost per gallon is auto-calculated and fills in below.</p>
-    <div class="oh-grid">
-      <div class="oh-section">
-        <div class="oh-label">Stain (Wood Defender)</div>
-        <div class="oh-field" style="margin-bottom:10px">
-          <label>Product / Color</label>
-          <select id="oh-stain-type" onchange="ohSelectStain(this.value)" style="padding:6px 8px;border:1px solid var(--border);border-radius:5px;font-size:.88rem;color:var(--text);background:#fff;width:100%">
-            <option value="">— select color —</option>
-            <optgroup label="$0.70 / sq ft · 125 sq ft / gal">
-              <option>Black Walnut</option><option>Cedar Tone</option><option>Chestnut</option>
-              <option>Clear Glow</option><option>Leatherwood</option><option>Oxford Brown</option>
-              <option>Redwood</option>
-            </optgroup>
-            <optgroup label="$0.65 / sq ft · 150 sq ft / gal">
-              <option>Barn Red</option><option>Black</option><option>Cape Cod</option>
-              <option>Chameleon Gray</option><option>Charcoal Gray</option><option>Coffee Brown</option>
-              <option>Colorado</option><option>Cumberland Brown</option><option>Dark Sierra</option>
-              <option>Desert Sand</option><option>Golden Rod</option><option>Graystone</option>
-              <option>Mesa Gray</option><option>Prairie Gray</option><option>Rustic Oak</option>
-              <option>Sable Brown</option><option>Sedona</option><option>Sierra</option>
-              <option>Wrangler</option>
-            </optgroup>
-          </select>
-        </div>
-        <div class="oh-row">
-          <div class="oh-field">
-            <label>Gallons on hand</label>
-            <input type="number" id="oh-stain-qty" step="0.5" min="0" value="5" oninput="updateStainOnHand()">
-          </div>
-          <div class="oh-field">
-            <label>Total paid ($)</label>
-            <input type="number" id="oh-stain-paid" step="0.01" min="0" value="220" oninput="updateStainOnHand()">
-          </div>
-        </div>
-        <div class="oh-calc" id="oh-stain-calc">—</div>
-        <div style="font-size:.72rem;color:var(--muted);margin-bottom:5px">Standard order: 1 × 5-gal bucket = 5 gal / $220</div>
-        <div class="oh-status" id="oh-stain-status"></div>
-      </div>
-      <div class="oh-section">
-        <div class="oh-label">Bleach / Cleaner</div>
-        <div class="oh-row">
-          <div class="oh-field">
-            <label>Gallons on hand</label>
-            <input type="number" id="oh-bleach-qty" step="0.5" min="0" placeholder="0" oninput="updateStainOnHand()">
-          </div>
-          <div class="oh-field">
-            <label>Total paid ($)</label>
-            <input type="number" id="oh-bleach-paid" step="0.01" min="0" placeholder="0.00" oninput="updateStainOnHand()">
-          </div>
-        </div>
-        <div class="oh-calc" id="oh-bleach-calc">—</div>
-        <div class="oh-status" id="oh-bleach-status"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <h2 style="margin:0">On Hand — Materials</h2>
+      <div style="display:flex;gap:6px">
+        <button onclick="syncInventoryFromSheets()" class="print-btn" style="font-size:.78rem;padding:5px 11px" title="Pull latest from Google Sheets">↓ Sync</button>
+        <button onclick="invOpenAdd()" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:5px 13px;cursor:pointer;font-size:.8rem;font-weight:700">+ Add Item</button>
       </div>
     </div>
+    <p style="font-size:.78rem;color:var(--muted);margin:0 0 12px">Stain cost per gallon auto-fills the calculator. Add any material you track.</p>
+
+    <div id="inv-low-banner" class="inv-low-banner"></div>
+    <div id="inv-list"></div>
+
+    <!-- Add / Edit form -->
+    <div id="inv-form" style="display:none;background:var(--bg-alt);border-radius:8px;padding:14px;margin-top:10px">
+      <div style="font-weight:700;font-size:.88rem;margin-bottom:12px" id="inv-form-title">Add Item</div>
+      <input type="hidden" id="inv-edit-id">
+      <div class="inv-form-grid">
+        <div class="inv-form-field" style="grid-column:1/-1">
+          <label>Item Name</label>
+          <input id="inv-fname" type="text" placeholder="e.g. T-Posts 6.5 ft">
+        </div>
+        <div class="inv-form-field">
+          <label>Category</label>
+          <select id="inv-fcat">
+            <option value="stain">Stain</option>
+            <option value="fence">Fence</option>
+            <option value="hardware">Hardware</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="inv-form-field">
+          <label>Unit (gal / ea / roll…)</label>
+          <input id="inv-funit" type="text" placeholder="ea">
+        </div>
+        <div class="inv-form-field">
+          <label>Qty on Hand</label>
+          <input id="inv-fqty" type="number" min="0" step="0.5" placeholder="0">
+        </div>
+        <div class="inv-form-field">
+          <label>Total Paid ($)</label>
+          <input id="inv-fpaid" type="number" min="0" step="0.01" placeholder="0.00">
+        </div>
+        <div class="inv-form-field">
+          <label>Reorder When Below</label>
+          <input id="inv-freorder" type="number" min="0" step="0.5" placeholder="5">
+        </div>
+        <div class="inv-form-field">
+          <label>Notes</label>
+          <input id="inv-fnotes" type="text" placeholder="Optional">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button onclick="invSaveForm()" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:7px 18px;cursor:pointer;font-size:.85rem;font-weight:700">Save</button>
+        <button onclick="invCloseForm()" style="background:var(--border);border:none;border-radius:6px;padding:7px 14px;cursor:pointer;font-size:.85rem">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Hidden inputs kept for cost-calculator compatibility -->
+    <input type="hidden" id="oh-stain-qty"  value="5">
+    <input type="hidden" id="oh-stain-paid" value="220">
+    <input type="hidden" id="oh-bleach-qty"  value="0">
+    <input type="hidden" id="oh-bleach-paid" value="0">
   </div>
 
   <!-- Cost Calculator -->
@@ -2826,61 +2850,284 @@
     setStatus(bEl, bQty, bNeed);
   }
 
-  function updateStainOnHand() {
-    var sQtyEl  = document.getElementById('oh-stain-qty');
-    var sPaidEl = document.getElementById('oh-stain-paid');
-    var bQtyEl  = document.getElementById('oh-bleach-qty');
-    var bPaidEl = document.getElementById('oh-bleach-paid');
-    var sQty   = parseFloat(sQtyEl.value)   || 0;
-    var sPaid  = parseFloat(sPaidEl.value)  || 0;
-    var bQty   = parseFloat(bQtyEl.value)   || 0;
-    var bPaid  = parseFloat(bPaidEl.value)  || 0;
-    var sCalc  = document.getElementById('oh-stain-calc');
-    var bCalc  = document.getElementById('oh-bleach-calc');
+  // ── Inventory system ─────────────────────────────────────────────────────
+  var INV_DEFAULTS = [
+    { id:'stain',  name:'Stain (Wood Defender)', category:'stain',    unit:'gal', qty:5,   paid:220, reorderAt:5,  notes:'', pinned:true },
+    { id:'bleach', name:'Bleach / Cleaner',       category:'stain',    unit:'gal', qty:0,   paid:0,   reorderAt:10, notes:'', pinned:true },
+  ];
 
-    if (sQty > 0 && sPaid > 0) {
-      var spg = sPaid / sQty;
-      sCalc.textContent = '$' + spg.toFixed(2) + ' / gal';
-      document.getElementById('s-gal-cost').value = spg.toFixed(2);
-    } else {
-      sCalc.textContent = (sQty > 0 || sPaid > 0) ? 'Enter both fields' : '—';
-    }
-
-    if (bQty > 0 && bPaid > 0) {
-      var bpg = bPaid / bQty;
-      bCalc.textContent = '$' + bpg.toFixed(2) + ' / gal';
-      document.getElementById('b-gal-cost').value = bpg.toFixed(2);
-    } else {
-      bCalc.textContent = (bQty > 0 || bPaid > 0) ? 'Enter both fields' : '—';
-    }
-
-    // Auto-save on-hand values so they survive page refresh
+  function getInventory() {
     try {
-      localStorage.setItem('fsig-stain-onhand', JSON.stringify({
-        sQty: sQtyEl.value, sPaid: sPaidEl.value,
-        bQty: bQtyEl.value, bPaid: bPaidEl.value
-      }));
+      var saved = JSON.parse(localStorage.getItem('fsig-inventory') || 'null');
+      if (saved && Array.isArray(saved) && saved.length >= 2) return saved;
     } catch(e) {}
-
-    updateCosts();
+    return JSON.parse(JSON.stringify(INV_DEFAULTS));
   }
 
-  function restoreStainOnHand() {
-    try {
-      var saved = JSON.parse(localStorage.getItem('fsig-stain-onhand') || 'null');
-      if (!saved) return;
-      var f = function(id, val) { var el = document.getElementById(id); if (el && val !== '') el.value = val; };
-      f('oh-stain-qty',  saved.sQty);
-      f('oh-stain-paid', saved.sPaid);
-      f('oh-bleach-qty',  saved.bQty);
-      f('oh-bleach-paid', saved.bPaid);
-    } catch(e) {}
+  function saveInventory(items) {
+    localStorage.setItem('fsig-inventory', JSON.stringify(items));
+  }
+
+  function renderInventory() {
+    var items = getInventory();
+    var list = document.getElementById('inv-list');
+    if (!list) return;
+
+    // Sync hidden inputs for cost calculator
+    var si = items.find(function(i){ return i.id==='stain'; })  || {};
+    var bi = items.find(function(i){ return i.id==='bleach'; }) || {};
+    var f = function(id, val) { var el=document.getElementById(id); if(el) el.value=val||0; };
+    f('oh-stain-qty',  si.qty);  f('oh-stain-paid', si.paid);
+    f('oh-bleach-qty', bi.qty);  f('oh-bleach-paid', bi.paid);
+
+    // Low stock banner
+    var lowItems = items.filter(function(i){ return (parseFloat(i.reorderAt)||0)>0 && (parseFloat(i.qty)||0)<=(parseFloat(i.reorderAt)||0); });
+    var banner = document.getElementById('inv-low-banner');
+    if (banner) {
+      if (lowItems.length) {
+        banner.style.display='block';
+        banner.innerHTML='&#9888; <strong>Low Stock:</strong> '+lowItems.map(function(i){ return i.name+' ('+i.qty+' '+i.unit+')'; }).join(' &middot; ');
+      } else { banner.style.display='none'; }
+    }
+
+    list.innerHTML = items.map(function(item) {
+      var qty  = parseFloat(item.qty)  || 0;
+      var paid = parseFloat(item.paid) || 0;
+      var cpg  = (qty>0 && paid>0) ? '$'+(paid/qty).toFixed(2)+'/'+item.unit : '&mdash;';
+      var catCls = 'inv-cat-'+(item.category||'other');
+
+      // Stain/bleach needed-vs-have status
+      var statusHtml = '';
+      if (item.id==='stain'||item.id==='bleach') {
+        var needEl = document.getElementById(item.id==='stain'?'s-gal':'b-gal');
+        var need   = parseFloat((needEl||{}).textContent)||0;
+        if (need>0||qty>0) {
+          var diff = qty - need;
+          statusHtml = diff>=0
+            ? '<span class="inv-status ok">&#10003; Need '+need+' &mdash; have '+qty+' on hand</span>'
+            : '<span class="inv-status warn">&#9888; Need '+need+' &mdash; only '+qty+'. Buy '+Math.ceil(-diff)+' more.</span>';
+        }
+      }
+
+      // Color selector for stain
+      var extraHtml = '';
+      if (item.id==='stain') {
+        extraHtml = '<div style="margin-bottom:8px"><select id="oh-stain-type" onchange="ohSelectStain(this.value)" style="padding:5px 7px;border:1px solid var(--border);border-radius:5px;font-size:.82rem;width:100%;background:#fff">'
+          +'<option value="">&#8212; select color &#8212;</option>'
+          +'<optgroup label="$0.70/sqft &middot; 125 sqft/gal">'
+          +'<option>Black Walnut</option><option>Cedar Tone</option><option>Chestnut</option><option>Clear Glow</option><option>Leatherwood</option><option>Oxford Brown</option><option>Redwood</option>'
+          +'</optgroup>'
+          +'<optgroup label="$0.65/sqft &middot; 150 sqft/gal">'
+          +'<option>Barn Red</option><option>Black</option><option>Cape Cod</option><option>Chameleon Gray</option><option>Charcoal Gray</option><option>Coffee Brown</option><option>Colorado</option><option>Cumberland Brown</option><option>Dark Sierra</option><option>Desert Sand</option><option>Golden Rod</option><option>Graystone</option><option>Mesa Gray</option><option>Prairie Gray</option><option>Rustic Oak</option><option>Sable Brown</option><option>Sedona</option><option>Sierra</option><option>Wrangler</option>'
+          +'</optgroup>'
+          +'</select></div>';
+      }
+
+      var editBtns = item.pinned ? '' :
+        '<button onclick="invEditItem(\''+item.id+'\')" style="background:none;border:1px solid var(--border);border-radius:4px;padding:2px 8px;cursor:pointer;font-size:.75rem;color:var(--muted)">Edit</button>'
+        +'<button onclick="invDeleteItem(\''+item.id+'\')" style="background:none;border:1px solid #ffcdd2;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:.75rem;color:#c62828;margin-left:4px">&#10005;</button>';
+
+      return '<div class="inv-item" id="inv-row-'+item.id+'">'
+        +'<div class="inv-item-header">'
+        +  '<div class="inv-item-name">'+item.name+'</div>'
+        +  '<div style="display:flex;align-items:center;gap:4px">'
+        +    '<span class="inv-cat-badge '+catCls+'">'+item.category+'</span>'
+        +    editBtns
+        +  '</div>'
+        +'</div>'
+        +extraHtml
+        +'<div class="inv-body">'
+        +  '<div class="inv-qty-wrap">'
+        +    '<button class="inv-qty-btn" onclick="invAdjustQty(\''+item.id+'\',-1)">&#8722;</button>'
+        +    '<input type="number" class="inv-qty-input" min="0" step="0.5" value="'+qty+'" oninput="invSetQty(\''+item.id+'\',this.value)">'
+        +    '<span class="inv-unit-label">'+item.unit+'</span>'
+        +    '<button class="inv-qty-btn" onclick="invAdjustQty(\''+item.id+'\',1)">+</button>'
+        +  '</div>'
+        +  '<div class="inv-paid-wrap">'
+        +    '<label>Total paid</label>'
+        +    '<input type="number" class="inv-paid-input" min="0" step="0.01" value="'+(paid||'')+'" placeholder="0.00" oninput="invSetPaid(\''+item.id+'\',this.value)">'
+        +  '</div>'
+        +  '<div class="inv-cpg">'+cpg+'</div>'
+        +'</div>'
+        +statusHtml
+        +'</div>';
+    }).join('');
+
+    // Restore stain color select value
+    var stainItem = items.find(function(i){ return i.id==='stain'; });
+    if (stainItem && stainItem.color) {
+      var sel = document.getElementById('oh-stain-type');
+      if (sel) sel.value = stainItem.color;
+    }
+
+    // Trigger cost calc update
+    updateStainOnHand();
+  }
+
+  function invAdjustQty(id, delta) {
+    var items = getInventory();
+    var item = items.find(function(i){ return i.id===id; });
+    if (!item) return;
+    item.qty = Math.max(0, (parseFloat(item.qty)||0) + delta);
+    item.updatedAt = Date.now();
+    saveInventory(items);
+    pushInventoryToSheets(item);
+    renderInventory();
+  }
+
+  function invSetQty(id, val) {
+    var items = getInventory();
+    var item = items.find(function(i){ return i.id===id; });
+    if (!item) return;
+    item.qty = parseFloat(val) || 0;
+    item.updatedAt = Date.now();
+    saveInventory(items);
+    pushInventoryToSheets(item);
+    renderInventory();
+  }
+
+  function invSetPaid(id, val) {
+    var items = getInventory();
+    var item = items.find(function(i){ return i.id===id; });
+    if (!item) return;
+    item.paid = parseFloat(val) || 0;
+    item.updatedAt = Date.now();
+    saveInventory(items);
+    pushInventoryToSheets(item);
+    renderInventory();
+  }
+
+  function invOpenAdd() {
+    var f = document.getElementById('inv-form');
+    if (!f) return;
+    document.getElementById('inv-form-title').textContent = 'Add Item';
+    document.getElementById('inv-edit-id').value = '';
+    ['inv-fname','inv-funit','inv-fqty','inv-fpaid','inv-freorder','inv-fnotes'].forEach(function(id){
+      var el=document.getElementById(id); if(el) el.value='';
+    });
+    document.getElementById('inv-fcat').value = 'fence';
+    f.style.display = 'block';
+    document.getElementById('inv-fname').focus();
+  }
+
+  function invEditItem(id) {
+    var items = getInventory();
+    var item = items.find(function(i){ return i.id===id; });
+    if (!item) return;
+    document.getElementById('inv-form-title').textContent = 'Edit Item';
+    document.getElementById('inv-edit-id').value = id;
+    document.getElementById('inv-fname').value = item.name || '';
+    document.getElementById('inv-fcat').value = item.category || 'other';
+    document.getElementById('inv-funit').value = item.unit || '';
+    document.getElementById('inv-fqty').value = item.qty || '';
+    document.getElementById('inv-fpaid').value = item.paid || '';
+    document.getElementById('inv-freorder').value = item.reorderAt || '';
+    document.getElementById('inv-fnotes').value = item.notes || '';
+    document.getElementById('inv-form').style.display = 'block';
+  }
+
+  function invSaveForm() {
+    var name = (document.getElementById('inv-fname').value||'').trim();
+    if (!name) { alert('Item name is required.'); return; }
+    var editId = document.getElementById('inv-edit-id').value;
+    var items = getInventory();
+    var existing = editId ? items.find(function(i){ return i.id===editId; }) : null;
+    var item = existing || { id: String(Date.now()), pinned: false };
+    item.name = name;
+    item.category = document.getElementById('inv-fcat').value;
+    item.unit = document.getElementById('inv-funit').value || 'ea';
+    item.qty = parseFloat(document.getElementById('inv-fqty').value) || 0;
+    item.paid = parseFloat(document.getElementById('inv-fpaid').value) || 0;
+    item.reorderAt = parseFloat(document.getElementById('inv-freorder').value) || 0;
+    item.notes = document.getElementById('inv-fnotes').value || '';
+    item.updatedAt = Date.now();
+    if (!existing) items.push(item);
+    saveInventory(items);
+    pushInventoryToSheets(item);
+    invCloseForm();
+    renderInventory();
+  }
+
+  function invDeleteItem(id) {
+    if (!confirm('Remove this item from inventory?')) return;
+    var items = getInventory().filter(function(i){ return i.id!==id; });
+    saveInventory(items);
+    renderInventory();
+  }
+
+  function invCloseForm() {
+    var f = document.getElementById('inv-form'); if(f) f.style.display='none';
   }
 
   function ohSelectStain(name) {
     document.getElementById('stain-product').value = name;
     selectStain(name);
+    // Save color to stain inventory item
+    var items = getInventory();
+    var si = items.find(function(i){ return i.id==='stain'; });
+    if (si) { si.color = name; saveInventory(items); pushInventoryToSheets(si); }
     updateStainOnHand();
+  }
+
+  function pushInventoryToSheets(item) {
+    var cfg={};
+    try { cfg=JSON.parse(localStorage.getItem('fsig-gsheets')||'{}'); } catch(e){}
+    if (!cfg.url) return;
+    var qty=parseFloat(item.qty)||0, paid=parseFloat(item.paid)||0;
+    fetch(cfg.url, {
+      method:'POST', mode:'no-cors',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        type:'inventory',
+        id: item.id, name: item.name, category: item.category,
+        unit: item.unit, qty: qty, paid: paid,
+        costPerUnit: (qty>0&&paid>0)?((paid/qty).toFixed(2)):'0',
+        reorderAt: item.reorderAt||0, notes: item.notes||''
+      })
+    }).catch(function(){});
+  }
+
+  function syncInventoryFromSheets() {
+    var cfg={};
+    try { cfg=JSON.parse(localStorage.getItem('fsig-gsheets')||'{}'); } catch(e){}
+    if (!cfg.url) { alert('Configure Google Sheets URL in Settings first.'); return; }
+    fetch(cfg.url+'?type=inventory')
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        var sheetsItems = data.items || [];
+        if (!sheetsItems.length) { showLeadToast('No inventory found in Google Sheets.'); return; }
+        var local = getInventory();
+        // Merge: sheets items update local by id; pinned items kept if not in sheets
+        sheetsItems.forEach(function(si){
+          var li = local.find(function(i){ return String(i.id)===String(si.id); });
+          if (li) {
+            li.qty=parseFloat(si.qty)||0; li.paid=parseFloat(si.paid)||0;
+            li.reorderAt=parseFloat(si.reorderAt)||0; li.notes=si.notes||'';
+            li.updatedAt=si.updatedAt||Date.now();
+          } else {
+            local.push({ id:si.id, name:si.name, category:si.category||'other',
+              unit:si.unit||'ea', qty:parseFloat(si.qty)||0, paid:parseFloat(si.paid)||0,
+              reorderAt:parseFloat(si.reorderAt)||0, notes:si.notes||'', pinned:false });
+          }
+        });
+        saveInventory(local);
+        renderInventory();
+        showLeadToast('&#10003; Inventory synced ('+sheetsItems.length+' items)');
+      })
+      .catch(function(){ showLeadToast('Sync failed &mdash; check Google Sheets URL in Settings.'); });
+  }
+
+  // Keep updateStainOnHand for cost calculator — reads from hidden inputs set by renderInventory()
+  function updateStainOnHand() {
+    var sQty  = parseFloat((document.getElementById('oh-stain-qty') ||{}).value)||0;
+    var sPaid = parseFloat((document.getElementById('oh-stain-paid')||{}).value)||0;
+    var bQty  = parseFloat((document.getElementById('oh-bleach-qty') ||{}).value)||0;
+    var bPaid = parseFloat((document.getElementById('oh-bleach-paid')||{}).value)||0;
+    var sCostEl = document.getElementById('s-gal-cost');
+    var bCostEl = document.getElementById('b-gal-cost');
+    if (sQty>0&&sPaid>0 && sCostEl) sCostEl.value=(sPaid/sQty).toFixed(2);
+    if (bQty>0&&bPaid>0 && bCostEl) bCostEl.value=(bPaid/bQty).toFixed(2);
+    updateCosts();
   }
 
   function updateTimeLabor(linFt, grossProfit) {
@@ -4067,7 +4314,7 @@
       _pipeTab = m;
       renderPipeline();
     } catch(e) {}
-    try { restoreStainOnHand(); updateStainOnHand(); } catch(e) {}
+    try { renderInventory(); } catch(e) {}
 
     // Auto-update restore: if we just reloaded after a version change, restore saved work
     var wasUpdated = localStorage.getItem('fsig-update-pending') === '1';
