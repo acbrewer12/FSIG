@@ -508,7 +508,7 @@
     .ch-stain, .ch-bleach { width:72px; }
     .container.mode-fence .ch-stain,
     .container.mode-fence .ch-bleach { display:none !important; }
-    .container.mode-stain .ch-hgt { display:none !important; }
+    /* .container.mode-stain .ch-hgt — keep visible; needed for sq ft calc */
     /* Mode-conditional titles */
     .container.mode-fence .stain-mode-title { display:none !important; }
     .container.mode-stain .fence-mode-title { display:none !important; }
@@ -2114,9 +2114,9 @@
       div.innerHTML = `
         <input type="number" min="0" step="0.5" placeholder="ft" value="${row.len}"
           onchange="updateRow('${side}',${row.id},'len',this.value)" style="width:64px" />
-        <span class="fence-mode-title" style="color:var(--muted);font-size:.8rem">×</span>
-        <input type="number" min="0" step="0.5" placeholder="ft" value="${row.hgt}"
-          onchange="updateRow('${side}',${row.id},'hgt',this.value)" style="width:64px" class="fence-mode-title" />
+        <span style="color:var(--muted);font-size:.8rem">×</span>
+        <input type="number" min="0" step="0.5" placeholder="ht" value="${row.hgt}"
+          onchange="updateRow('${side}',${row.id},'hgt',this.value)" style="width:64px" />
         <span style="color:var(--muted);font-size:.8rem">×</span>
         <span class="stain-cols" style="display:inline-flex;gap:4px;align-items:center">
         <span style="font-size:.76rem;font-weight:700;color:#B8760E;padding:0 2px">S</span>
