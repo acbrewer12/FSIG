@@ -1395,6 +1395,26 @@
     <div class="oh-grid">
       <div class="oh-section">
         <div class="oh-label">Stain (Wood Defender)</div>
+        <div class="oh-field" style="margin-bottom:10px">
+          <label>Product / Color</label>
+          <select id="oh-stain-type" onchange="ohSelectStain(this.value)" style="padding:6px 8px;border:1px solid var(--border);border-radius:5px;font-size:.88rem;color:var(--text);background:#fff;width:100%">
+            <option value="">— select color —</option>
+            <optgroup label="$0.70 / sq ft · 125 sq ft / gal">
+              <option>Black Walnut</option><option>Cedar Tone</option><option>Chestnut</option>
+              <option>Clear Glow</option><option>Leatherwood</option><option>Oxford Brown</option>
+              <option>Redwood</option>
+            </optgroup>
+            <optgroup label="$0.65 / sq ft · 150 sq ft / gal">
+              <option>Barn Red</option><option>Black</option><option>Cape Cod</option>
+              <option>Chameleon Gray</option><option>Charcoal Gray</option><option>Coffee Brown</option>
+              <option>Colorado</option><option>Cumberland Brown</option><option>Dark Sierra</option>
+              <option>Desert Sand</option><option>Golden Rod</option><option>Graystone</option>
+              <option>Mesa Gray</option><option>Prairie Gray</option><option>Rustic Oak</option>
+              <option>Sable Brown</option><option>Sedona</option><option>Sierra</option>
+              <option>Wrangler</option>
+            </optgroup>
+          </select>
+        </div>
         <div class="oh-row">
           <div class="oh-field">
             <label>Gallons on hand</label>
@@ -2813,6 +2833,12 @@
     }
 
     updateCosts();
+  }
+
+  function ohSelectStain(name) {
+    document.getElementById('stain-product').value = name;
+    selectStain(name);
+    updateStainOnHand();
   }
 
   function updateTimeLabor(linFt, grossProfit) {
