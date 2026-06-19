@@ -3733,6 +3733,27 @@
     renderCalendar();
     updateStorageMeter();
     renderPipeline();
+    // Push to Google Sheets
+    pushToSheets('job', {
+      jobNumber:    state.jobNumber    || '',
+      customerName: state.customerName || '',
+      phone:        state.customerPhone || '',
+      address:      [state.addr, state.city, state.state, state.zip].filter(Boolean).join(', '),
+      jobType:      entry.jobType      || '',
+      status:       state.jobStatus    || '',
+      startDate:    state.jobStartDate || '',
+      endDate:      state.jobEndDate   || '',
+      linFt:        (document.getElementById('sum-lin-ft')        || {}).textContent || '',
+      totalCharge:  (document.getElementById('total-charged')     || {}).textContent || '',
+      materialCost: ((document.getElementById('sum-we-paid')      || {}).textContent || '').replace('$',''),
+      grossProfit:  ((document.getElementById('sum-profit')       || {}).textContent || '').replace('$',''),
+      stainGal:     (document.getElementById('sum-stain-gal')     || {}).textContent || '',
+      bleachGal:    (document.getElementById('sum-bleach-gal')    || {}).textContent || '',
+      crewLead:     state.crewLead      || '',
+      stainProduct: state.stainProduct  || '',
+      notes:        state.changeOrder   || ''
+    });
+
     const btn = document.getElementById('save-job-btn');
     const orig = btn.textContent;
     btn.textContent = '✓ Saved!';
@@ -4450,6 +4471,19 @@
         bidAmount: entry.bidAmount, startDate: entry.startDate, updatedAt: entry.updatedAt });
     }
     savePipeline(arr);
+    // Push new leads to Google Sheets (skip when editing)
+    if (!_pipeEditId) {
+      pushToSheets('pipeline', {
+        name:      entry.name,
+        phone:     entry.phone,
+        address:   entry.address,
+        type:      _pipeLeadBoth ? 'both' : (localStorage.getItem('fsig-app-mode') || 'fence'),
+        status:    'lead',
+        bidAmount: entry.bidAmount || '',
+        startDate: entry.startDate || '',
+        notes:     entry.notes     || ''
+      });
+    }
     // Auto-populate Job Info if empty
     var nameEl = document.getElementById('customer-name');
     var phoneEl = document.getElementById('customer-phone');
@@ -6914,6 +6948,21 @@ function toastViewLead() {
   // Scroll to pipeline section
   var pipeEl = document.getElementById('pipeline-section') || document.querySelector('[data-section="pipeline"]') || document.querySelector('.pipeline-board');
   if (pipeEl) pipeEl.scrollIntoView({ behavior: 'smooth' });
+}
+
+// ── Google Sheets Push ──────────────────────────────────────────────────────
+function pushToSheets(type, data) {
+  var cfg = {};
+  try { cfg = JSON.parse(localStorage.getItem('fsig-gsheets') || '{}'); } catch(e) {}
+  if (!cfg.url) return;
+  data.type = type;
+  data.timestamp = new Date().toISOString();
+  fetch(cfg.url, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  }).catch(function() {});
 }
 
 // ── Google Sign-In ───────────────────────────────────────────────────────────

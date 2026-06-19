@@ -1662,7 +1662,7 @@
     }
 
     if (GOOGLE_SCRIPT_URL) {
-      var data = { firstName: first, lastName: last, phone: phone, email: email, address: address, services: service, details: details, source: source };
+      var data = { type: 'contact', firstName: first, lastName: last, phone: phone, email: email, address: address, services: service, details: details, source: source };
       fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST', mode: 'no-cors',
         headers: { 'Content-Type': 'application/json' },
