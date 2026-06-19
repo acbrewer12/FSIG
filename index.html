@@ -218,9 +218,11 @@
     .inv-item-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
     .inv-item-name { font-weight:700; font-size:.9rem; }
     .inv-body { display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap; margin-bottom:6px; }
-    .inv-qty-wrap { display:flex; align-items:center; gap:5px; }
-    .inv-qty-btn { background:var(--accent); color:#fff; border:none; border-radius:4px; width:28px; height:28px; font-size:1.1rem; cursor:pointer; font-weight:700; line-height:1; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .inv-qty-wrap { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+    .inv-qty-btn { background:var(--accent); color:#fff; border:none; border-radius:5px; padding:5px 12px; font-size:.82rem; cursor:pointer; font-weight:700; white-space:nowrap; }
+    .inv-qty-btn.remove { background:#b71c1c; }
     .inv-qty-input { width:72px; padding:5px 7px; border:1px solid var(--border); border-radius:5px; font-size:.9rem; font-weight:700; text-align:center; color:var(--text); background:#fff; }
+    .inv-onhand { font-size:1.05rem; font-weight:700; margin-bottom:8px; }
     .inv-unit-label { font-size:.78rem; color:var(--muted); font-weight:600; min-width:24px; }
     .inv-paid-wrap { display:flex; flex-direction:column; gap:2px; }
     .inv-paid-wrap label { font-size:.7rem; color:var(--muted); font-weight:700; text-transform:uppercase; }
@@ -2888,18 +2890,18 @@
         +  '</div>'
         +'</div>'
         +extraHtml
+        +'<div class="inv-onhand">On Hand: <strong>'+qty+' '+item.unit+'</strong> &nbsp;<span class="inv-cpg" style="font-size:.85rem">'+cpg+'</span></div>'
         +'<div class="inv-body">'
         +  '<div class="inv-qty-wrap">'
-        +    '<button class="inv-qty-btn" onclick="invAdjustQty(\''+item.id+'\',-1)">&#8722;</button>'
-        +    '<input type="number" class="inv-qty-input" min="0" step="0.5" value="'+qty+'" oninput="invSetQty(\''+item.id+'\',this.value)">'
+        +    '<button class="inv-qty-btn remove" onclick="invApply(\''+item.id+'\',-1)">&#8722; Remove</button>'
+        +    '<input type="number" class="inv-qty-input" id="inv-delta-'+item.id+'" min="0" step="0.5" placeholder="qty">'
         +    '<span class="inv-unit-label">'+item.unit+'</span>'
-        +    '<button class="inv-qty-btn" onclick="invAdjustQty(\''+item.id+'\',1)">+</button>'
+        +    '<button class="inv-qty-btn" onclick="invApply(\''+item.id+'\',1)">+ Add</button>'
         +  '</div>'
         +  '<div class="inv-paid-wrap">'
-        +    '<label>Total paid</label>'
+        +    '<label>Total paid ($)</label>'
         +    '<input type="number" class="inv-paid-input" min="0" step="0.01" value="'+(paid||'')+'" placeholder="0.00" oninput="invSetPaid(\''+item.id+'\',this.value)">'
         +  '</div>'
-        +  '<div class="inv-cpg">'+cpg+'</div>'
         +'</div>'
         +statusHtml
         +'</div>';
@@ -2916,22 +2918,14 @@
     updateStainOnHand();
   }
 
-  function invAdjustQty(id, delta) {
+  function invApply(id, dir) {
+    var deltaEl = document.getElementById('inv-delta-' + id);
+    var delta = parseFloat((deltaEl || {}).value) || 0;
+    if (delta === 0) { if (deltaEl) deltaEl.focus(); return; }
     var items = getInventory();
     var item = items.find(function(i){ return i.id===id; });
     if (!item) return;
-    item.qty = Math.max(0, (parseFloat(item.qty)||0) + delta);
-    item.updatedAt = Date.now();
-    saveInventory(items);
-    pushInventoryToSheets(item);
-    renderInventory();
-  }
-
-  function invSetQty(id, val) {
-    var items = getInventory();
-    var item = items.find(function(i){ return i.id===id; });
-    if (!item) return;
-    item.qty = parseFloat(val) || 0;
+    item.qty = Math.max(0, (parseFloat(item.qty)||0) + (dir * delta));
     item.updatedAt = Date.now();
     saveInventory(items);
     pushInventoryToSheets(item);
