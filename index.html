@@ -1377,13 +1377,21 @@
         <span class="big" id="sum-bleach-gal">0</span>
         <span class="lbl">Gallons Bleach</span>
       </div>
+      <div class="summary-chip" style="background:#b71c1c">
+        <span class="big" id="sum-we-paid">$0</span>
+        <span class="lbl">We Paid (Materials)</span>
+      </div>
       <div class="summary-chip green">
         <span class="big" id="sum-total-charge">$0</span>
-        <span class="lbl">Total Customer Charge</span>
+        <span class="lbl">Charge Customer</span>
+      </div>
+      <div class="summary-chip" style="background:#1b5e20">
+        <span class="big" id="sum-profit">$0</span>
+        <span class="lbl">Gross Profit</span>
       </div>
       <div class="summary-chip" style="background:#546e7a">
         <span class="big" id="sum-lin-ft">0</span>
-        <span class="lbl">Linear Feet (perimeter)</span>
+        <span class="lbl">Linear Feet</span>
       </div>
     </div>
   </div>
@@ -2774,12 +2782,16 @@
     document.getElementById('b-profit').textContent  = bProfit.toFixed(2);
 
     const totalCharge = sCharged + bCharged;
+    const totalMat    = sMat + bMat;
+    const totalProfit = sProfit + bProfit;
     document.getElementById('total-charged').textContent = totalCharge.toFixed(2);
-    document.getElementById('total-profit').textContent  = (sProfit + bProfit).toFixed(2);
+    document.getElementById('total-profit').textContent  = totalProfit.toFixed(2);
 
     document.getElementById('sum-stain-gal').textContent    = sGal;
     document.getElementById('sum-bleach-gal').textContent   = bGal;
+    document.getElementById('sum-we-paid').textContent      = '$' + totalMat.toFixed(0);
     document.getElementById('sum-total-charge').textContent = '$' + totalCharge.toFixed(0);
+    document.getElementById('sum-profit').textContent       = '$' + totalProfit.toFixed(0);
     document.getElementById('sum-lin-ft').textContent       = linFt.toFixed(0);
 
     updateTimeLabor(linFt, sProfit + bProfit);
