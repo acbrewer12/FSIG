@@ -213,6 +213,20 @@
     .cost-section.stain  .section-label { background: var(--accent); color: #fff; }
     .cost-section.bleach .section-label { background: #1565C0; color: #fff; }
 
+    /* ── ON HAND MATERIALS ── */
+    .oh-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    .oh-section { background:var(--bg-alt); border-radius:8px; padding:14px 16px; }
+    .oh-label { font-weight:700; font-size:.85rem; color:var(--text); margin-bottom:10px; padding-bottom:7px; border-bottom:1px solid var(--border); }
+    .oh-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px; }
+    .oh-field { display:flex; flex-direction:column; gap:3px; }
+    .oh-field label { font-size:.72rem; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.03em; }
+    .oh-field input { padding:6px 8px; border:1px solid var(--border); border-radius:5px; font-size:.9rem; color:var(--text); background:#fff; width:100%; }
+    .oh-calc { font-size:.95rem; font-weight:700; color:var(--accent); min-height:1.2em; margin-bottom:6px; }
+    .oh-status { font-size:.8rem; font-weight:600; padding:5px 9px; border-radius:4px; display:none; line-height:1.4; }
+    .oh-status.ok   { background:#e8f5e9; color:#2e7d32; display:block; }
+    .oh-status.warn { background:#fff3e0; color:#bf360c; display:block; }
+    @media(max-width:600px){ .oh-grid{ grid-template-columns:1fr; } .oh-row{ grid-template-columns:1fr 1fr; } }
+
     table.cost-tbl {
       width: 100%;
       border-collapse: collapse;
@@ -1370,6 +1384,44 @@
       <div class="summary-chip" style="background:#546e7a">
         <span class="big" id="sum-lin-ft">0</span>
         <span class="lbl">Linear Feet (perimeter)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- On Hand Materials -->
+  <div class="card" data-section="stain">
+    <h2>On Hand — Stain Materials</h2>
+    <p style="font-size:.8rem;color:var(--muted);margin:-4px 0 14px">Enter what you have and what you paid — cost per gallon is auto-calculated and fills in below.</p>
+    <div class="oh-grid">
+      <div class="oh-section">
+        <div class="oh-label">Stain (Wood Defender)</div>
+        <div class="oh-row">
+          <div class="oh-field">
+            <label>Gallons on hand</label>
+            <input type="number" id="oh-stain-qty" step="0.5" min="0" placeholder="0" oninput="updateStainOnHand()">
+          </div>
+          <div class="oh-field">
+            <label>Total paid ($)</label>
+            <input type="number" id="oh-stain-paid" step="0.01" min="0" placeholder="0.00" oninput="updateStainOnHand()">
+          </div>
+        </div>
+        <div class="oh-calc" id="oh-stain-calc">—</div>
+        <div class="oh-status" id="oh-stain-status"></div>
+      </div>
+      <div class="oh-section">
+        <div class="oh-label">Bleach / Cleaner</div>
+        <div class="oh-row">
+          <div class="oh-field">
+            <label>Gallons on hand</label>
+            <input type="number" id="oh-bleach-qty" step="0.5" min="0" placeholder="0" oninput="updateStainOnHand()">
+          </div>
+          <div class="oh-field">
+            <label>Total paid ($)</label>
+            <input type="number" id="oh-bleach-paid" step="0.01" min="0" placeholder="0.00" oninput="updateStainOnHand()">
+          </div>
+        </div>
+        <div class="oh-calc" id="oh-bleach-calc">—</div>
+        <div class="oh-status" id="oh-bleach-status"></div>
       </div>
     </div>
   </div>
@@ -2710,6 +2762,57 @@
     document.getElementById('sum-lin-ft').textContent       = linFt.toFixed(0);
 
     updateTimeLabor(linFt, sProfit + bProfit);
+    refreshStainStatus();
+  }
+
+  function refreshStainStatus() {
+    var sQty  = parseFloat(document.getElementById('oh-stain-qty').value)  || 0;
+    var bQty  = parseFloat(document.getElementById('oh-bleach-qty').value) || 0;
+    var sNeed = parseFloat(document.getElementById('s-gal').textContent)   || 0;
+    var bNeed = parseFloat(document.getElementById('b-gal').textContent)   || 0;
+    var sEl   = document.getElementById('oh-stain-status');
+    var bEl   = document.getElementById('oh-bleach-status');
+    if (!sEl) return;
+    function setStatus(el, onHand, needed) {
+      if (needed === 0 && onHand === 0) { el.className = 'oh-status'; el.textContent = ''; return; }
+      var diff = onHand - needed;
+      if (diff >= 0) {
+        el.className = 'oh-status ok';
+        el.textContent = '✓ Need ' + needed + ' gal — have ' + onHand + ' on hand. Good to go.';
+      } else {
+        el.className = 'oh-status warn';
+        el.textContent = '⚠ Need ' + needed + ' gal — only ' + onHand + ' on hand. Buy ' + Math.ceil(-diff) + ' more gal.';
+      }
+    }
+    setStatus(sEl, sQty, sNeed);
+    setStatus(bEl, bQty, bNeed);
+  }
+
+  function updateStainOnHand() {
+    var sQty   = parseFloat(document.getElementById('oh-stain-qty').value)   || 0;
+    var sPaid  = parseFloat(document.getElementById('oh-stain-paid').value)  || 0;
+    var bQty   = parseFloat(document.getElementById('oh-bleach-qty').value)  || 0;
+    var bPaid  = parseFloat(document.getElementById('oh-bleach-paid').value) || 0;
+    var sCalc  = document.getElementById('oh-stain-calc');
+    var bCalc  = document.getElementById('oh-bleach-calc');
+
+    if (sQty > 0 && sPaid > 0) {
+      var spg = sPaid / sQty;
+      sCalc.textContent = '$' + spg.toFixed(2) + ' / gal';
+      document.getElementById('s-gal-cost').value = spg.toFixed(2);
+    } else {
+      sCalc.textContent = (sQty > 0 || sPaid > 0) ? 'Enter both fields' : '—';
+    }
+
+    if (bQty > 0 && bPaid > 0) {
+      var bpg = bPaid / bQty;
+      bCalc.textContent = '$' + bpg.toFixed(2) + ' / gal';
+      document.getElementById('b-gal-cost').value = bpg.toFixed(2);
+    } else {
+      bCalc.textContent = (bQty > 0 || bPaid > 0) ? 'Enter both fields' : '—';
+    }
+
+    updateCosts();
   }
 
   function updateTimeLabor(linFt, grossProfit) {
