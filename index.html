@@ -1426,15 +1426,15 @@
         <div class="oh-row">
           <div class="oh-field">
             <label>Gallons on hand</label>
-            <input type="number" id="oh-stain-qty" step="0.5" min="0" value="65" oninput="updateStainOnHand()">
+            <input type="number" id="oh-stain-qty" step="0.5" min="0" value="5" oninput="updateStainOnHand()">
           </div>
           <div class="oh-field">
             <label>Total paid ($)</label>
-            <input type="number" id="oh-stain-paid" step="0.01" min="0" value="250" oninput="updateStainOnHand()">
+            <input type="number" id="oh-stain-paid" step="0.01" min="0" value="220" oninput="updateStainOnHand()">
           </div>
         </div>
         <div class="oh-calc" id="oh-stain-calc">—</div>
-        <div style="font-size:.72rem;color:var(--muted);margin-bottom:5px">Standard order: 13 × 5-gal buckets = 65 gal / $250</div>
+        <div style="font-size:.72rem;color:var(--muted);margin-bottom:5px">Standard order: 1 × 5-gal bucket = 5 gal / $220</div>
         <div class="oh-status" id="oh-stain-status"></div>
       </div>
       <div class="oh-section">
@@ -2822,10 +2822,14 @@
   }
 
   function updateStainOnHand() {
-    var sQty   = parseFloat(document.getElementById('oh-stain-qty').value)   || 0;
-    var sPaid  = parseFloat(document.getElementById('oh-stain-paid').value)  || 0;
-    var bQty   = parseFloat(document.getElementById('oh-bleach-qty').value)  || 0;
-    var bPaid  = parseFloat(document.getElementById('oh-bleach-paid').value) || 0;
+    var sQtyEl  = document.getElementById('oh-stain-qty');
+    var sPaidEl = document.getElementById('oh-stain-paid');
+    var bQtyEl  = document.getElementById('oh-bleach-qty');
+    var bPaidEl = document.getElementById('oh-bleach-paid');
+    var sQty   = parseFloat(sQtyEl.value)   || 0;
+    var sPaid  = parseFloat(sPaidEl.value)  || 0;
+    var bQty   = parseFloat(bQtyEl.value)   || 0;
+    var bPaid  = parseFloat(bPaidEl.value)  || 0;
     var sCalc  = document.getElementById('oh-stain-calc');
     var bCalc  = document.getElementById('oh-bleach-calc');
 
@@ -2845,7 +2849,27 @@
       bCalc.textContent = (bQty > 0 || bPaid > 0) ? 'Enter both fields' : '—';
     }
 
+    // Auto-save on-hand values so they survive page refresh
+    try {
+      localStorage.setItem('fsig-stain-onhand', JSON.stringify({
+        sQty: sQtyEl.value, sPaid: sPaidEl.value,
+        bQty: bQtyEl.value, bPaid: bPaidEl.value
+      }));
+    } catch(e) {}
+
     updateCosts();
+  }
+
+  function restoreStainOnHand() {
+    try {
+      var saved = JSON.parse(localStorage.getItem('fsig-stain-onhand') || 'null');
+      if (!saved) return;
+      var f = function(id, val) { var el = document.getElementById(id); if (el && val !== '') el.value = val; };
+      f('oh-stain-qty',  saved.sQty);
+      f('oh-stain-paid', saved.sPaid);
+      f('oh-bleach-qty',  saved.bQty);
+      f('oh-bleach-paid', saved.bPaid);
+    } catch(e) {}
   }
 
   function ohSelectStain(name) {
@@ -4038,7 +4062,7 @@
       _pipeTab = m;
       renderPipeline();
     } catch(e) {}
-    try { updateStainOnHand(); } catch(e) {}
+    try { restoreStainOnHand(); updateStainOnHand(); } catch(e) {}
   });
   var PIPE_STAGES = [
     { id:'lead',        label:'Lead / Needs Bid', color:'#C8530A' },
