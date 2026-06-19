@@ -1422,60 +1422,13 @@
   <div class="card" data-section="stain">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
       <h2 style="margin:0">On Hand — Materials</h2>
-      <div style="display:flex;gap:6px">
-        <button onclick="syncInventoryFromSheets()" class="print-btn" style="font-size:.78rem;padding:5px 11px" title="Pull latest from Google Sheets">↓ Sync</button>
-        <button onclick="invOpenAdd()" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:5px 13px;cursor:pointer;font-size:.8rem;font-weight:700">+ Add Item</button>
-      </div>
+      <button onclick="syncInventoryFromSheets()" class="print-btn" style="font-size:.78rem;padding:5px 11px" title="Pull latest from Google Sheets">↓ Sync</button>
     </div>
     <p style="font-size:.78rem;color:var(--muted);margin:0 0 12px">Stain cost per gallon auto-fills the calculator. Add any material you track.</p>
 
     <div id="inv-low-banner" class="inv-low-banner"></div>
     <div id="inv-list"></div>
 
-    <!-- Add / Edit form -->
-    <div id="inv-form" style="display:none;background:var(--bg-alt);border-radius:8px;padding:14px;margin-top:10px">
-      <div style="font-weight:700;font-size:.88rem;margin-bottom:12px" id="inv-form-title">Add Item</div>
-      <input type="hidden" id="inv-edit-id">
-      <div class="inv-form-grid">
-        <div class="inv-form-field" style="grid-column:1/-1">
-          <label>Item Name</label>
-          <input id="inv-fname" type="text" placeholder="e.g. T-Posts 6.5 ft">
-        </div>
-        <div class="inv-form-field">
-          <label>Category</label>
-          <select id="inv-fcat">
-            <option value="stain">Stain</option>
-            <option value="fence">Fence</option>
-            <option value="hardware">Hardware</option>
-            <option value="other">Other</option>
-          </select>
-        </div>
-        <div class="inv-form-field">
-          <label>Unit (gal / ea / roll…)</label>
-          <input id="inv-funit" type="text" placeholder="ea">
-        </div>
-        <div class="inv-form-field">
-          <label>Qty on Hand</label>
-          <input id="inv-fqty" type="number" min="0" step="0.5" placeholder="0">
-        </div>
-        <div class="inv-form-field">
-          <label>Total Paid ($)</label>
-          <input id="inv-fpaid" type="number" min="0" step="0.01" placeholder="0.00">
-        </div>
-        <div class="inv-form-field">
-          <label>Reorder When Below</label>
-          <input id="inv-freorder" type="number" min="0" step="0.5" placeholder="5">
-        </div>
-        <div class="inv-form-field">
-          <label>Notes</label>
-          <input id="inv-fnotes" type="text" placeholder="Optional">
-        </div>
-      </div>
-      <div style="display:flex;gap:8px">
-        <button onclick="invSaveForm()" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:7px 18px;cursor:pointer;font-size:.85rem;font-weight:700">Save</button>
-        <button onclick="invCloseForm()" style="background:var(--border);border:none;border-radius:6px;padding:7px 14px;cursor:pointer;font-size:.85rem">Cancel</button>
-      </div>
-    </div>
 
     <!-- Hidden inputs kept for cost-calculator compatibility -->
     <input type="hidden" id="oh-stain-qty"  value="5">
@@ -2924,8 +2877,7 @@
       }
 
       var editBtns = item.pinned ? '' :
-        '<button onclick="invEditItem(\''+item.id+'\')" style="background:none;border:1px solid var(--border);border-radius:4px;padding:2px 8px;cursor:pointer;font-size:.75rem;color:var(--muted)">Edit</button>'
-        +'<button onclick="invDeleteItem(\''+item.id+'\')" style="background:none;border:1px solid #ffcdd2;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:.75rem;color:#c62828;margin-left:4px">&#10005;</button>';
+        '<button onclick="invDeleteItem(\''+item.id+'\')" style="background:none;border:1px solid #ffcdd2;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:.75rem;color:#c62828">&#10005;</button>';
 
       return '<div class="inv-item" id="inv-row-'+item.id+'">'
         +'<div class="inv-item-header">'
