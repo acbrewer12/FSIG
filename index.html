@@ -3087,17 +3087,16 @@
     }).catch(function(){});
   }
 
-  function syncInventoryFromSheets() {
+  function syncInventoryFromSheets(silent) {
     var cfg={};
     try { cfg=JSON.parse(localStorage.getItem('fsig-gsheets')||'{}'); } catch(e){}
-    if (!cfg.url) { alert('Configure Google Sheets URL in Settings first.'); return; }
+    if (!cfg.url) { if (!silent) alert('Configure Google Sheets URL in Settings first.'); return; }
     fetch(cfg.url+'?type=inventory')
       .then(function(r){ return r.json(); })
       .then(function(data){
         var sheetsItems = data.items || [];
-        if (!sheetsItems.length) { showLeadToast('No inventory found in Google Sheets.'); return; }
+        if (!sheetsItems.length) { if (!silent) showLeadToast('No inventory found in Google Sheets.'); return; }
         var local = getInventory();
-        // Merge: sheets items update local by id; pinned items kept if not in sheets
         sheetsItems.forEach(function(si){
           var li = local.find(function(i){ return String(i.id)===String(si.id); });
           if (li) {
@@ -3112,9 +3111,9 @@
         });
         saveInventory(local);
         renderInventory();
-        showLeadToast('&#10003; Inventory synced ('+sheetsItems.length+' items)');
+        if (!silent) showLeadToast('&#10003; Inventory synced ('+sheetsItems.length+' items)');
       })
-      .catch(function(){ showLeadToast('Sync failed &mdash; check Google Sheets URL in Settings.'); });
+      .catch(function(){ if (!silent) showLeadToast('Sync failed &mdash; check Google Sheets URL in Settings.'); });
   }
 
   // Keep updateStainOnHand for cost calculator — reads from hidden inputs set by renderInventory()
@@ -4315,6 +4314,8 @@
       renderPipeline();
     } catch(e) {}
     try { renderInventory(); } catch(e) {}
+    // Auto-sync inventory from Sheets on load (silent — no toasts)
+    setTimeout(function() { try { syncInventoryFromSheets(true); } catch(e) {} }, 2000);
 
     // Auto-update restore: if we just reloaded after a version change, restore saved work
     var wasUpdated = localStorage.getItem('fsig-update-pending') === '1';
@@ -7181,6 +7182,8 @@ function gsheetsCheck() {
       }
     })
     .catch(function(e) { console.warn('Gsheets poll error:', e); });
+  // Also silently sync inventory on every poll
+  if (typeof syncInventoryFromSheets === 'function') syncInventoryFromSheets(true);
 }
 
 function gsheetsCreateLead(row) {
