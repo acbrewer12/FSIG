@@ -549,12 +549,8 @@
       body { background: white; margin: 0; padding: 12px; font-size: 10pt; font-family: Arial, sans-serif; }
       * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
       /* Selective print modes */
-      body.print-customer-only .print-page-internal { display: none !important; }
-      body.print-customer-only .print-page-plan { display: none !important; }
-      body.print-job-only .print-page-customer { display: none !important; }
       body.print-job-only .print-page-plan { display: none !important; }
       body.print-plan-only .print-page-internal { display: none !important; }
-      body.print-plan-only .print-page-customer { display: none !important; }
     }
 
     /* ── JOB LOG THUMBNAIL ── */
@@ -811,10 +807,7 @@
     <button class="print-btn auth-edit-only" onclick="saveJob()" id="save-job-btn">Save Job</button>
     <button class="print-btn auth-edit-only" onclick="textCustomer()" style="background:#2E7D32">Text Customer</button>
     <button class="print-btn auth-edit-only" onclick="textCrew()" style="background:#1565C0">Text Crew</button>
-    <div style="display:flex;flex-direction:column;gap:4px;align-items:stretch">
-      <button class="print-btn" onclick="printFull()" style="font-size:.75rem;padding:6px 14px">&#128438; Print Full Job PDF</button>
-      <button class="print-btn" onclick="printCustomerInvoice()" style="font-size:.75rem;padding:6px 14px;background:#5D4037">&#128441; Customer Invoice Only</button>
-    </div>
+    <button class="print-btn" onclick="printFull()" style="font-size:.75rem;padding:6px 14px">&#128438; Print Job PDF</button>
   </div>
 </header>
 
@@ -1013,14 +1006,14 @@
       <input id="zip" type="text" placeholder="ZIP" style="max-width:90px" />
     </div>
 
-    <!-- Access notes (prints on invoice) -->
-    <textarea id="access-notes" placeholder="Access Notes — prints on invoice (gate codes, dogs, key box location, etc.)" rows="2"
+    <!-- Access notes -->
+    <textarea id="access-notes" placeholder="Access Notes (gate codes, dogs, key box location, etc.)" rows="2"
       style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:5px;font-size:.88rem;resize:vertical;font-family:inherit;margin-bottom:8px"></textarea>
 
     <!-- Crew notes (internal only — does NOT print on customer copy) -->
     <textarea id="crew-notes" placeholder="Crew Notes — INTERNAL ONLY, does not print on customer copy" rows="2"
       style="width:100%;padding:8px 10px;border:1px solid #f0c050;border-radius:5px;font-size:.88rem;resize:vertical;font-family:inherit;background:#fffde7;margin-bottom:8px"></textarea>
-    <div style="font-size:.72rem;color:#a07000;margin-top:-4px;margin-bottom:10px">Internal crew notes stay off the customer invoice</div>
+    <div style="font-size:.72rem;color:#a07000;margin-top:-4px;margin-bottom:10px">Internal crew notes only</div>
 
     <!-- Job Checklist -->
     <div style="background:#f4f7fa;border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-bottom:10px">
@@ -1050,9 +1043,9 @@
       <div style="font-size:.78rem;font-weight:700;color:var(--brand);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px">
         Sign-Off / Change Order Notes
       </div>
-      <textarea id="change-order" placeholder="If customer changes scope at signing — record it here. This prints on the invoice." rows="2"
+      <textarea id="change-order" placeholder="If customer changes scope at signing — record it here." rows="2"
         style="width:100%;padding:8px 10px;border:1px solid #90caf9;border-radius:5px;font-size:.88rem;resize:vertical;font-family:inherit;background:#e3f2fd"></textarea>
-      <div style="font-size:.72rem;color:#1565c0;margin-top:3px">Change order notes print on the customer invoice</div>
+      <div style="font-size:.72rem;color:#1565c0;margin-top:3px">Scope changes and add-ons recorded here</div>
     </div>
   </div>
 
@@ -3445,8 +3438,6 @@
     ].join('');
 
     const partsListHtml  = buildPartsListHtml();
-    const custInvoiceHtml = buildCustomerInvoiceHtml(addressHtml, dateStr);
-
     // Build checklist print HTML
     const checklistPrintHtml = (() => {
       if (!_jobChecklist || !_jobChecklist.type || !_jobChecklist.items.length) return '';
@@ -3541,12 +3532,7 @@
         ${['','','','',''].map(() => `<div style="border-bottom:1px solid #ccc;margin-bottom:12px;height:18px"></div>`).join('')}
       </div>
 
-      <!-- PAGE 4: Customer Invoice -->
-      <div class="print-page-customer" style="page-break-after:always">
-        ${custInvoiceHtml}
-      </div>
-
-      <!-- PAGE 5: Site Plan -->
+      <!-- PAGE 4: Site Plan -->
       ${plannerSvgPage}
       ${_jobPhotos.length ? `
       <!-- Photos (internal copy) -->
@@ -3567,14 +3553,6 @@
     document.body.classList.remove('print-customer-only','print-job-only','print-plan-only');
     buildPrintInvoice();
     window.print();
-  }
-
-  function printCustomerInvoice() {
-    document.body.classList.add('print-customer-only');
-    document.body.classList.remove('print-job-only');
-    buildPrintInvoice();
-    window.print();
-    setTimeout(() => document.body.classList.remove('print-customer-only'), 1000);
   }
 
   // ── Parts List HTML builder ─────────────────────────────────────────────────
@@ -3637,173 +3615,8 @@
     return html;
   }
 
-  // ── Customer Invoice HTML builder ───────────────────────────────────────────
+  // ── Job number ──
 
-  function buildCustomerInvoiceHtml(addressHtml, dateStr) {
-    const sqft = quoteMode === 'sqft';
-    const measureUnit = sqft ? 'sq ft' : 'lin ft';
-
-    const customerName  = document.getElementById('customer-name').value;
-    const customerPhone = document.getElementById('customer-phone').value;
-    const customerEmail = document.getElementById('customer-email').value;
-    const addrParts = ['addr','city','state','zip'].map(id => document.getElementById(id).value).filter(Boolean);
-    const jobStartDate  = document.getElementById('job-start-date').value;
-    const jobEndDate    = document.getElementById('job-end-date').value;
-    const changeOrder   = document.getElementById('change-order').value;
-    const stainProduct  = document.getElementById('stain-product').value;
-    const terrain       = document.getElementById('job-terrain').value;
-    const terrainLabel  = { normal:'Normal', rocky:'Rocky', clay:'Heavy Clay', hillside:'Hillside/Slope', wooded:'Wooded' }[terrain] || terrain;
-
-    const scopeChecks = [
-      { id:'scope-demo',       label:'Demolition / Removal' },
-      { id:'scope-haul',       label:'Haul-Away' },
-      { id:'scope-811',        label:'811 Utility Locate' },
-      { id:'scope-soft-wash',  label:'Soft Wash' },
-      { id:'scope-stain-work', label:'Stain' },
-    ];
-    const activeScope = scopeChecks.filter(c => { const el=document.getElementById(c.id); return el && el.checked; }).map(c => c.label);
-
-    // Build line items — customer-facing (prices, no cost breakdown)
-    const stainLF   = totalLinFtByType('stain');
-    const bleachLF  = totalLinFtByType('bleach');
-    const stainSF   = totalSqftByType('stain');
-    const bleachSF  = totalSqftByType('bleach');
-    const sMeasure  = sqft ? stainSF  : stainLF;
-    const bMeasure  = sqft ? bleachSF : bleachLF;
-    const sRate     = parseFloat(document.getElementById(sqft?'s-rate-sqft':'s-rate').value) || 0;
-    const bRate     = parseFloat(document.getElementById(sqft?'b-rate-sqft':'b-rate').value) || 0;
-    const sCharged  = sMeasure * sRate;
-    const bCharged  = bMeasure * bRate;
-    const totalDue  = sCharged + bCharged;
-    const totalLF   = totalLinearFeet();
-
-    const lineItems = [];
-    if (sMeasure > 0) lineItems.push({
-      desc: `Fence Staining${stainProduct ? ' — ' + stainProduct : ''}`,
-      detail: `${Math.round(sMeasure).toLocaleString()} ${measureUnit} @ $${sRate.toFixed(2)}/${measureUnit}`,
-      amount: sCharged,
-    });
-    if (bMeasure > 0) lineItems.push({
-      desc: 'Fence Cleaning / Bleach Treatment',
-      detail: `${Math.round(bMeasure).toLocaleString()} ${measureUnit} @ $${bRate.toFixed(2)}/${measureUnit}`,
-      amount: bCharged,
-    });
-    if (activeScope.includes('Demolition / Removal') && localStorage.getItem('fsig-app-mode') !== 'stain') lineItems.push({ desc:'Demolition / Removal', detail:'', amount:0 });
-
-    const gateRowData = gates.filter(g => g.type || g.width || g.height);
-    const gateList = gateRowData.length
-      ? gateRowData.map(g=>`${g.type||''} gate ${g.width||'?'}'w × ${g.height||'?'}'h${g.notes?` (${g.notes})`:''}` ).join('; ')
-      : '';
-
-    const fenceMapSvg = buildPrintMapSVG();
-
-    const invoiceNum = currentJobNumber || 'FS-0001';
-    const dueDate = (() => {
-      const d = new Date(); d.setDate(d.getDate()+30);
-      return d.toLocaleDateString();
-    })();
-
-    return `
-      <div style="font-family:Arial,sans-serif;max-width:750px;margin:0 auto">
-
-        <!-- Header -->
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:4px solid #1B2937;padding-bottom:14px;margin-bottom:16px">
-          <div>
-            <div style="font-size:1.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#1B2937">Holliday Welding &amp; Fence</div>
-            <div style="font-size:.8rem;color:#C8530A;letter-spacing:1.5px;text-transform:uppercase;font-weight:700;margin-top:2px">Salem, Missouri</div>
-            <div style="font-size:.82rem;color:#555;margin-top:4px;line-height:1.6">
-              Licensed &amp; Insured Fence Contractor
-            </div>
-          </div>
-          <div style="text-align:right">
-            <div style="font-size:1.4rem;font-weight:700;color:#1B2937;letter-spacing:1px">INVOICE</div>
-            <div style="font-size:.82rem;color:#555;margin-top:4px;line-height:1.7">
-              <div><strong>Invoice #:</strong> ${invoiceNum}</div>
-              <div><strong>Date:</strong> ${dateStr}</div>
-              <div><strong>Due:</strong> ${dueDate}</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Bill To + Job Info -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:16px;font-size:.88rem">
-          <div>
-            <div style="font-size:.72rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#555;margin-bottom:5px;border-bottom:1px solid #ddd;padding-bottom:3px">Bill To</div>
-            ${customerName ? `<div style="font-weight:700;font-size:1rem">${customerName}</div>` : ''}
-            ${addrParts.length ? `<div>${addrParts.join('<br>')}</div>` : ''}
-            ${customerPhone ? `<div>${customerPhone}</div>` : ''}
-            ${customerEmail ? `<div>${customerEmail}</div>` : ''}
-          </div>
-          <div>
-            <div style="font-size:.72rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#555;margin-bottom:5px;border-bottom:1px solid #ddd;padding-bottom:3px">Project Info</div>
-            ${jobStartDate ? `<div><strong>Start Date:</strong> ${jobStartDate}</div>` : ''}
-            ${jobEndDate   ? `<div><strong>Est. Completion:</strong> ${jobEndDate}</div>` : ''}
-            <div><strong>Total Fence:</strong> ${totalLF.toFixed(0)} linear ft</div>
-            ${terrain !== 'normal' ? `<div><strong>Site Conditions:</strong> ${terrainLabel}</div>` : ''}
-            ${gateList ? `<div><strong>Gates:</strong> ${gateList}</div>` : ''}
-            ${activeScope.length ? `<div><strong>Scope Includes:</strong> ${activeScope.join(', ')}</div>` : ''}
-          </div>
-        </div>
-
-        <!-- Fence Map -->
-        <div style="margin-bottom:16px">
-          <div style="font-size:.72rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#555;margin-bottom:5px">Property Layout</div>
-          ${fenceMapSvg}
-        </div>
-
-        <!-- Line Items -->
-        <table style="width:100%;border-collapse:collapse;font-size:.9rem;margin-bottom:16px;border:1px solid #bbb">
-          <tr style="background:#1B2937;color:white">
-            <th style="padding:7px 12px;text-align:left">Description</th>
-            <th style="padding:7px 12px;text-align:left">Detail</th>
-            <th style="padding:7px 12px;text-align:right;width:100px">Amount</th>
-          </tr>
-          ${lineItems.map(item => `
-          <tr style="border-bottom:1px solid #ddd">
-            <td style="padding:8px 12px;font-weight:600">${item.desc}</td>
-            <td style="padding:8px 12px;color:#555;font-size:.85rem">${item.detail}</td>
-            <td style="padding:8px 12px;text-align:right;font-weight:700">${item.amount > 0 ? '$'+item.amount.toFixed(2) : '—'}</td>
-          </tr>`).join('')}
-          <tr style="background:#f9f9f9;border-top:2px solid #1B2937">
-            <td colspan="2" style="padding:9px 12px;font-weight:700;font-size:1rem;text-align:right">TOTAL DUE</td>
-            <td style="padding:9px 12px;text-align:right;font-weight:700;font-size:1.1rem;background:#FFF176">$${totalDue.toFixed(2)}</td>
-          </tr>
-        </table>
-
-        ${changeOrder ? `<div style="margin-bottom:14px;padding:8px 12px;background:#e3f2fd;border-left:3px solid #1565c0;font-size:.84rem"><strong>Change Order / Additional Notes:</strong> ${changeOrder}</div>` : ''}
-
-        <!-- Payment Terms -->
-        <div style="font-size:.82rem;color:#555;margin-bottom:20px;padding:8px 12px;background:#f8f8f8;border:1px solid #e0e0e0;border-radius:4px;line-height:1.6">
-          <strong>Payment Terms:</strong> Payment due within 30 days of invoice date. We accept cash, check (payable to Holliday Welding &amp; Fence), or electronic transfer.
-          A service charge of 1.5% per month will be applied to overdue balances.
-        </div>
-
-        <!-- Signature -->
-        <div style="border-top:2px solid #333;padding-top:14px">
-          <div style="font-weight:700;font-size:.9rem;margin-bottom:18px">Customer Authorization &amp; Acceptance</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-bottom:16px">
-            <div>
-              <div style="border-bottom:1px solid #333;height:40px;margin-bottom:5px"></div>
-              <div style="font-size:.77rem;color:#444">Customer Signature</div>
-            </div>
-            <div>
-              <div style="border-bottom:1px solid #333;height:40px;margin-bottom:5px"></div>
-              <div style="font-size:.77rem;color:#444">Date</div>
-            </div>
-          </div>
-          <div style="margin-bottom:14px">
-            <div style="border-bottom:1px solid #333;height:40px;margin-bottom:5px"></div>
-            <div style="font-size:.77rem;color:#444">Printed Name</div>
-          </div>
-          <div style="font-size:.77rem;color:#666;line-height:1.5">
-            By signing, customer agrees to the scope of work and pricing above and authorizes Holliday Welding &amp; Fence to proceed.
-            Any changes to scope must be documented in writing. Final payment is due upon completion unless otherwise agreed.
-          </div>
-        </div>
-
-        <div style="text-align:center;margin-top:20px;font-size:.75rem;color:#aaa">Thank you for your business! &nbsp;·&nbsp; Holliday Welding &amp; Fence &nbsp;·&nbsp; Salem, MO</div>
-      </div>`;
-  }
 
   // ── Job number ──
   let currentJobNumber = null;
