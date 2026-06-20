@@ -3709,6 +3709,9 @@
       fenceMapSegData: fenceMapSegData.map(d => ({ stain: d.stain, bleach: d.bleach })),
       fenceMapClosed: fenceMapClosed,
       fenceMapScale: fenceMapScale,
+      fenceMapGates:  fenceMapGates.slice(),
+      fmPostSpacing:  _fmPostSpacing,
+      fmPanelLen:     _fmPanelLen,
       plannerSvg: buildPlannerSvg(planPoints.map(p => ({lat: p.lat, lng: p.lng})), _planSegments),
       mapSnapshotUrl: (planPoints.length >= 2) ? buildMapSnapshotUrl(planPoints.map(p => ({lat: p.lat, lng: p.lng}))) : '',
       plannerSvgOverlay: (() => {
@@ -3927,7 +3930,10 @@
     fenceMapPoints = (s.fenceMapPoints || []).map(p => ({ x: +p.x, y: +p.y }));
     fenceMapSegData = (s.fenceMapSegData || []).map(d => ({ stain: d.stain || 'none', bleach: d.bleach || 'none' }));
     fenceMapClosed = !!s.fenceMapClosed;
-    if (s.fenceMapScale) { fenceMapScale = +s.fenceMapScale; var sc = document.getElementById('fence-map-scale-in'); if (sc) sc.value = fenceMapScale; }
+    if (s.fenceMapGates !== undefined) fenceMapGates = s.fenceMapGates || [];
+    if (s.fmPostSpacing) { _fmPostSpacing = +s.fmPostSpacing; var psi = document.getElementById('fmap-post-spacing-in'); if (psi) psi.value = _fmPostSpacing; }
+    if (s.fmPanelLen)    { _fmPanelLen    = +s.fmPanelLen;    var pli = document.getElementById('fmap-panel-len-in');    if (pli) pli.value = _fmPanelLen; }
+    if (s.fenceMapScale) { fenceMapScale = +s.fenceMapScale; var scel = document.getElementById('fence-map-scale-in'); if (scel) scel.value = fenceMapScale; }
     var fmb = document.getElementById('fence-close-btn');
     if (fmb) fmb.style.background = fenceMapClosed ? '#2E7D32' : '#6A1B9A';
     try { drawFenceMap(); } catch(e) {}
@@ -6473,131 +6479,338 @@ ${propPts.map(p => `        ${(+p.lng).toFixed(8)},${(+p.lat).toFixed(8)},0`).jo
     var w = c.width, h = c.height;
     var pts = fenceMapPoints;
 
-    // Background
+    // ── White background ────────────────────────────────────────────────────
     ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = '#f9f8f5';
+    ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, w, h);
 
-    // Grid (every 10 ft)
-    var step = fenceMapScale * 10;
-    if (step < 8) step = 8;
-    ctx.strokeStyle = '#e0ddd5';
-    ctx.lineWidth = 0.5;
-    for (var gx = 0; gx < w; gx += step) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, h); ctx.stroke(); }
-    for (var gy = 0; gy < h; gy += step) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(w, gy); ctx.stroke(); }
+    // ── Fine grid (1 ft) ────────────────────────────────────────────────────
+    var fineStep = fenceMapScale;
+    if (fineStep >= 4) {
+      ctx.strokeStyle = '#eeeeee';
+      ctx.lineWidth = 0.5;
+      for (var gx = 0; gx < w; gx += fineStep) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, h); ctx.stroke(); }
+      for (var gy = 0; gy < h; gy += fineStep) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(w, gy); ctx.stroke(); }
+    }
 
-    if (pts.length === 0) {
-      ctx.fillStyle = '#b0a898';
-      ctx.font = '13px Arial';
+    // ── Major grid (10 ft) with labels ─────────────────────────────────────
+    var majorStep = fenceMapScale * 10;
+    if (majorStep < 8) majorStep = 8;
+    ctx.strokeStyle = '#cccccc';
+    ctx.lineWidth = 1;
+    ctx.font = '9px Inter, Arial, sans-serif';
+    ctx.fillStyle = '#999';
+    ctx.textAlign = 'left';
+    var ftCount = 0;
+    for (var gxM = 0; gxM < w; gxM += majorStep) {
+      ctx.beginPath(); ctx.moveTo(gxM, 0); ctx.lineTo(gxM, h); ctx.stroke();
+      if (ftCount > 0 && gxM + 3 < w) { ctx.fillText(ftCount * 10 + "'", gxM + 2, 10); }
+      ftCount++;
+    }
+    ftCount = 0;
+    for (var gyM = 0; gyM < h; gyM += majorStep) {
+      ctx.beginPath(); ctx.moveTo(0, gyM); ctx.lineTo(w, gyM); ctx.stroke();
+      if (ftCount > 0 && gyM + 10 < h) { ctx.fillText(ftCount * 10 + "'", 3, gyM - 2); }
+      ftCount++;
+    }
+
+    // ── Compass rose ────────────────────────────────────────────────────────
+    (function() {
+      var cx2 = w - 22, cy2 = 22, armLen = 12;
+      ctx.save();
+      ctx.font = 'bold 9px Inter, Arial, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('Tap to place fence corners', w / 2, h / 2 - 8);
-      ctx.font = '11px Arial';
+      // N arrow
+      ctx.strokeStyle = '#555'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(cx2, cy2 + armLen * 0.5); ctx.lineTo(cx2, cy2 - armLen); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(cx2, cy2 - armLen);
+      ctx.lineTo(cx2 - 4, cy2 - armLen + 7);
+      ctx.lineTo(cx2 + 4, cy2 - armLen + 7);
+      ctx.closePath();
+      ctx.fillStyle = '#333'; ctx.fill();
+      ctx.fillStyle = '#555';
+      ctx.fillText('N', cx2, cy2 - armLen - 3);
+      ctx.restore();
+    })();
+
+    // ── Empty state ─────────────────────────────────────────────────────────
+    if (pts.length === 0) {
+      ctx.fillStyle = '#aaa';
+      ctx.font = '14px Inter, Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Click or tap to place fence corners', w / 2, h / 2 - 10);
+      ctx.font = '11px Inter, Arial, sans-serif';
+      ctx.fillStyle = '#bbb';
       ctx.fillText('Drag to adjust  ·  Square Up to align  ·  Close Shape to connect ends', w / 2, h / 2 + 12);
-      var info = document.getElementById('fence-map-info');
-      if (info) info.innerHTML = '';
+      var info0 = document.getElementById('fence-map-info');
+      if (info0) info0.innerHTML = '';
+      var mat0 = document.getElementById('fmap-materials');
+      if (mat0) mat0.innerHTML = '';
       return;
     }
 
-    // Build segment list (add closing segment if closed)
+    // ── Build segment list ──────────────────────────────────────────────────
+    // segs[i] → segs[i+1] is segment i
     var segs = pts.slice();
     if (fenceMapClosed && pts.length > 2) segs = segs.concat([pts[0]]);
+    _fmEnsureSegData();
 
-    // Draw fence line
-    ctx.beginPath();
-    ctx.moveTo(pts[0].x, pts[0].y);
-    for (var i = 1; i < segs.length; i++) ctx.lineTo(segs[i].x, segs[i].y);
-    ctx.strokeStyle = '#C8530A';
-    ctx.lineWidth = 3;
-    ctx.lineJoin = 'round';
-    ctx.stroke();
+    // Helper: get gate coverage on a segment as list of {t0, t1} in t-space
+    function _gateRangesForSeg(segIdx, segLenPx) {
+      var ranges = [];
+      for (var gi = 0; gi < fenceMapGates.length; gi++) {
+        var g = fenceMapGates[gi];
+        if (g.segIdx !== segIdx) continue;
+        var halfT = (g.width * fenceMapScale) / (2 * segLenPx);
+        ranges.push({ t0: Math.max(0, g.t - halfT), t1: Math.min(1, g.t + halfT) });
+      }
+      return ranges;
+    }
 
-    // Segment length labels
+    function _inGateRange(t, ranges) {
+      for (var ri = 0; ri < ranges.length; ri++) {
+        if (t >= ranges[ri].t0 && t <= ranges[ri].t1) return true;
+      }
+      return false;
+    }
+
+    // ── Draw stain/bleach arrows helper ────────────────────────────────────
+    var ARROW_LEN = 18, HEAD = 7;
+    function _drawArrow(actx, amx, amy, anx, any, color) {
+      var ex = amx + anx * ARROW_LEN, ey = amy + any * ARROW_LEN;
+      actx.beginPath(); actx.moveTo(amx, amy); actx.lineTo(ex, ey);
+      actx.strokeStyle = color; actx.lineWidth = 2.5; actx.stroke();
+      var ang = Math.atan2(ey - amy, ex - amx);
+      actx.beginPath();
+      actx.moveTo(ex, ey);
+      actx.lineTo(ex - HEAD*Math.cos(ang-Math.PI/5), ey - HEAD*Math.sin(ang-Math.PI/5));
+      actx.moveTo(ex, ey);
+      actx.lineTo(ex - HEAD*Math.cos(ang+Math.PI/5), ey - HEAD*Math.sin(ang+Math.PI/5));
+      actx.lineWidth = 2; actx.stroke();
+    }
+
     var totalFt = 0;
-    ctx.font = 'bold 11px Arial';
-    for (var i = 1; i < segs.length; i++) {
-      var a = segs[i-1], b = segs[i];
-      var pxLen = _fmDist(a.x, a.y, b.x, b.y);
-      var ft = pxLen / fenceMapScale;
-      totalFt += ft;
-      var mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
-      var angle = Math.atan2(b.y - a.y, b.x - a.x);
-      var label = ft.toFixed(1) + "'";
+    var totalPosts = 0;
+    var totalPanels = 0;
+    var totalGateCount = fenceMapGates.length;
+
+    // ── Draw each segment ──────────────────────────────────────────────────
+    for (var si = 0; si < segs.length - 1; si++) {
+      var sA = segs[si], sB = segs[si + 1];
+      var sdx = sB.x - sA.x, sdy = sB.y - sA.y;
+      var segLenPx = Math.sqrt(sdx*sdx + sdy*sdy) || 1;
+      var segLenFt = segLenPx / fenceMapScale;
+      totalFt += segLenFt;
+
+      var gateRanges = _gateRangesForSeg(si, segLenPx);
+      var ux = sdx / segLenPx, uy = sdy / segLenPx; // unit vector along segment
+      var nx = -uy, ny = ux; // left normal
+
+      // ── Selected segment blue highlight ──────────────────────────────────
+      if (si === _fmSelectedSeg) {
+        ctx.beginPath(); ctx.moveTo(sA.x, sA.y); ctx.lineTo(sB.x, sB.y);
+        ctx.strokeStyle = 'rgba(21,101,192,0.20)'; ctx.lineWidth = 14; ctx.stroke();
+      }
+
+      // ── Fence line (warm brown, thick, with gate gaps) ───────────────────
+      ctx.strokeStyle = '#8B5E3C';
+      ctx.lineWidth = 5;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      if (gateRanges.length === 0) {
+        ctx.beginPath(); ctx.moveTo(sA.x, sA.y); ctx.lineTo(sB.x, sB.y); ctx.stroke();
+      } else {
+        // Draw fence pieces between gates
+        var sortedRanges = gateRanges.slice().sort(function(a,b){ return a.t0 - b.t0; });
+        var prevT = 0;
+        for (var ri = 0; ri < sortedRanges.length; ri++) {
+          var r = sortedRanges[ri];
+          if (prevT < r.t0) {
+            var px0 = sA.x + ux * prevT * segLenPx, py0 = sA.y + uy * prevT * segLenPx;
+            var px1 = sA.x + ux * r.t0 * segLenPx, py1 = sA.y + uy * r.t0 * segLenPx;
+            ctx.beginPath(); ctx.moveTo(px0, py0); ctx.lineTo(px1, py1); ctx.stroke();
+          }
+          prevT = r.t1;
+        }
+        if (prevT < 1) {
+          var px2 = sA.x + ux * prevT * segLenPx, py2 = sA.y + uy * prevT * segLenPx;
+          ctx.beginPath(); ctx.moveTo(px2, py2); ctx.lineTo(sB.x, sB.y); ctx.stroke();
+        }
+      }
+
+      // ── Panel tick marks ────────────────────────────────────────────────
+      var tickStep = _fmPanelLen * fenceMapScale;
+      ctx.strokeStyle = '#6B4422';
+      ctx.lineWidth = 1.5;
+      var tickT = tickStep;
+      while (tickT < segLenPx - 2) {
+        var tVal = tickT / segLenPx;
+        if (!_inGateRange(tVal, gateRanges)) {
+          var tx = sA.x + ux * tickT, ty = sA.y + uy * tickT;
+          ctx.beginPath();
+          ctx.moveTo(tx + nx * 4, ty + ny * 4);
+          ctx.lineTo(tx - nx * 4, ty - ny * 4);
+          ctx.stroke();
+        }
+        tickT += tickStep;
+      }
+
+      // Count panels on this segment (exclude gate widths)
+      var gateLinFt = 0;
+      for (var gi2 = 0; gi2 < gateRanges.length; gi2++) {
+        gateLinFt += (gateRanges[gi2].t1 - gateRanges[gi2].t0) * segLenFt;
+      }
+      totalPanels += Math.ceil((segLenFt - gateLinFt) / _fmPanelLen);
+
+      // ── Line posts at post spacing intervals (skip inside gates) ─────────
+      var postStep = _fmPostSpacing * fenceMapScale;
+      var pPost = postStep;
+      while (pPost < segLenPx - 2) {
+        var ptVal = pPost / segLenPx;
+        if (!_inGateRange(ptVal, gateRanges)) {
+          var ppx = sA.x + ux * pPost, ppy = sA.y + uy * pPost;
+          ctx.fillStyle = '#5A3A1A';
+          ctx.fillRect(ppx - 3, ppy - 3, 6, 6);
+          totalPosts++;
+        }
+        pPost += postStep;
+      }
+
+      // ── Gates: dashed outline + swing arc + posts ────────────────────────
+      for (var gi3 = 0; gi3 < fenceMapGates.length; gi3++) {
+        var gate = fenceMapGates[gi3];
+        if (gate.segIdx !== si) continue;
+        var halfPx = (gate.width * fenceMapScale) / 2;
+        var gCx = sA.x + ux * gate.t * segLenPx;
+        var gCy = sA.y + uy * gate.t * segLenPx;
+        var gx0 = gCx - ux * halfPx, gy0 = gCy - uy * halfPx;
+        var gx1 = gCx + ux * halfPx, gy1 = gCy + uy * halfPx;
+        // Dashed gate outline rect
+        var GRECT_H = 10;
+        ctx.save();
+        ctx.setLineDash([3, 3]);
+        ctx.strokeStyle = '#888';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(gx0 + nx * GRECT_H, gy0 + ny * GRECT_H);
+        ctx.lineTo(gx1 + nx * GRECT_H, gy1 + ny * GRECT_H);
+        ctx.lineTo(gx1 - nx * GRECT_H, gy1 - ny * GRECT_H);
+        ctx.lineTo(gx0 - nx * GRECT_H, gy0 - ny * GRECT_H);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.setLineDash([]);
+        // Swing arc
+        var gateAngle = Math.atan2(gy1 - gy0, gx1 - gx0);
+        ctx.strokeStyle = '#999';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(gx0, gy0, gate.width * fenceMapScale, gateAngle, gateAngle + Math.PI / 2);
+        ctx.stroke();
+        // Gate posts (dark brown squares)
+        ctx.fillStyle = '#3B2008';
+        ctx.fillRect(gx0 - 5, gy0 - 5, 10, 10);
+        ctx.fillRect(gx1 - 5, gy1 - 5, 10, 10);
+        totalPosts += 2;
+        // Label
+        ctx.font = 'bold 10px Inter, Arial, sans-serif';
+        ctx.fillStyle = '#555';
+        ctx.textAlign = 'center';
+        ctx.fillText(gate.width + "'", gCx + nx * (GRECT_H + 8), gCy + ny * (GRECT_H + 8));
+        ctx.restore();
+      }
+
+      // ── Stain / bleach arrows ─────────────────────────────────────────────
+      var smx2 = (sA.x + sB.x) / 2, smy2 = (sA.y + sB.y) / 2;
+      var lx2 = -uy, ly2 = ux, rx2 = uy, ry2 = -ux;
+      var sd = fenceMapSegData[si] || { stain:'none', bleach:'none' };
+      var stainOff = sd.bleach !== 'none' ? -6 : 0;
+      var ssmx = smx2 + lx2 * stainOff, ssmy = smy2 + ly2 * stainOff;
+      if (sd.stain === 'left'  || sd.stain === 'both') _drawArrow(ctx, ssmx, ssmy, lx2, ly2, '#C8530A');
+      if (sd.stain === 'right' || sd.stain === 'both') _drawArrow(ctx, ssmx, ssmy, rx2, ry2, '#C8530A');
+      var bleachOff = sd.stain !== 'none' ? 6 : 0;
+      var sbmx = smx2 + rx2 * bleachOff, sbmy = smy2 + ry2 * bleachOff;
+      if (sd.bleach === 'left'  || sd.bleach === 'both') _drawArrow(ctx, sbmx, sbmy, lx2, ly2, '#1565C0');
+      if (sd.bleach === 'right' || sd.bleach === 'both') _drawArrow(ctx, sbmx, sbmy, rx2, ry2, '#1565C0');
+
+      // ── Dimension label ────────────────────────────────────────────────────
+      var dFt = Math.floor(segLenFt);
+      var dIn = Math.round((segLenFt - dFt) * 12);
+      var dLabel = dIn > 0 ? (dFt + "' " + dIn + '"') : (dFt + "'");
+      var dmx = (sA.x + sB.x) / 2, dmy = (sA.y + sB.y) / 2;
+      var dAngle = Math.atan2(sB.y - sA.y, sB.x - sA.x);
+      // Flip label if segment goes right-to-left so text stays readable
+      if (dAngle > Math.PI / 2 || dAngle < -Math.PI / 2) dAngle += Math.PI;
       ctx.save();
-      ctx.translate(mx, my);
-      ctx.rotate(angle);
-      var tw = ctx.measureText(label).width;
-      ctx.fillStyle = 'rgba(255,255,255,0.88)';
-      ctx.fillRect(-tw / 2 - 4, -10, tw + 8, 15);
-      ctx.fillStyle = '#1565C0';
+      ctx.translate(dmx, dmy);
+      ctx.rotate(dAngle);
+      ctx.font = 'bold 10px Inter, Arial, sans-serif';
+      var tw = ctx.measureText(dLabel).width;
+      // White pill background
+      ctx.fillStyle = '#fff';
+      var pillPad = 4, pillH = 14;
+      ctx.beginPath();
+      var pillR = pillH / 2;
+      var pillX = -tw / 2 - pillPad, pillY = -pillH / 2;
+      ctx.moveTo(pillX + pillR, pillY);
+      ctx.lineTo(pillX + tw + pillPad * 2 - pillR, pillY);
+      ctx.arcTo(pillX + tw + pillPad * 2, pillY, pillX + tw + pillPad * 2, pillY + pillH, pillR);
+      ctx.lineTo(pillX + pillR, pillY + pillH);
+      ctx.arcTo(pillX, pillY + pillH, pillX, pillY, pillR);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#ccc'; ctx.lineWidth = 0.5; ctx.stroke();
+      ctx.fillStyle = (si === _fmSelectedSeg) ? '#1565C0' : '#3B2008';
       ctx.textAlign = 'center';
-      ctx.fillText(label, 0, 2);
+      ctx.textBaseline = 'middle';
+      ctx.fillText(dLabel, 0, 1);
       ctx.restore();
     }
 
-    // Draw stain/bleach arrows per segment
-    _fmEnsureSegData();
-    var ARROW_LEN = 18, HEAD = 7;
-    function _drawArrow(ctx, mx, my, nx, ny, color) {
-      var ex = mx + nx * ARROW_LEN, ey = my + ny * ARROW_LEN;
-      ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(ex, ey);
-      ctx.strokeStyle = color; ctx.lineWidth = 2.5; ctx.stroke();
-      var ang = Math.atan2(ey - my, ex - mx);
-      ctx.beginPath();
-      ctx.moveTo(ex, ey);
-      ctx.lineTo(ex - HEAD*Math.cos(ang-Math.PI/5), ey - HEAD*Math.sin(ang-Math.PI/5));
-      ctx.moveTo(ex, ey);
-      ctx.lineTo(ex - HEAD*Math.cos(ang+Math.PI/5), ey - HEAD*Math.sin(ang+Math.PI/5));
-      ctx.lineWidth = 2; ctx.stroke();
-    }
-    for (var i = 0; i < segs.length - 1; i++) {
-      var a = segs[i], b = segs[i + 1];
-      var sdx = b.x - a.x, sdy = b.y - a.y;
-      var slen = Math.sqrt(sdx*sdx + sdy*sdy) || 1;
-      var mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
-      // left perp = (-sdy, sdx)/len, right perp = (sdy, -sdx)/len
-      var lx = -sdy/slen, ly = sdx/slen;
-      var rx = sdy/slen, ry = -sdx/slen;
-      var sd = fenceMapSegData[i] || { stain:'none', bleach:'none' };
-      // Highlight selected segment
-      if (i === _fmSelectedSeg) {
-        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
-        ctx.strokeStyle = 'rgba(255,200,0,.5)'; ctx.lineWidth = 8; ctx.stroke();
-      }
-      // Stain arrows (orange) — offset slightly left of center
-      var stainOff = sd.bleach !== 'none' ? -6 : 0;
-      var smx = mx + lx * stainOff, smy = my + ly * stainOff;
-      if (sd.stain === 'left' || sd.stain === 'both')  _drawArrow(ctx, smx, smy, lx, ly, '#C8530A');
-      if (sd.stain === 'right' || sd.stain === 'both') _drawArrow(ctx, smx, smy, rx, ry, '#C8530A');
-      // Bleach arrows (blue) — offset slightly right of center
-      var bleachOff = sd.stain !== 'none' ? 6 : 0;
-      var bmx = mx + rx * bleachOff, bmy = my + ry * bleachOff;
-      if (sd.bleach === 'left' || sd.bleach === 'both')  _drawArrow(ctx, bmx, bmy, lx, ly, '#1565C0');
-      if (sd.bleach === 'right' || sd.bleach === 'both') _drawArrow(ctx, bmx, bmy, rx, ry, '#1565C0');
-    }
-
-    // Draw corner points
-    for (var i = 0; i < pts.length; i++) {
-      var p = pts[i];
-      var r = (i === _fmHoverIdx || i === _fmDragIdx) ? 10 : 7;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
-      ctx.fillStyle = i === 0 ? '#2E7D32' : '#C8530A';
-      ctx.fill();
+    // ── Corner / terminal posts ─────────────────────────────────────────────
+    totalPosts += pts.length; // corner posts
+    for (var pi = 0; pi < pts.length; pi++) {
+      var p = pts[pi];
+      var pSize = (pi === _fmHoverIdx || pi === _fmDragIdx) ? 12 : 10;
+      var pHalf = pSize / 2;
+      ctx.fillStyle = (pi === 0) ? '#2E7D32' : '#3B2008';
+      ctx.fillRect(p.x - pHalf, p.y - pHalf, pSize, pSize);
       ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 2;
-      ctx.stroke();
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(p.x - pHalf, p.y - pHalf, pSize, pSize);
+      // Number label
       ctx.fillStyle = '#fff';
-      ctx.font = 'bold 9px Arial';
+      ctx.font = 'bold 8px Inter, Arial, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(i + 1, p.x, p.y + 3);
+      ctx.textBaseline = 'middle';
+      ctx.fillText(pi + 1, p.x, p.y);
     }
 
-    // Info bar
+    // ── Info bar ────────────────────────────────────────────────────────────
     var info = document.getElementById('fence-map-info');
     if (info) {
       info.innerHTML = '<strong>Total: ' + totalFt.toFixed(1) + ' ft</strong>'
         + ' &nbsp;·&nbsp; ' + pts.length + ' corner' + (pts.length !== 1 ? 's' : '')
         + (fenceMapClosed ? ' &nbsp;·&nbsp; <span style="color:#2E7D32">&#10003; Closed</span>' : '');
+    }
+
+    // ── Material summary bar ─────────────────────────────────────────────────
+    var matDiv = document.getElementById('fmap-materials');
+    if (matDiv) {
+      var matItems = [
+        { label: 'Linear Footage', val: totalFt.toFixed(1) + ' ft', color: '#3B2008' },
+        { label: 'Corner/Terminal Posts', val: pts.length, color: '#5A3A1A' },
+        { label: 'Line Posts', val: Math.max(0, totalPosts - pts.length - totalGateCount * 2), color: '#5A3A1A' },
+        { label: 'Panels', val: Math.max(0, totalPanels), color: '#8B5E3C' },
+        { label: 'Gates', val: totalGateCount, color: '#555' },
+      ];
+      matDiv.innerHTML = matItems.map(function(m) {
+        return '<span style="display:flex;flex-direction:column;align-items:center;gap:1px">'
+             + '<span style="font-weight:700;font-size:.95rem;color:' + m.color + '">' + m.val + '</span>'
+             + '<span style="color:#888;font-size:.72rem">' + m.label + '</span>'
+             + '</span>';
+      }).join('<span style="color:#ddd">|</span>');
     }
   }
 
