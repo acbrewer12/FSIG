@@ -1074,19 +1074,39 @@
       <span class="stain-mode-title">&#128205; Site Plan &#8212; Fence Layout</span>
     </h2>
     <div id="fence-layout-body">
-      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
+      <!-- Toolbar row 1: sync + tool buttons -->
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:4px">
         <button class="print-btn" onclick="syncFenceMapFromPlan()" style="font-size:.76rem;padding:3px 10px;background:#2E7D32">&#128506; Sync from Map</button>
         <button class="print-btn" onclick="syncFenceMapToPlan()" style="font-size:.76rem;padding:3px 10px;background:#1B5E20">&#128506; Sync to Map</button>
         <button class="print-btn" onclick="squareFenceMap()" style="font-size:.76rem;padding:3px 10px;background:#1565C0">&#9632; Square Up</button>
-        <button class="print-btn" id="fence-close-btn" onclick="toggleCloseFence()" style="font-size:.76rem;padding:3px 10px;background:#6A1B9A">Close Shape</button>
-        <button class="print-btn" onclick="undoFencePoint()" style="font-size:.76rem;padding:3px 10px;background:#5f6368">&#8617; Undo</button>
-        <button class="print-btn" onclick="clearFenceMap()" style="font-size:.76rem;padding:3px 10px;background:#c0392b">Clear</button>
-        <label style="font-size:.76rem;color:var(--muted);display:flex;align-items:center;gap:4px;margin-left:4px">
-          Scale <input id="fence-map-scale-in" type="number" value="4" min="1" max="30" style="width:44px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;font-size:.76rem" oninput="fenceMapScale=parseFloat(this.value)||4;drawFenceMap()"> px/ft
-        </label>
+        <span style="width:1px;height:24px;background:#ddd;display:inline-block;margin:0 2px"></span>
+        <button id="fmtool-draw" class="print-btn fm-tool-btn" onclick="setFmTool('draw')" style="font-size:.76rem;padding:3px 10px;background:#C8530A">&#9999; Draw</button>
+        <button id="fmtool-move" class="print-btn fm-tool-btn" onclick="setFmTool('move')" style="font-size:.76rem;padding:3px 10px;background:#5f6368">&#8598; Move</button>
+        <button id="fmtool-gate" class="print-btn fm-tool-btn" onclick="setFmTool('gate')" style="font-size:.76rem;padding:3px 10px;background:#5f6368">&#128682; Gate</button>
       </div>
-      <div style="font-size:.7rem;color:var(--muted);margin-bottom:4px">Tap/click to add corners &nbsp;·&nbsp; Drag to move &nbsp;·&nbsp; Double-tap to remove &nbsp;·&nbsp; <strong>Tap a segment</strong> to set stain/bleach arrows</div>
-      <canvas id="fence-map-canvas" style="border:1.5px solid var(--border);border-radius:5px;cursor:crosshair;touch-action:none;width:100%;display:block;background:#f9f8f5"></canvas>
+      <!-- Toolbar row 2: options -->
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px;font-size:.76rem;color:var(--muted)">
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer">
+          <input id="fmap-snap-cb" type="checkbox" checked onchange="_fmSnapEnabled=this.checked;drawFenceMap()"> &#8862; Snap
+        </label>
+        <label style="display:flex;align-items:center;gap:3px">
+          grid: <input id="fence-map-scale-in" type="number" value="4" min="1" max="30" style="width:44px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;font-size:.76rem" oninput="fenceMapScale=parseFloat(this.value)||4;drawFenceMap()"> px/ft
+        </label>
+        <label style="display:flex;align-items:center;gap:3px">
+          post every: <input id="fmap-post-spacing-in" type="number" value="8" min="1" max="20" style="width:44px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;font-size:.76rem" oninput="_fmPostSpacing=parseFloat(this.value)||8;drawFenceMap()"> ft
+        </label>
+        <label style="display:flex;align-items:center;gap:3px">
+          panel: <input id="fmap-panel-len-in" type="number" value="8" min="1" max="16" style="width:44px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;font-size:.76rem" oninput="_fmPanelLen=parseFloat(this.value)||8;drawFenceMap()"> ft
+        </label>
+        <span style="width:1px;height:20px;background:#ddd;display:inline-block"></span>
+        <button class="print-btn" onclick="undoFencePoint()" style="font-size:.76rem;padding:3px 10px;background:#5f6368">&#8617; Undo</button>
+        <button class="print-btn" id="fence-close-btn" onclick="toggleCloseFence()" style="font-size:.76rem;padding:3px 10px;background:#6A1B9A">Close Shape</button>
+        <button class="print-btn" onclick="clearFenceMap()" style="font-size:.76rem;padding:3px 10px;background:#c0392b">Clear</button>
+      </div>
+      <!-- Instructions -->
+      <div id="fmap-instructions" style="font-size:.7rem;color:var(--muted);margin-bottom:4px">Draw mode: click to add corners, drag to move &nbsp;·&nbsp; Gate mode: click a fence segment to add gate &nbsp;·&nbsp; Move mode: drag corners &nbsp;·&nbsp; <strong>Tap a segment</strong> to set stain/bleach arrows</div>
+      <canvas id="fence-map-canvas" style="border:1.5px solid var(--border);border-radius:5px;cursor:crosshair;touch-action:none;width:100%;display:block;background:#ffffff"></canvas>
+      <div id="fmap-materials" style="display:flex;gap:18px;flex-wrap:wrap;padding:8px 12px;background:#f5f5f5;border:1px solid #ddd;border-radius:4px;margin-top:6px;font-size:.82rem"></div>
       <div id="fmap-seg-panel" style="display:none;background:#f0ede8;border:1px solid var(--border);border-radius:5px;padding:8px 12px;margin-top:6px;gap:14px;align-items:center;flex-wrap:wrap;font-size:.8rem">
         <span style="font-weight:700;color:var(--muted)">Segment <span id="fmap-seg-num">1</span></span>
         <label style="display:flex;align-items:center;gap:5px">
@@ -6154,16 +6174,21 @@ ${propPts.map(p => `        ${(+p.lng).toFixed(8)},${(+p.lat).toFixed(8)},0`).jo
   planObserver.observe(document.getElementById('planning-map'));
 
   // ── Fence Layout Planner ──────────────────────────────────────────────────
-  var fenceMapPoints = [];
-  var fenceMapClosed = false;
-  var fenceMapScale  = 4; // px per foot
-  var _fmDragIdx     = -1;
-  var _fmHoverIdx    = -1;
-  var _fmLastTap     = 0;
-  var _fmMapOrigin   = null;
-  var _fmMapXform    = null;
-  var _fmSelectedSeg = -1;
+  var fenceMapPoints  = [];
+  var fenceMapClosed  = false;
+  var fenceMapScale   = 4; // px per foot
+  var _fmDragIdx      = -1;
+  var _fmHoverIdx     = -1;
+  var _fmLastTap      = 0;
+  var _fmMapOrigin    = null;
+  var _fmMapXform     = null;
+  var _fmSelectedSeg  = -1;
   var fenceMapSegData = [];
+  var _fmTool         = 'draw';
+  var _fmSnapEnabled  = true;
+  var fenceMapGates   = [];
+  var _fmPostSpacing  = 8;
+  var _fmPanelLen     = 8;
 
   function _fmEnsureSegData() {
     var needed = fenceMapPoints.length > 1 ? fenceMapPoints.length - 1 : 0;
@@ -6251,8 +6276,66 @@ ${propPts.map(p => `        ${(+p.lng).toFixed(8)},${(+p.lat).toFixed(8)},0`).jo
     drawFenceMap();
   }
 
+  function setFmTool(tool) {
+    _fmTool = tool;
+    ['draw','move','gate'].forEach(function(t) {
+      var btn = document.getElementById('fmtool-' + t);
+      if (btn) btn.style.background = (t === tool) ? '#C8530A' : '#5f6368';
+    });
+    var c = document.getElementById('fence-map-canvas');
+    if (c) c.style.cursor = (tool === 'move') ? 'grab' : (tool === 'gate') ? 'cell' : 'crosshair';
+    var inst = document.getElementById('fmap-instructions');
+    if (inst) {
+      if (tool === 'draw') inst.textContent = 'Draw mode: click to add corners, drag to move · Tap a segment to set stain/bleach arrows';
+      else if (tool === 'move') inst.textContent = 'Move mode: drag corners to reposition them · Double-click a corner to remove it';
+      else inst.textContent = 'Gate mode: click a fence segment to add/remove a gate at that location';
+    }
+  }
+
+  function _fmSnapPos(pos) {
+    if (!_fmSnapEnabled || !fenceMapScale) return pos;
+    return {
+      x: Math.round(pos.x / fenceMapScale) * fenceMapScale,
+      y: Math.round(pos.y / fenceMapScale) * fenceMapScale
+    };
+  }
+
+  function addOrRemoveGate(segIdx, x, y) {
+    var pts = fenceMapPoints;
+    var numPts = pts.length;
+    if (segIdx < 0 || numPts < 2) return;
+    var aIdx = segIdx, bIdx = segIdx + 1;
+    if (bIdx >= numPts) { if (fenceMapClosed && numPts > 2) bIdx = 0; else return; }
+    var ax = pts[aIdx].x, ay = pts[aIdx].y;
+    var bx = pts[bIdx].x, by = pts[bIdx].y;
+    var dx = bx - ax, dy = by - ay;
+    var lenSq = dx*dx + dy*dy;
+    if (!lenSq) return;
+    var t = Math.max(0.05, Math.min(0.95, ((x - ax)*dx + (y - ay)*dy) / lenSq));
+    // Check if near existing gate on same segment — if so, remove it
+    var gateWidthPx = _fmPanelLen * fenceMapScale;
+    var segLenPx = Math.sqrt(lenSq);
+    var gateWidthT = gateWidthPx / segLenPx;
+    for (var i = 0; i < fenceMapGates.length; i++) {
+      var g = fenceMapGates[i];
+      if (g.segIdx === segIdx && Math.abs(g.t - t) < gateWidthT * 0.75) {
+        fenceMapGates.splice(i, 1);
+        drawFenceMap();
+        return;
+      }
+    }
+    // Add new gate
+    fenceMapGates.push({ segIdx: segIdx, t: t, width: _fmPanelLen });
+    drawFenceMap();
+  }
+
   function _fmMouseDown(e) {
     var pos = _fmCanvasPos(e, this);
+    if (_fmTool === 'gate') {
+      var segHitG = _fmNearSeg(pos.x, pos.y);
+      if (segHitG >= 0) { addOrRemoveGate(segHitG, pos.x, pos.y); return; }
+      return;
+    }
     var hit = _fmNear(pos.x, pos.y);
     if (hit >= 0) {
       _fmDragIdx = hit;
@@ -6263,12 +6346,14 @@ ${propPts.map(p => `        ${(+p.lng).toFixed(8)},${(+p.lat).toFixed(8)},0`).jo
       var segHit = _fmNearSeg(pos.x, pos.y);
       if (segHit >= 0) {
         _fmSelectSeg(segHit);
-        return; // don't add a point
+        return;
       }
+      if (_fmTool === 'move') { return; }
       _fmSelectedSeg = -1;
       var panel2 = document.getElementById('fmap-seg-panel');
       if (panel2) panel2.style.display = 'none';
-      fenceMapPoints.push({ x: pos.x, y: pos.y });
+      var snapped = _fmSnapPos(pos);
+      fenceMapPoints.push({ x: snapped.x, y: snapped.y });
       _fmDragIdx = fenceMapPoints.length - 1;
     }
     drawFenceMap();
@@ -6277,13 +6362,15 @@ ${propPts.map(p => `        ${(+p.lng).toFixed(8)},${(+p.lat).toFixed(8)},0`).jo
   function _fmMouseMove(e) {
     var pos = _fmCanvasPos(e, this);
     if (_fmDragIdx >= 0) {
-      fenceMapPoints[_fmDragIdx] = { x: pos.x, y: pos.y };
+      var snapped = _fmSnapPos(pos);
+      fenceMapPoints[_fmDragIdx] = { x: snapped.x, y: snapped.y };
       drawFenceMap();
     } else {
       var hit = _fmNear(pos.x, pos.y);
       if (hit !== _fmHoverIdx) {
         _fmHoverIdx = hit;
-        this.style.cursor = hit >= 0 ? 'grab' : 'crosshair';
+        if (_fmTool === 'gate') this.style.cursor = 'cell';
+        else this.style.cursor = hit >= 0 ? 'grab' : (_fmTool === 'move' ? 'grab' : 'crosshair');
         drawFenceMap();
       }
     }
@@ -6302,10 +6389,14 @@ ${propPts.map(p => `        ${(+p.lng).toFixed(8)},${(+p.lat).toFixed(8)},0`).jo
     var t = e.touches[0];
     var now = Date.now();
     var pos = _fmCanvasPos(t, this);
+    if (_fmTool === 'gate') {
+      var segHitG2 = _fmNearSeg(pos.x, pos.y);
+      if (segHitG2 >= 0) { addOrRemoveGate(segHitG2, pos.x, pos.y); }
+      return;
+    }
     if (now - _fmLastTap < 350) {
-      // Double-tap: remove point
-      var hit = _fmNear(pos.x, pos.y);
-      if (hit >= 0) { fenceMapPoints.splice(hit, 1); drawFenceMap(); }
+      var hitD = _fmNear(pos.x, pos.y);
+      if (hitD >= 0) { fenceMapPoints.splice(hitD, 1); drawFenceMap(); }
       _fmLastTap = 0;
       return;
     }
@@ -6316,7 +6407,9 @@ ${propPts.map(p => `        ${(+p.lng).toFixed(8)},${(+p.lat).toFixed(8)},0`).jo
     } else {
       var segHit2 = _fmNearSeg(pos.x, pos.y);
       if (segHit2 >= 0) { _fmSelectSeg(segHit2); return; }
-      fenceMapPoints.push({ x: pos.x, y: pos.y });
+      if (_fmTool === 'move') { return; }
+      var snapped2 = _fmSnapPos(pos);
+      fenceMapPoints.push({ x: snapped2.x, y: snapped2.y });
       _fmDragIdx = fenceMapPoints.length - 1;
     }
     drawFenceMap();
@@ -6327,7 +6420,8 @@ ${propPts.map(p => `        ${(+p.lng).toFixed(8)},${(+p.lat).toFixed(8)},0`).jo
     if (_fmDragIdx < 0) return;
     var t = e.touches[0];
     var pos = _fmCanvasPos(t, document.getElementById('fence-map-canvas'));
-    fenceMapPoints[_fmDragIdx] = { x: pos.x, y: pos.y };
+    var snapped = _fmSnapPos(pos);
+    fenceMapPoints[_fmDragIdx] = { x: snapped.x, y: snapped.y };
     drawFenceMap();
   }
 
@@ -6345,10 +6439,12 @@ ${propPts.map(p => `        ${(+p.lng).toFixed(8)},${(+p.lat).toFixed(8)},0`).jo
   }
 
   function clearFenceMap() {
-    fenceMapPoints = []; fenceMapClosed = false; fenceMapSegData = [];
+    fenceMapPoints = []; fenceMapClosed = false; fenceMapSegData = []; fenceMapGates = [];
     _fmDragIdx = -1; _fmHoverIdx = -1; _fmSelectedSeg = -1;
     var panel = document.getElementById('fmap-seg-panel');
     if (panel) panel.style.display = 'none';
+    var matDiv = document.getElementById('fmap-materials');
+    if (matDiv) matDiv.innerHTML = '';
     try { clearPlanStainOverlay(); } catch(e) {}
     var btn = document.getElementById('fence-close-btn');
     if (btn) btn.style.background = '#6A1B9A';
