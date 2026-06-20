@@ -3787,7 +3787,7 @@
     renderCalendar();
     updateStorageMeter();
     renderPipeline();
-    // Push to Google Sheets
+    // Push summary row to Jobs sheet (human-readable log for boss)
     pushToSheets('job', {
       jobNumber:    state.jobNumber    || '',
       customerName: state.customerName || '',
@@ -3805,9 +3805,10 @@
       bleachGal:    (document.getElementById('sum-bleach-gal')    || {}).textContent || '',
       crewLead:     state.crewLead      || '',
       stainProduct: state.stainProduct  || '',
-      notes:        state.changeOrder   || '',
-      stateJson:    JSON.stringify(entry)
+      notes:        state.changeOrder   || ''
     });
+    // Push full state to Settings sheet for cross-device sync (no Apps Script changes needed)
+    if (state.jobNumber) pushSetting('fsig-job-' + state.jobNumber, JSON.stringify(entry));
 
     const btn = document.getElementById('save-job-btn');
     const orig = btn.textContent;
@@ -7460,11 +7461,11 @@ function syncJobsFromSheets(silent) {
   var cfg = {};
   try { cfg = JSON.parse(localStorage.getItem('fsig-gsheets') || '{}'); } catch(e) {}
   if (!cfg.url) return;
-  fetch(cfg.url + '?type=jobs')
+  // Pull from Settings sheet — jobs stored as fsig-job-FS-XXXX keys (no Apps Script changes needed)
+  fetch(cfg.url + '?type=settings')
     .then(function(r) { return r.json(); })
     .then(function(data) {
-      var rows = data.rows || [];
-      if (!rows.length) return;
+      var settings = data.settings || {};
       var local = [];
       try { local = JSON.parse(localStorage.getItem('fsig-jobs') || '[]'); } catch(e) {}
       var byJobNum = {};
@@ -7473,24 +7474,22 @@ function syncJobsFromSheets(silent) {
         if (jn) byJobNum[jn] = j;
       });
       var added = 0;
-      rows.forEach(function(row) {
-        if (!row.stateJson) return;
+      Object.keys(settings).forEach(function(key) {
+        if (key.indexOf('fsig-job-') !== 0) return;
         try {
-          var entry = JSON.parse(row.stateJson);
+          var entry = JSON.parse(settings[key]);
           var jn = entry.state && entry.state.jobNumber;
           if (!jn) return;
           if (!byJobNum[jn]) {
             byJobNum[jn] = entry;
             added++;
-          } else {
-            // Keep whichever was saved more recently (higher id = newer timestamp)
-            if ((entry.id || 0) > (byJobNum[jn].id || 0)) {
-              byJobNum[jn] = entry;
-            }
+          } else if ((entry.id || 0) > (byJobNum[jn].id || 0)) {
+            byJobNum[jn] = entry;
           }
         } catch(e) {}
       });
-      var merged = Object.values(byJobNum).sort(function(a, b) { return (b.id || 0) - (a.id || 0); });
+      var merged = Object.keys(byJobNum).map(function(k){ return byJobNum[k]; })
+        .sort(function(a, b) { return (b.id || 0) - (a.id || 0); });
       localStorage.setItem('fsig-jobs', JSON.stringify(merged.slice(0, 50)));
       if (added > 0) {
         try { renderJobLog(); } catch(e) {}
