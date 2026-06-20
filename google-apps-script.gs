@@ -11,6 +11,7 @@ var SHEET_SETTINGS  = 'Settings';
 function doGet(e) {
   var type = (e && e.parameter && e.parameter.type) || 'leads';
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  if (type === 'jobs')      return getSheetRows(ss, SHEET_JOBS, 'rows');
   if (type === 'inventory') return getSheetRows(ss, SHEET_INVENTORY, 'items');
   if (type === 'settings')  return getSettings(ss);
   return getSheetRows(ss, SHEET_LEADS, 'rows');
@@ -55,11 +56,7 @@ function doPost(e) {
       ['timestamp','firstName','lastName','phone','email','address','services','details','source'],
       payload);
   } else if (type === 'job') {
-    writeRow(ss, SHEET_JOBS,
-      ['timestamp','jobNumber','customerName','phone','address','jobType','status',
-       'startDate','endDate','linFt','totalCharge','materialCost','grossProfit',
-       'stainGal','bleachGal','crewLead','stainProduct','notes'],
-      payload);
+    upsertJob(ss, payload);
   } else if (type === 'pipeline') {
     writeRow(ss, SHEET_PIPELINE,
       ['timestamp','name','phone','address','type','status','bidAmount','startDate','notes'],
@@ -71,6 +68,35 @@ function doPost(e) {
   }
 
   return jsonOut({ ok: true, type: type });
+}
+
+// ── Job upsert: find row by jobNumber and update, or append ────────────────
+function upsertJob(ss, data) {
+  var headers = ['timestamp','jobNumber','customerName','phone','address','jobType','status',
+                 'startDate','endDate','linFt','totalCharge','materialCost','grossProfit',
+                 'stainGal','bleachGal','crewLead','stainProduct','notes','stateJson'];
+  var sheet = getOrCreateSheet(ss, SHEET_JOBS);
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(headers);
+    sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+  data.timestamp = data.timestamp || new Date().toISOString();
+  if (data.jobNumber && sheet.getLastRow() > 1) {
+    var allData = sheet.getDataRange().getValues();
+    var jnCol = allData[0].indexOf('jobNumber');
+    for (var i = 1; i < allData.length; i++) {
+      if (String(allData[i][jnCol]) === String(data.jobNumber)) {
+        var updatedRow = headers.map(function(h) {
+          return data[h] !== undefined ? String(data[h]) : String(allData[i][headers.indexOf(h)] || '');
+        });
+        sheet.getRange(i + 1, 1, 1, headers.length).setValues([updatedRow]);
+        return;
+      }
+    }
+  }
+  var row = headers.map(function(h) { return data[h] !== undefined ? String(data[h]) : ''; });
+  sheet.appendRow(row);
 }
 
 // ── Settings upsert: find row by key and update, or append ─────────────────
