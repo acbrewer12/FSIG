@@ -80,22 +80,30 @@ function upsertJob(ss, data) {
     sheet.appendRow(headers);
     sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
     sheet.setFrozenRows(1);
+  } else {
+    // Patch header row: add stateJson column if the sheet predates it
+    var curHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    if (curHeaders.indexOf('stateJson') === -1) {
+      sheet.getRange(1, curHeaders.length + 1).setValue('stateJson');
+    }
   }
   data.timestamp = data.timestamp || new Date().toISOString();
+  // Re-read after potential header patch
+  var allData = sheet.getDataRange().getValues();
+  var actualHeaders = allData[0];
   if (data.jobNumber && sheet.getLastRow() > 1) {
-    var allData = sheet.getDataRange().getValues();
-    var jnCol = allData[0].indexOf('jobNumber');
+    var jnCol = actualHeaders.indexOf('jobNumber');
     for (var i = 1; i < allData.length; i++) {
       if (String(allData[i][jnCol]) === String(data.jobNumber)) {
-        var updatedRow = headers.map(function(h) {
-          return data[h] !== undefined ? String(data[h]) : String(allData[i][headers.indexOf(h)] || '');
+        var updatedRow = actualHeaders.map(function(h) {
+          return data[h] !== undefined ? String(data[h]) : String(allData[i][actualHeaders.indexOf(h)] || '');
         });
-        sheet.getRange(i + 1, 1, 1, headers.length).setValues([updatedRow]);
+        sheet.getRange(i + 1, 1, 1, updatedRow.length).setValues([updatedRow]);
         return;
       }
     }
   }
-  var row = headers.map(function(h) { return data[h] !== undefined ? String(data[h]) : ''; });
+  var row = actualHeaders.map(function(h) { return data[h] !== undefined ? String(data[h]) : ''; });
   sheet.appendRow(row);
 }
 
