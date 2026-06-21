@@ -413,8 +413,8 @@
     .job-log-item:hover { border-color: var(--accent); }
     .job-log-item .job-label { flex: 1; font-size: .88rem; color: var(--text); }
     .job-status-badge {
-      font-size: .7rem;
-      padding: 2px 8px;
+      font-size: .8rem;
+      padding: 3px 10px;
       border-radius: 10px;
       font-weight: 700;
       white-space: nowrap;
@@ -532,14 +532,29 @@
     .container.mode-fence .stain-mode-title { display:none !important; }
     .container.mode-stain .fence-mode-title { display:none !important; }
 
+    /* ── BOSS DASHBOARD ── */
+    .boss-stat { background:#f5f5f5; border-radius:10px; padding:16px; text-align:center; }
+    .boss-stat-num { font-family:'Oswald',Arial,sans-serif; font-size:2rem; font-weight:700; color:var(--brand); line-height:1; }
+    .boss-stat-lbl { font-size:.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-top:4px; }
+
+    /* ── BOSS JOB CARDS ── */
+    .boss-job-card { background:#fff; border:1px solid var(--border); border-left:4px solid var(--accent); border-radius:8px; padding:14px 16px; margin-bottom:10px; transition:box-shadow .15s; }
+    .boss-job-card:hover { box-shadow:0 4px 16px rgba(0,0,0,.12); }
+
+    /* ── CREW CARD COLLAPSE (admin only) ── */
+    body[data-role="admin"] .crew-card > *:not(h2) { display:none !important; }
+    body[data-role="admin"] .crew-card h2::after { content: ' ▼'; font-size:.7rem; }
+    body[data-role="admin"] .crew-card.expanded > *:not(h2) { display:block !important; }
+    body[data-role="admin"] .crew-card.expanded h2::after { content: ' ▲'; font-size:.7rem; }
+
     /* ── JOB PIPELINE ── */
     .pipe-tab { padding:6px 18px;border:2px solid var(--border);border-radius:4px;background:#f7f6f2;cursor:pointer;font-size:.85rem;font-weight:600;transition:all .15s; }
     .pipe-tab.active { background:var(--brand);color:#fff;border-color:var(--brand); }
-    .pipe-stage-hdr { display:flex;align-items:center;gap:8px;padding:7px 12px;color:#fff;border-radius:4px;margin-bottom:8px;font-size:.82rem;font-weight:700;letter-spacing:.3px; }
-    .pipe-job { background:#f9f8f6;border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:5px;padding:10px 12px;margin-bottom:8px; }
-    .pipe-job-name { font-weight:700;font-size:.95rem;color:var(--brand); }
-    .pipe-job-meta { font-size:.78rem;color:var(--muted);margin-top:3px; }
-    .pipe-badge { padding:2px 8px;border-radius:10px;font-size:.75rem;font-weight:700; }
+    .pipe-stage-hdr { display:flex;align-items:center;gap:8px;padding:8px 12px;color:#fff;border-radius:6px 6px 0 0;margin-bottom:0;font-size:.88rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase; }
+    .pipe-job { background:#fff;border:1px solid #e8e4df;border-left:3px solid var(--accent);border-radius:0 0 6px 6px;padding:14px 16px;margin-bottom:2px; }
+    .pipe-job-name { font-family:'Oswald',Arial,sans-serif;font-weight:700;font-size:1rem;color:var(--brand); }
+    .pipe-job-meta { font-size:.8rem;color:var(--muted);margin-top:4px; }
+    .pipe-badge { padding:3px 10px;border-radius:10px;font-size:.78rem;font-weight:700; }
 
     /* ── PRINT INVOICE ── */
     .print-only { display: none; }
@@ -821,6 +836,28 @@
   <!-- Print invoice — populated by buildPrintInvoice() before printing -->
   <div id="print-invoice" class="print-only" style="display:none;font-family:Arial,sans-serif;color:#222;max-width:750px;margin:0 auto"></div>
 
+  <!-- Boss Dashboard (admin only) -->
+  <div class="card auth-admin-only" id="boss-dashboard" style="margin-bottom:16px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px">
+      <div class="boss-stat">
+        <div class="boss-stat-num" id="bd-active">0</div>
+        <div class="boss-stat-lbl">Active Jobs</div>
+      </div>
+      <div class="boss-stat">
+        <div class="boss-stat-num" id="bd-pipeline">0</div>
+        <div class="boss-stat-lbl">In Pipeline</div>
+      </div>
+      <div class="boss-stat" style="background:#E8F5E9">
+        <div class="boss-stat-num" style="color:#2E7D32" id="bd-revenue">$0</div>
+        <div class="boss-stat-lbl">Pipeline Value</div>
+      </div>
+      <div class="boss-stat" style="background:#E3F2FD">
+        <div class="boss-stat-num" style="color:#1565C0" id="bd-complete">0</div>
+        <div class="boss-stat-lbl">Complete</div>
+      </div>
+    </div>
+  </div>
+
   <!-- Job Pipeline -->
   <div class="card">
     <h2>Job Pipeline</h2>
@@ -1050,8 +1087,8 @@
   </div>
 
   <!-- Job Photos -->
-  <div class="card">
-    <h2>&#128247; Job Photos</h2>
+  <div class="card crew-card">
+    <h2 onclick="this.closest('.crew-card').classList.toggle('expanded')" style="cursor:pointer;user-select:none">&#128247; Job Photos</h2>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
       <input id="companycam-url" type="url" placeholder="https://app.companycam.com/projects/..."
         style="flex:1;min-width:200px;padding:7px 10px;border:1px solid var(--border);border-radius:5px;font-size:.85rem">
@@ -1068,8 +1105,8 @@
   </div>
 
   <!-- Fence Layout Planner / Site Plan Fence Layout (visible in both modes) -->
-  <div class="card">
-    <h2 style="cursor:pointer;user-select:none" onclick="var b=document.getElementById('fence-layout-body');b.style.display=b.style.display==='none'?'':'none'">
+  <div class="card crew-card">
+    <h2 style="cursor:pointer;user-select:none" onclick="this.closest('.crew-card').classList.toggle('expanded');var b=document.getElementById('fence-layout-body');b.style.display=b.style.display==='none'?'':'none'">
       <span class="fence-mode-title">&#128208; Fence Layout Planner</span>
       <span class="stain-mode-title">&#128205; Site Plan &#8212; Fence Layout</span>
     </h2>
@@ -1215,8 +1252,8 @@
   </div>
 
   <!-- Site Planner -->
-  <div class="card">
-    <h2>Site Planner — Satellite View</h2>
+  <div class="card crew-card">
+    <h2 onclick="this.closest('.crew-card').classList.toggle('expanded')" style="cursor:pointer;user-select:none">Site Planner — Satellite View</h2>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
       <button class="print-btn" id="find-prop-btn" onclick="findProperty()">&#127759; Find Property</button>
       <span style="font-size:.72rem;color:var(--muted);margin-left:4px">Fence:</span>
@@ -1258,14 +1295,14 @@
   </div>
 
   <!-- House Visual -->
-  <div class="card" data-section="fence">
-    <h2>Property Map — Top-Down View</h2>
+  <div class="card crew-card" data-section="fence">
+    <h2 onclick="this.closest('.crew-card').classList.toggle('expanded')" style="cursor:pointer;user-select:none">Property Map — Top-Down View</h2>
     <svg id="house-visual" viewBox="0 0 800 530" xmlns="http://www.w3.org/2000/svg"></svg>
   </div>
 
   <!-- Fence / Stain Sections (visible in both modes) -->
-  <div class="card">
-    <h2>
+  <div class="card crew-card">
+    <h2 onclick="this.closest('.crew-card').classList.toggle('expanded')" style="cursor:pointer;user-select:none">
       <span class="fence-mode-title">Fence Sections</span>
       <span class="stain-mode-title">Fence Areas to Stain</span>
     </h2>
@@ -1450,8 +1487,8 @@
   </div>
 
   <!-- Cost Calculator -->
-  <div class="card" data-section="stain">
-    <h2>Cost Calculator</h2>
+  <div class="card crew-card" data-section="stain">
+    <h2 onclick="this.closest('.crew-card').classList.toggle('expanded')" style="cursor:pointer;user-select:none">Cost Calculator</h2>
 
     <div class="mode-toggle">
       <button class="mode-btn active" id="mode-linft" onclick="setMode('linft')">Per Linear Foot</button>
@@ -1864,8 +1901,8 @@
   </div>
 
   <!-- Invoice Simple Paste-to-Parse -->
-  <div class="card">
-    <h2>Invoice Simple — Paste &amp; Parse</h2>
+  <div class="card crew-card">
+    <h2 onclick="this.closest('.crew-card').classList.toggle('expanded')" style="cursor:pointer;user-select:none">Invoice Simple — Paste &amp; Parse</h2>
     <div style="font-size:.84rem;color:var(--muted);margin-bottom:10px">
       Copy text from an Invoice Simple PDF (Ctrl+A, Ctrl+C), paste it below, and click Parse. The app will auto-fill the job form.
     </div>
@@ -3995,30 +4032,47 @@
     container.innerHTML = jobs.map(j => {
       const s = j.state || {};
       const sub = [s.addr, s.city, s.state].filter(Boolean).join(', ');
-      const dateStr = j.date ? ' · ' + j.date : '';
-      const crewStr = s.crewLead ? ' · Lead: ' + s.crewLead : '';
       const totalLF = s.sides ? Object.values(s.sides).flat().reduce((a,r)=>a+(parseFloat(r.len)||0),0).toFixed(0) : '—';
-      const thumbHtml = s.fenceMapSvg
-        ? `<div class="jl-thumb" title="Fence layout">${s.fenceMapSvg}</div>`
-        : '';
-      const planThumbHtml = s.plannerSvg
-        ? `<div class="jl-thumb" title="Site plan">${s.plannerSvg}</div>`
-        : '';
-      return `<div class="job-log-item">
-        ${thumbHtml}${planThumbHtml}
-        <div style="flex:1;min-width:0">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <span class="job-label" style="font-weight:600">${j.label}</span>
-            <span style="font-size:.75rem;color:var(--muted)">${s.jobNumber || ''}</span>
-            ${statusBadge(j.status)}
-          </div>
-          <div style="font-size:.78rem;color:var(--muted);margin-top:2px">${sub}${dateStr}${crewStr}</div>
-          <div style="font-size:.75rem;color:var(--muted);margin-top:1px">${totalLF} lin ft total</div>
-        </div>
-        <button class="jl-btn" onclick="loadJob(${j.id})">Load</button>
-        <button class="jl-del" onclick="deleteJob(${j.id})">✕</button>
-      </div>`;
+      return `<div class="boss-job-card" onclick="loadJob(${j.id})" style="cursor:pointer">
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+    <div style="flex:1;min-width:0">
+      <div style="font-family:'Oswald',Arial,sans-serif;font-size:1.15rem;font-weight:700;color:var(--brand);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(j.label || 'Unnamed')}</div>
+      ${sub ? `<div style="font-size:.82rem;color:var(--muted);margin-top:2px">&#128205; ${escHtml(sub)}</div>` : ''}
+    </div>
+    ${statusBadge(j.status)}
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap">
+    ${s.jobNumber ? `<span style="font-size:.75rem;color:var(--muted);background:#f0ede8;padding:2px 8px;border-radius:4px">${escHtml(s.jobNumber)}</span>` : ''}
+    ${j.date ? `<span style="font-size:.75rem;color:var(--muted)">&#128197; ${escHtml(j.date)}</span>` : ''}
+    ${s.crewLead ? `<span style="font-size:.75rem;color:var(--muted)">&#128119; ${escHtml(s.crewLead)}</span>` : ''}
+  </div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;flex-wrap:wrap;gap:8px">
+    <div style="display:flex;gap:12px">
+      ${totalLF && totalLF !== '—' && totalLF !== '0' ? `<span style="font-size:.85rem;font-weight:600;color:var(--brand)">&#128207; ${totalLF} lin ft</span>` : ''}
+    </div>
+    <div style="display:flex;gap:6px">
+      <button class="jl-btn" onclick="event.stopPropagation();loadJob(${j.id})" style="padding:7px 18px;font-size:.82rem">Open</button>
+      <button class="jl-del" onclick="event.stopPropagation();deleteJob(${j.id})" style="padding:7px 10px">&#10005;</button>
+    </div>
+  </div>
+</div>`;
     }).join('');
+    updateBossDashboard();
+  }
+
+  function updateBossDashboard() {
+    try {
+      var jobs = JSON.parse(localStorage.getItem('fsig-jobs') || '[]');
+      var pipe = JSON.parse(localStorage.getItem('fsig-pipeline') || '[]');
+      var active = jobs.filter(function(j){ return j.status === 'scheduled' || j.status === 'in-progress'; }).length;
+      var complete = jobs.filter(function(j){ return j.status === 'complete'; }).length;
+      var pipeValue = pipe.reduce(function(s,j){ return s + (parseFloat(j.bidAmount)||0); }, 0);
+      var el = function(id){ return document.getElementById(id); };
+      if (el('bd-active')) el('bd-active').textContent = active;
+      if (el('bd-pipeline')) el('bd-pipeline').textContent = pipe.length;
+      if (el('bd-revenue')) el('bd-revenue').textContent = '$' + pipeValue.toLocaleString();
+      if (el('bd-complete')) el('bd-complete').textContent = complete;
+    } catch(e) {}
   }
 
   function exportBackup() {
