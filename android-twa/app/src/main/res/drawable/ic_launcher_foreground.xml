@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+    <!-- Posts -->
+    <path android:fillColor="#C8530A" android:pathData="M80,140 h36 v232 h-36 z"/>
+    <path android:fillColor="#C8530A" android:pathData="M238,140 h36 v232 h-36 z"/>
+    <path android:fillColor="#C8530A" android:pathData="M396,140 h36 v232 h-36 z"/>
+    <!-- Rails -->
+    <path android:fillColor="#E8820C" android:pathData="M80,178 h352 v28 h-352 z"/>
+    <path android:fillColor="#E8820C" android:pathData="M80,306 h352 v28 h-352 z"/>
+    <!-- Pickets -->
+    <path android:fillColor="#FFFFFF" android:pathData="M130,158 h22 v196 h-22 z"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M170,158 h22 v196 h-22 z"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M210,158 h22 v196 h-22 z"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M288,158 h22 v196 h-22 z"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M328,158 h22 v196 h-22 z"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M368,158 h22 v196 h-22 z"/>
+</vector>
