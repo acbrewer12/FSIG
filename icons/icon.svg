@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background -->
+  <rect width="512" height="512" rx="80" fill="#1B2937"/>
+  <!-- Fence posts -->
+  <rect x="80"  y="140" width="36" height="232" rx="6" fill="#C8530A"/>
+  <rect x="238" y="140" width="36" height="232" rx="6" fill="#C8530A"/>
+  <rect x="396" y="140" width="36" height="232" rx="6" fill="#C8530A"/>
+  <!-- Top rail -->
+  <rect x="80" y="178" width="352" height="28" rx="6" fill="#E8820C"/>
+  <!-- Bottom rail -->
+  <rect x="80" y="306" width="352" height="28" rx="6" fill="#E8820C"/>
+  <!-- Pickets -->
+  <rect x="130" y="158" width="22" height="196" rx="4" fill="#fff" opacity="0.9"/>
+  <rect x="170" y="158" width="22" height="196" rx="4" fill="#fff" opacity="0.9"/>
+  <rect x="210" y="158" width="22" height="196" rx="4" fill="#fff" opacity="0.9"/>
+  <rect x="288" y="158" width="22" height="196" rx="4" fill="#fff" opacity="0.9"/>
+  <rect x="328" y="158" width="22" height="196" rx="4" fill="#fff" opacity="0.9"/>
+  <rect x="368" y="158" width="22" height="196" rx="4" fill="#fff" opacity="0.9"/>
+</svg>
