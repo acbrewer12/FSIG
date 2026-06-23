@@ -1643,12 +1643,12 @@
           <td><span id="dk-sqft">0</span> sq ft</td>
         </tr>
         <tr>
-          <td>Rate ($/linear ft)</td>
-          <td><input type="number" id="dk-rate" value="3.50" step="0.25" min="0" oninput="updateCosts()"/></td>
+          <td>Rate ($/sq ft)</td>
+          <td><input type="number" id="dk-rate" value="5.00" step="0.25" min="0" oninput="updateCosts()"/></td>
         </tr>
         <tr>
-          <td>Coverage (lin ft/gal)</td>
-          <td><input type="number" id="dk-cov" value="25" step="1" min="1" oninput="updateCosts()"/></td>
+          <td>Coverage (sq ft/gal)</td>
+          <td><input type="number" id="dk-cov" value="150" step="5" min="1" oninput="updateCosts()"/></td>
         </tr>
         <tr>
           <td>Customer Charged</td>
@@ -2905,8 +2905,8 @@
       // 4 sides = 2*(Length + Depth)
       const dkPerim = dkSides === 4 ? 2 * (dkLen + dkDep) : (dkLen + 2 * dkDep);
       const dkSqFt  = dkPerim * (dkHgt / 12);
-      dkCharged = dkPerim * dkRate;
-      dkGal     = Math.ceil(dkPerim / dkCov);
+      dkCharged = dkSqFt * dkRate;
+      dkGal     = Math.ceil(dkSqFt / dkCov);
       dkMat     = dkGal * dkGalCost;
       dkProfit  = dkCharged - dkMat;
       document.getElementById('dk-perim').textContent   = dkPerim.toFixed(0);
