@@ -221,6 +221,7 @@
     }
     .cost-section.stain  .section-label { background: var(--accent); color: #fff; }
     .cost-section.bleach .section-label { background: #1565C0; color: #fff; }
+    .cost-section.deck-stain .section-label { background: #5D4037; color: #fff; }
 
     /* ── Inventory / On Hand ── */
     .inv-item { background:var(--bg-alt); border-radius:8px; padding:12px 14px; margin-bottom:10px; }
@@ -1604,6 +1605,74 @@
       </table>
     </div>
 
+    <label style="display:flex;align-items:center;gap:9px;margin:14px 0 4px;font-weight:600;cursor:pointer;font-size:.93rem">
+      <input type="checkbox" id="dk-enabled" onchange="document.getElementById('deck-stain-section').style.display=this.checked?'':'none';updateCosts()">
+      Includes Deck Staining
+    </label>
+
+    <div class="cost-section deck-stain" id="deck-stain-section" style="display:none">
+      <span class="section-label">DECK STAIN</span>
+      <table class="cost-tbl">
+        <tr>
+          <td>Deck Length (ft) <small style="color:var(--muted)">parallel to house</small></td>
+          <td><input type="number" id="dk-len" value="" step="1" min="0" placeholder="0" oninput="updateCosts()"/></td>
+        </tr>
+        <tr>
+          <td>Deck Depth (ft) <small style="color:var(--muted)">perpendicular</small></td>
+          <td><input type="number" id="dk-dep" value="" step="1" min="0" placeholder="0" oninput="updateCosts()"/></td>
+        </tr>
+        <tr>
+          <td>Rail Height (in)</td>
+          <td><input type="number" id="dk-hgt" value="36" step="1" min="1" oninput="updateCosts()"/></td>
+        </tr>
+        <tr>
+          <td>Open Sides</td>
+          <td>
+            <select id="dk-sides" onchange="updateCosts()" style="padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:.9rem">
+              <option value="3">3 sides (attached to house)</option>
+              <option value="4">4 sides (freestanding)</option>
+            </select>
+          </td>
+        </tr>
+        <tr class="highlight">
+          <td>Rail Perimeter</td>
+          <td><span id="dk-perim">0</span> lin ft</td>
+        </tr>
+        <tr>
+          <td>Rail Sq Footage</td>
+          <td><span id="dk-sqft">0</span> sq ft</td>
+        </tr>
+        <tr>
+          <td>Rate ($/linear ft)</td>
+          <td><input type="number" id="dk-rate" value="3.50" step="0.25" min="0" oninput="updateCosts()"/></td>
+        </tr>
+        <tr>
+          <td>Coverage (lin ft/gal)</td>
+          <td><input type="number" id="dk-cov" value="25" step="1" min="1" oninput="updateCosts()"/></td>
+        </tr>
+        <tr>
+          <td>Customer Charged</td>
+          <td>$<span id="dk-charged">0.00</span></td>
+        </tr>
+        <tr>
+          <td>Gallons Needed</td>
+          <td><span id="dk-gal">0</span> gal</td>
+        </tr>
+        <tr>
+          <td>Cost per Gallon ($)</td>
+          <td><input type="number" id="dk-gal-cost" value="3.85" step="0.01" min="0" oninput="updateCosts()"/></td>
+        </tr>
+        <tr>
+          <td>Material Cost</td>
+          <td>$<span id="dk-mat">0.00</span></td>
+        </tr>
+        <tr class="highlight">
+          <td><strong>Gross Profit — Deck Stain</strong></td>
+          <td><strong>$<span id="dk-profit">0.00</span></strong></td>
+        </tr>
+      </table>
+    </div>
+
     <div class="gross-total" style="background:#e8f5e9; color:#1b5e20; margin-top:6px;">
       Total Customer Charge: &nbsp;$<span id="total-charged">0.00</span>
     </div>
@@ -2821,9 +2890,36 @@
     document.getElementById('b-mat').textContent     = bMat.toFixed(2);
     document.getElementById('b-profit').textContent  = bProfit.toFixed(2);
 
-    const totalCharge = sCharged + bCharged;
-    const totalMat    = sMat + bMat;
-    const totalProfit = sProfit + bProfit;
+    // Deck stain
+    let dkCharged = 0, dkGal = 0, dkMat = 0, dkProfit = 0;
+    const dkEnabled = document.getElementById('dk-enabled') && document.getElementById('dk-enabled').checked;
+    if (dkEnabled) {
+      const dkLen     = parseFloat(document.getElementById('dk-len').value)     || 0;
+      const dkDep     = parseFloat(document.getElementById('dk-dep').value)     || 0;
+      const dkSides   = parseInt(document.getElementById('dk-sides').value)     || 3;
+      const dkHgt     = parseFloat(document.getElementById('dk-hgt').value)     || 36;
+      const dkRate    = parseFloat(document.getElementById('dk-rate').value)    || 0;
+      const dkCov     = parseFloat(document.getElementById('dk-cov').value)     || 1;
+      const dkGalCost = parseFloat(document.getElementById('dk-gal-cost').value)|| 0;
+      // 3 sides = Length + 2*Depth (house wall closes 1 long side)
+      // 4 sides = 2*(Length + Depth)
+      const dkPerim = dkSides === 4 ? 2 * (dkLen + dkDep) : (dkLen + 2 * dkDep);
+      const dkSqFt  = dkPerim * (dkHgt / 12);
+      dkCharged = dkPerim * dkRate;
+      dkGal     = Math.ceil(dkPerim / dkCov);
+      dkMat     = dkGal * dkGalCost;
+      dkProfit  = dkCharged - dkMat;
+      document.getElementById('dk-perim').textContent   = dkPerim.toFixed(0);
+      document.getElementById('dk-sqft').textContent    = dkSqFt.toFixed(0);
+      document.getElementById('dk-charged').textContent = dkCharged.toFixed(2);
+      document.getElementById('dk-gal').textContent     = dkGal;
+      document.getElementById('dk-mat').textContent     = dkMat.toFixed(2);
+      document.getElementById('dk-profit').textContent  = dkProfit.toFixed(2);
+    }
+
+    const totalCharge = sCharged + bCharged + dkCharged;
+    const totalMat    = sMat + bMat + dkMat;
+    const totalProfit = sProfit + bProfit + dkProfit;
     document.getElementById('total-charged').textContent = totalCharge.toFixed(2);
     document.getElementById('total-profit').textContent  = totalProfit.toFixed(2);
 
