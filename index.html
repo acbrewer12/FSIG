@@ -1517,7 +1517,7 @@
         </tr>
         <tr class="linft-row">
           <td>Rate ($/linear ft)</td>
-          <td><input type="number" id="s-rate" value="3.50" step="0.25" min="0" /></td>
+          <td><input type="number" id="s-rate" value="5.10" step="0.01" min="0" /></td>
         </tr>
         <tr class="linft-row">
           <td>Coverage (lin ft/gal)</td>
@@ -1567,7 +1567,7 @@
         </tr>
         <tr class="linft-row">
           <td>Rate ($/linear ft)</td>
-          <td><input type="number" id="b-rate" value="1.50" step="0.25" min="0" /></td>
+          <td><input type="number" id="b-rate" value="1.53" step="0.01" min="0" /></td>
         </tr>
         <tr class="linft-row">
           <td>Coverage (lin ft/gal)</td>
@@ -1609,68 +1609,46 @@
     </div>
 
     <label style="display:flex;align-items:center;gap:9px;margin:14px 0 4px;font-weight:600;cursor:pointer;font-size:.93rem">
-      <input type="checkbox" id="dk-enabled" onchange="document.getElementById('deck-stain-section').style.display=this.checked?'':'none';updateCosts()">
+      <input type="checkbox" id="dk-enabled" onchange="document.getElementById('deck-stain-section').style.display=this.checked?'':'none';if(this.checked&&_deckRows.length===0)addDeckRow();updateCosts()">
       Includes Deck Staining
     </label>
 
     <div class="cost-section deck-stain" id="deck-stain-section" style="display:none">
       <span class="section-label">DECK STAIN</span>
+
+      <!-- Per-deck rates (shared) -->
+      <table class="cost-tbl" style="margin-bottom:8px">
+        <tr>
+          <td>Floor Rate ($/sq ft)</td>
+          <td><input type="number" id="dk-floor-rate" value="5.00" step="0.25" min="0" oninput="updateCosts()"/></td>
+        </tr>
+        <tr>
+          <td>Rail Rate ($/linear ft)</td>
+          <td><input type="number" id="dk-rail-rate" value="5.00" step="0.25" min="0" oninput="updateCosts()"/></td>
+        </tr>
+      </table>
+
+      <!-- Dynamic deck rows -->
+      <div id="deck-rows-container"></div>
+
+      <button onclick="addDeckRow()" class="print-btn" style="background:#5D4037;width:100%;margin:6px 0 10px">+ Add Deck</button>
+
+      <!-- Job-level totals -->
       <table class="cost-tbl">
         <tr>
-          <td>Deck Length (ft) <small style="color:var(--muted)">parallel to house</small></td>
-          <td><input type="number" id="dk-len" value="" step="1" min="0" placeholder="0" oninput="updateCosts()"/></td>
+          <td>Service Fee</td>
+          <td>$<input type="number" id="dk-service-fee" value="100" step="10" min="0" oninput="updateCosts()"/></td>
         </tr>
         <tr>
-          <td>Deck Depth (ft) <small style="color:var(--muted)">perpendicular</small></td>
-          <td><input type="number" id="dk-dep" value="" step="1" min="0" placeholder="0" oninput="updateCosts()"/></td>
-        </tr>
-        <tr>
-          <td>Rail Height (in)</td>
-          <td><input type="number" id="dk-hgt" value="36" step="1" min="1" oninput="updateCosts()"/></td>
-        </tr>
-        <tr>
-          <td>Open Sides</td>
-          <td>
-            <select id="dk-sides" onchange="updateCosts()" style="padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:.9rem">
-              <option value="3">3 sides (attached to house)</option>
-              <option value="4">4 sides (freestanding)</option>
-            </select>
-          </td>
+          <td>Materials Cost</td>
+          <td>$<input type="number" id="dk-materials" value="0" step="1" min="0" oninput="updateCosts()"/></td>
         </tr>
         <tr class="highlight">
-          <td>Rail Perimeter</td>
-          <td><span id="dk-perim">0</span> lin ft</td>
-        </tr>
-        <tr>
-          <td>Rail Sq Footage</td>
-          <td><span id="dk-sqft">0</span> sq ft</td>
-        </tr>
-        <tr>
-          <td>Rate ($/sq ft)</td>
-          <td><input type="number" id="dk-rate" value="5.00" step="0.25" min="0" oninput="updateCosts()"/></td>
-        </tr>
-        <tr>
-          <td>Coverage (sq ft/gal)</td>
-          <td><input type="number" id="dk-cov" value="150" step="5" min="1" oninput="updateCosts()"/></td>
-        </tr>
-        <tr>
-          <td>Customer Charged</td>
-          <td>$<span id="dk-charged">0.00</span></td>
-        </tr>
-        <tr>
-          <td>Gallons Needed</td>
-          <td><span id="dk-gal">0</span> gal</td>
-        </tr>
-        <tr>
-          <td>Cost per Gallon ($)</td>
-          <td><input type="number" id="dk-gal-cost" value="3.85" step="0.01" min="0" oninput="updateCosts()"/></td>
-        </tr>
-        <tr>
-          <td>Material Cost</td>
-          <td>$<span id="dk-mat">0.00</span></td>
+          <td><strong>Total Deck Charge</strong></td>
+          <td><strong>$<span id="dk-total-charged">0.00</span></strong></td>
         </tr>
         <tr class="highlight">
-          <td><strong>Gross Profit — Deck Stain</strong></td>
+          <td><strong>Gross Profit — Deck</strong></td>
           <td><strong>$<span id="dk-profit">0.00</span></strong></td>
         </tr>
       </table>
@@ -2893,31 +2871,38 @@
     document.getElementById('b-mat').textContent     = bMat.toFixed(2);
     document.getElementById('b-profit').textContent  = bProfit.toFixed(2);
 
-    // Deck stain
-    let dkCharged = 0, dkGal = 0, dkMat = 0, dkProfit = 0;
+    // Deck stain — multi-deck
+    let dkCharged = 0, dkMat = 0, dkProfit = 0;
     const dkEnabled = document.getElementById('dk-enabled') && document.getElementById('dk-enabled').checked;
     if (dkEnabled) {
-      const dkLen     = parseFloat(document.getElementById('dk-len').value)     || 0;
-      const dkDep     = parseFloat(document.getElementById('dk-dep').value)     || 0;
-      const dkSides   = parseInt(document.getElementById('dk-sides').value)     || 3;
-      const dkHgt     = parseFloat(document.getElementById('dk-hgt').value)     || 36;
-      const dkRate    = parseFloat(document.getElementById('dk-rate').value)    || 0;
-      const dkCov     = parseFloat(document.getElementById('dk-cov').value)     || 1;
-      const dkGalCost = parseFloat(document.getElementById('dk-gal-cost').value)|| 0;
-      // 3 sides = Length + 2*Depth (house wall closes 1 long side)
-      // 4 sides = 2*(Length + Depth)
-      const dkPerim = dkSides === 4 ? 2 * (dkLen + dkDep) : (dkLen + 2 * dkDep);
-      const dkSqFt  = dkPerim * (dkHgt / 12);
-      dkCharged = dkSqFt * dkRate;
-      dkGal     = Math.ceil(dkSqFt / dkCov);
-      dkMat     = dkGal * dkGalCost;
+      const dkFloorRate  = parseFloat(document.getElementById('dk-floor-rate')?.value) || 5;
+      const dkRailRate   = parseFloat(document.getElementById('dk-rail-rate')?.value)  || 5;
+      const dkServiceFee = parseFloat(document.getElementById('dk-service-fee')?.value) || 0;
+      dkMat = parseFloat(document.getElementById('dk-materials')?.value) || 0;
+      let dkStainTotal = 0;
+      _deckRows.forEach(function(row) {
+        const floor   = parseFloat(document.getElementById('dk-floor-' + row.id)?.value) || 0;
+        const rail    = parseFloat(document.getElementById('dk-rail-'  + row.id)?.value) || 0;
+        const hgt4    = document.getElementById('dk-hgt4-' + row.id)?.checked || false;
+        const floorC  = floor * dkFloorRate;
+        const railC   = rail  * dkRailRate;
+        const stainC  = floorC + railC;
+        const bleachC = stainC * 0.30;
+        const hgtC    = hgt4 ? 150 : 0;
+        const sub     = stainC + bleachC + hgtC;
+        dkStainTotal += sub;
+        const el = id => document.getElementById(id);
+        if (el('dk-fc-'  + row.id)) el('dk-fc-'  + row.id).textContent = floorC.toFixed(2);
+        if (el('dk-rc-'  + row.id)) el('dk-rc-'  + row.id).textContent = railC.toFixed(2);
+        if (el('dk-bc-'  + row.id)) el('dk-bc-'  + row.id).textContent = bleachC.toFixed(2);
+        if (el('dk-hc-'  + row.id)) el('dk-hc-'  + row.id).textContent = hgtC.toFixed(2);
+        if (el('dk-st-'  + row.id)) el('dk-st-'  + row.id).textContent = sub.toFixed(2);
+      });
+      dkCharged = dkStainTotal + dkServiceFee;
       dkProfit  = dkCharged - dkMat;
-      document.getElementById('dk-perim').textContent   = dkPerim.toFixed(0);
-      document.getElementById('dk-sqft').textContent    = dkSqFt.toFixed(0);
-      document.getElementById('dk-charged').textContent = dkCharged.toFixed(2);
-      document.getElementById('dk-gal').textContent     = dkGal;
-      document.getElementById('dk-mat').textContent     = dkMat.toFixed(2);
-      document.getElementById('dk-profit').textContent  = dkProfit.toFixed(2);
+      const el = id => document.getElementById(id);
+      if (el('dk-total-charged')) el('dk-total-charged').textContent = dkCharged.toFixed(2);
+      if (el('dk-profit'))        el('dk-profit').textContent        = dkProfit.toFixed(2);
     }
 
     const totalCharge = sCharged + bCharged + dkCharged;
@@ -3865,24 +3850,30 @@
         hasResults:       (document.getElementById('parts-results')?.style.display || 'none') !== 'none',
       },
       deckStain: {
-        enabled: document.getElementById('dk-enabled')?.checked            || false,
-        len:     document.getElementById('dk-len')?.value                  || '',
-        dep:     document.getElementById('dk-dep')?.value                  || '',
-        hgt:     document.getElementById('dk-hgt')?.value                  || '36',
-        sides:   document.getElementById('dk-sides')?.value                || '3',
-        rate:    document.getElementById('dk-rate')?.value                 || '5.00',
-        cov:     document.getElementById('dk-cov')?.value                  || '150',
-        galCost: document.getElementById('dk-gal-cost')?.value             || '3.85',
+        enabled:    document.getElementById('dk-enabled')?.checked || false,
+        floorRate:  document.getElementById('dk-floor-rate')?.value  || '5.00',
+        railRate:   document.getElementById('dk-rail-rate')?.value   || '5.00',
+        serviceFee: document.getElementById('dk-service-fee')?.value || '100',
+        materials:  document.getElementById('dk-materials')?.value   || '0',
+        rows: _deckRows.map(function(row) {
+          return {
+            id:           row.id,
+            label:        row.label || '',
+            floorSqft:    parseFloat(document.getElementById('dk-floor-' + row.id)?.value) || 0,
+            railLinFt:    parseFloat(document.getElementById('dk-rail-'  + row.id)?.value) || 0,
+            heightOver4ft: document.getElementById('dk-hgt4-' + row.id)?.checked || false,
+          };
+        }),
       },
       totals: {
         totalCharge:  document.getElementById('total-charged')?.textContent  || '0',
         totalProfit:  document.getElementById('total-profit')?.textContent   || '0',
         stainCharge:  document.getElementById('s-charged')?.textContent      || '0',
         bleachCharge: document.getElementById('b-charged')?.textContent      || '0',
-        deckCharge:   document.getElementById('dk-charged')?.textContent     || '0',
-        stainGal:     document.getElementById('s-gal')?.textContent          || '0',
-        bleachGal:    document.getElementById('b-gal')?.textContent          || '0',
-        deckGal:      document.getElementById('dk-gal')?.textContent         || '0',
+        deckCharge:   document.getElementById('dk-total-charged')?.textContent || '0',
+        stainGal:     document.getElementById('s-gal')?.textContent           || '0',
+        bleachGal:    document.getElementById('b-gal')?.textContent           || '0',
+        deckGal:      '0',
         linFt:        document.getElementById('sum-lin-ft')?.textContent     || '0',
         estHours:     document.getElementById('tl-hours')?.textContent       || '0',
       },
@@ -4060,11 +4051,16 @@
     var dk = s.deckStain || {};
     var dkCb = document.getElementById('dk-enabled');
     if (dkCb) { dkCb.checked = !!dk.enabled; document.getElementById('deck-stain-section').style.display = dk.enabled ? '' : 'none'; }
-    var dkSet = function(id, v) { var el = document.getElementById(id); if (el && v != null) el.value = v; };
-    dkSet('dk-len', dk.len); dkSet('dk-dep', dk.dep); dkSet('dk-hgt', dk.hgt || '36');
-    dkSet('dk-rate', dk.rate || '5.00'); dkSet('dk-cov', dk.cov || '150'); dkSet('dk-gal-cost', dk.galCost || '3.85');
-    var dkSidesEl = document.getElementById('dk-sides');
-    if (dkSidesEl && dk.sides) dkSidesEl.value = dk.sides;
+    var dkSv = function(id, v) { var el = document.getElementById(id); if (el && v != null) el.value = v; };
+    dkSv('dk-floor-rate',  dk.floorRate  || '5.00');
+    dkSv('dk-rail-rate',   dk.railRate   || '5.00');
+    dkSv('dk-service-fee', dk.serviceFee || '100');
+    dkSv('dk-materials',   dk.materials  || '0');
+    _deckRows = (dk.rows || []).map(function(r) {
+      return { id: r.id, label: r.label || '', floorSqft: r.floorSqft || 0, railLinFt: r.railLinFt || 0, heightOver4ft: !!r.heightOver4ft };
+    });
+    _deckRowCounter = _deckRows.length ? Math.max.apply(null, _deckRows.map(function(r){ return r.id; })) : 0;
+    renderDeckRows();
     updateCosts();
     window.scrollTo(0, 0);
   }
@@ -6346,6 +6342,48 @@ ${propPts.map(p => `        ${(+p.lng).toFixed(8)},${(+p.lat).toFixed(8)},0`).jo
   var fenceMapGates   = [];
   var _fmPostSpacing  = 8;
   var _fmPanelLen     = 8;
+
+  // ── Deck stain rows ──────────────────────────────────────────────────────
+  var _deckRows       = [];
+  var _deckRowCounter = 0;
+
+  function addDeckRow() {
+    var id = ++_deckRowCounter;
+    _deckRows.push({ id: id, label: '', floorSqft: 0, railLinFt: 0, heightOver4ft: false });
+    renderDeckRows();
+    updateCosts();
+  }
+
+  function removeDeckRow(id) {
+    _deckRows = _deckRows.filter(function(r) { return r.id !== id; });
+    renderDeckRows();
+    updateCosts();
+  }
+
+  function renderDeckRows() {
+    var container = document.getElementById('deck-rows-container');
+    if (!container) return;
+    container.innerHTML = _deckRows.map(function(row) {
+      return '<div style="border:1px solid #d7ccc8;border-radius:6px;padding:10px;margin-bottom:8px;background:#fdf6f0">' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">' +
+          '<input type="text" placeholder="Deck name (optional)" value="' + escHtml(row.label || '') + '" ' +
+            'oninput="(function(r,v){r.label=v;})(_deckRows.find(function(r){return r.id===' + row.id + ';}) || {},this.value)" ' +
+            'style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:4px;font-size:.85rem"/>' +
+          '<button onclick="removeDeckRow(' + row.id + ')" style="background:#c62828;color:#fff;border:none;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:.85rem">&#10005;</button>' +
+        '</div>' +
+        '<table class="cost-tbl">' +
+          '<tr><td>Floor Area (sq ft)</td><td><input type="number" id="dk-floor-' + row.id + '" value="' + (row.floorSqft || '') + '" min="0" step="1" placeholder="0" oninput="updateCosts()" style="width:80px"/></td></tr>' +
+          '<tr><td>Rail Linear Feet</td><td><input type="number" id="dk-rail-' + row.id + '" value="' + (row.railLinFt || '') + '" min="0" step="1" placeholder="0" oninput="updateCosts()" style="width:80px"/></td></tr>' +
+          '<tr><td>Height &gt; 4 ft</td><td><label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="dk-hgt4-' + row.id + '" ' + (row.heightOver4ft ? 'checked' : '') + ' onchange="updateCosts()"/> +$150</label></td></tr>' +
+          '<tr><td>Floor Stain</td><td>$<span id="dk-fc-' + row.id + '">0.00</span></td></tr>' +
+          '<tr><td>Rail Stain</td><td>$<span id="dk-rc-' + row.id + '">0.00</span></td></tr>' +
+          '<tr><td>Bleach (30%)</td><td>$<span id="dk-bc-' + row.id + '">0.00</span></td></tr>' +
+          '<tr><td>Height Surcharge</td><td>$<span id="dk-hc-' + row.id + '">0.00</span></td></tr>' +
+          '<tr class="highlight"><td><strong>Deck Subtotal</strong></td><td><strong>$<span id="dk-st-' + row.id + '">0.00</span></strong></td></tr>' +
+        '</table>' +
+      '</div>';
+    }).join('');
+  }
 
   function _fmEnsureSegData() {
     var needed = fenceMapPoints.length > 1 ? fenceMapPoints.length - 1 : 0;
