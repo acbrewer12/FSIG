@@ -7154,6 +7154,15 @@ ${propPts.map(p => `        ${(+p.lng).toFixed(8)},${(+p.lat).toFixed(8)},0`).jo
       <button onclick="closeAdminPanel()" class="print-btn" style="background:#5f6368">Close</button>
     </div>
     <div style="border-top:1px solid var(--border);padding-top:16px">
+      <div style="font-size:.8rem;font-weight:700;color:var(--brand);margin-bottom:8px">&#128241; Android App Download</div>
+      <div style="font-size:.73rem;color:var(--muted);margin-bottom:10px">Share this link with your team. Tap to download and install directly on any Android phone.</div>
+      <a href="https://github.com/acbrewer12/FSIG/releases/download/latest-apk/app-debug.apk"
+         style="display:block;text-align:center;padding:10px;background:#1B5E20;color:#fff;border-radius:6px;font-weight:700;font-size:.85rem;text-decoration:none;margin-bottom:8px">
+        &#11015; Download Android APK
+      </a>
+      <div id="apk-version-label" style="font-size:.7rem;color:var(--muted);text-align:center"></div>
+    </div>
+    <div style="border-top:1px solid var(--border);padding-top:16px">
       <div style="font-size:.8rem;font-weight:700;color:var(--brand);margin-bottom:8px">&#128203; Invoice Notification Phone</div>
       <div style="font-size:.73rem;color:var(--muted);margin-bottom:8px">Admin phone number that receives an SMS when crew taps "Invoice Ready". Used with Invoice Simple.</div>
       <input id="admin-notify-phone" type="tel" placeholder="(555) 555-5555" autocomplete="off"
@@ -7378,6 +7387,7 @@ function closeAdminPanel() { document.getElementById('admin-pin-modal').style.di
       _applyRole(s.role);
       document.getElementById('login-screen').style.display = 'none';
       startGsheetsPolling();
+      checkApkUpdate();
       return;
     }
   } catch(e) {}
@@ -7412,6 +7422,33 @@ function saveGsheetsConfig() {
 }
 
 function startGsheetsPolling() { startFirebaseSync(); } // Redirected to Firebase
+
+function checkApkUpdate() {
+  var lastCheck = parseInt(localStorage.getItem('fsig-apk-check-time') || '0');
+  if (Date.now() - lastCheck < 6 * 60 * 60 * 1000) return; // at most once every 6 hours
+  localStorage.setItem('fsig-apk-check-time', String(Date.now()));
+  fetch('https://api.github.com/repos/acbrewer12/FSIG/releases/tags/latest-apk')
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(data) {
+      if (!data || !data.published_at) return;
+      var label = document.getElementById('apk-version-label');
+      if (label) label.textContent = 'Last built: ' + new Date(data.published_at).toLocaleDateString();
+      var seen = localStorage.getItem('fsig-apk-seen');
+      if (seen && seen !== data.published_at) {
+        var banner = document.createElement('div');
+        banner.id = 'apk-update-banner';
+        banner.style.cssText = 'position:fixed;bottom:60px;left:0;right:0;background:#1565C0;color:#fff;' +
+          'padding:10px 14px;display:flex;align-items:center;gap:10px;z-index:9998;font-size:.82rem;box-shadow:0 -2px 8px rgba(0,0,0,.25)';
+        banner.innerHTML = '<span style="flex:1">&#128241; New app version available</span>' +
+          '<a href="https://github.com/acbrewer12/FSIG/releases/download/latest-apk/app-debug.apk" ' +
+          'style="color:#90CAF9;font-weight:700;white-space:nowrap" download>Download</a>' +
+          '<button onclick="this.parentNode.remove()" style="background:none;border:none;color:#fff;font-size:1.1rem;cursor:pointer;padding:0 4px">&times;</button>';
+        document.body.appendChild(banner);
+      }
+      localStorage.setItem('fsig-apk-seen', data.published_at);
+    })
+    .catch(function() {});
+}
 function gsheetsCheck() {} // no-op
 
 function gsheetsCreateLead(row) {
@@ -7836,6 +7873,7 @@ function handleGoogleCredential(response) {
   _applyRole(role);
   document.getElementById('login-screen').style.display = 'none';
   startGsheetsPolling();
+  checkApkUpdate();
 }
 
 var _voiceRecognition = null;

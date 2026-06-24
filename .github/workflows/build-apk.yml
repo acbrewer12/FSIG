@@ -7,6 +7,9 @@ on:
     branches: [ "main" ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -48,10 +51,33 @@ jobs:
         with:
           name: fsig-debug-apk
           path: android-twa/app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 30
+          retention-days: 90
+
+      - name: Publish APK to GitHub Releases
+        if: github.event_name != 'pull_request'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest-apk
+          name: "FSIG Android App"
+          body: |
+            ## Download & Install
+
+            1. Tap **app-debug.apk** below to download
+            2. Open the file on your Android device
+            3. Tap **Install** — if prompted, allow installs from unknown sources in Settings → Apps → Special access
+
+            **Shareable direct link:**
+            ```
+            https://github.com/acbrewer12/FSIG/releases/download/latest-apk/app-debug.apk
+            ```
+
+            > App content updates automatically — you only need to reinstall when a new APK is published here.
+          files: android-twa/app/build/outputs/apk/debug/app-debug.apk
+          make_latest: true
 
       - name: APK build summary
         run: |
           echo "### APK Build Complete" >> $GITHUB_STEP_SUMMARY
-          echo "Debug APK is available as a workflow artifact." >> $GITHUB_STEP_SUMMARY
-          echo "Download it from the Actions tab → this run → Artifacts section." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Direct team download link:**" >> $GITHUB_STEP_SUMMARY
+          echo "https://github.com/acbrewer12/FSIG/releases/download/latest-apk/app-debug.apk" >> $GITHUB_STEP_SUMMARY
