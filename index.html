@@ -1411,7 +1411,7 @@
         <label style="font-size:.8rem;color:var(--muted);display:block;margin-bottom:5px">Product</label>
         <select id="stain-product" onchange="selectStain(this.value)" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:.9rem;background:white;color:var(--text)">
           <option value="">— select a stain —</option>
-          <optgroup label="$0.70 / sq ft  ·  125 sq ft / gal">
+          <optgroup label="$0.95 / sq ft  ·  125 sq ft / gal">
             <option>Black Walnut</option>
             <option>Cedar Tone</option>
             <option>Chestnut</option>
@@ -1420,7 +1420,7 @@
             <option>Oxford Brown</option>
             <option>Redwood</option>
           </optgroup>
-          <optgroup label="$0.65 / sq ft  ·  150 sq ft / gal">
+          <optgroup label="$0.85 / sq ft  ·  150 sq ft / gal">
             <option>Barn Red</option>
             <option>Black</option>
             <option>Cape Cod</option>
@@ -1530,7 +1530,7 @@
         </tr>
         <tr class="sqft-row">
           <td>Rate ($/sq ft)</td>
-          <td><input type="number" id="s-rate-sqft" value="0.70" step="0.01" min="0" /></td>
+          <td><input type="number" id="s-rate-sqft" value="0.95" step="0.01" min="0" /></td>
         </tr>
         <tr class="sqft-row">
           <td>Coverage (sq ft/gal)</td>
@@ -3013,10 +3013,10 @@
       if (item.id==='stain') {
         extraHtml = '<div style="margin-bottom:8px"><select id="oh-stain-type" onchange="ohSelectStain(this.value)" style="padding:5px 7px;border:1px solid var(--border);border-radius:5px;font-size:.82rem;width:100%;background:#fff">'
           +'<option value="">&#8212; select color &#8212;</option>'
-          +'<optgroup label="$0.70/sqft &middot; 125 sqft/gal">'
+          +'<optgroup label="$0.95/sqft &middot; 125 sqft/gal">'
           +'<option>Black Walnut</option><option>Cedar Tone</option><option>Chestnut</option><option>Clear Glow</option><option>Leatherwood</option><option>Oxford Brown</option><option>Redwood</option>'
           +'</optgroup>'
-          +'<optgroup label="$0.65/sqft &middot; 150 sqft/gal">'
+          +'<optgroup label="$0.85/sqft &middot; 150 sqft/gal">'
           +'<option>Barn Red</option><option>Black</option><option>Cape Cod</option><option>Chameleon Gray</option><option>Charcoal Gray</option><option>Coffee Brown</option><option>Colorado</option><option>Cumberland Brown</option><option>Dark Sierra</option><option>Desert Sand</option><option>Golden Rod</option><option>Graystone</option><option>Mesa Gray</option><option>Prairie Gray</option><option>Rustic Oak</option><option>Sable Brown</option><option>Sedona</option><option>Sierra</option><option>Wrangler</option>'
           +'</optgroup>'
           +'</select></div>';
@@ -3193,32 +3193,32 @@
 
   // ── Stain product catalogue ──
   const STAIN_PRODUCTS = [
-    { name: 'Black Walnut',     rate: 0.70, cov: 125 },
-    { name: 'Cedar Tone',       rate: 0.70, cov: 125 },
-    { name: 'Chestnut',         rate: 0.70, cov: 125 },
-    { name: 'Clear Glow',       rate: 0.70, cov: 125 },
-    { name: 'Leatherwood',      rate: 0.70, cov: 125 },
-    { name: 'Oxford Brown',     rate: 0.70, cov: 125 },
-    { name: 'Redwood',          rate: 0.70, cov: 125 },
-    { name: 'Barn Red',         rate: 0.65, cov: 150 },
-    { name: 'Black',            rate: 0.65, cov: 150 },
-    { name: 'Cape Cod',         rate: 0.65, cov: 150 },
-    { name: 'Chameleon Gray',   rate: 0.65, cov: 150 },
-    { name: 'Charcoal Gray',    rate: 0.65, cov: 150 },
-    { name: 'Coffee Brown',     rate: 0.65, cov: 150 },
-    { name: 'Colorado',         rate: 0.65, cov: 150 },
-    { name: 'Cumberland Brown', rate: 0.65, cov: 150 },
-    { name: 'Dark Sierra',      rate: 0.65, cov: 150 },
-    { name: 'Desert Sand',      rate: 0.65, cov: 150 },
-    { name: 'Golden Rod',       rate: 0.65, cov: 150 },
-    { name: 'Graystone',        rate: 0.65, cov: 150 },
-    { name: 'Mesa Gray',        rate: 0.65, cov: 150 },
-    { name: 'Prairie Gray',     rate: 0.65, cov: 150 },
-    { name: 'Rustic Oak',       rate: 0.65, cov: 150 },
-    { name: 'Sable Brown',      rate: 0.65, cov: 150 },
-    { name: 'Sedona',           rate: 0.65, cov: 150 },
-    { name: 'Sierra',           rate: 0.65, cov: 150 },
-    { name: 'Wrangler',         rate: 0.65, cov: 150 },
+    { name: 'Black Walnut',     rate: 0.95, cov: 125 },
+    { name: 'Cedar Tone',       rate: 0.95, cov: 125 },
+    { name: 'Chestnut',         rate: 0.95, cov: 125 },
+    { name: 'Clear Glow',       rate: 0.95, cov: 125 },
+    { name: 'Leatherwood',      rate: 0.95, cov: 125 },
+    { name: 'Oxford Brown',     rate: 0.95, cov: 125 },
+    { name: 'Redwood',          rate: 0.95, cov: 125 },
+    { name: 'Barn Red',         rate: 0.85, cov: 150 },
+    { name: 'Black',            rate: 0.85, cov: 150 },
+    { name: 'Cape Cod',         rate: 0.85, cov: 150 },
+    { name: 'Chameleon Gray',   rate: 0.85, cov: 150 },
+    { name: 'Charcoal Gray',    rate: 0.85, cov: 150 },
+    { name: 'Coffee Brown',     rate: 0.85, cov: 150 },
+    { name: 'Colorado',         rate: 0.85, cov: 150 },
+    { name: 'Cumberland Brown', rate: 0.85, cov: 150 },
+    { name: 'Dark Sierra',      rate: 0.85, cov: 150 },
+    { name: 'Desert Sand',      rate: 0.85, cov: 150 },
+    { name: 'Golden Rod',       rate: 0.85, cov: 150 },
+    { name: 'Graystone',        rate: 0.85, cov: 150 },
+    { name: 'Mesa Gray',        rate: 0.85, cov: 150 },
+    { name: 'Prairie Gray',     rate: 0.85, cov: 150 },
+    { name: 'Rustic Oak',       rate: 0.85, cov: 150 },
+    { name: 'Sable Brown',      rate: 0.85, cov: 150 },
+    { name: 'Sedona',           rate: 0.85, cov: 150 },
+    { name: 'Sierra',           rate: 0.85, cov: 150 },
+    { name: 'Wrangler',         rate: 0.85, cov: 150 },
   ];
 
   function selectStain(name) {
