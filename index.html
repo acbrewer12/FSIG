@@ -812,6 +812,7 @@
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 </head>
 <body>
 
@@ -7490,14 +7491,24 @@ var firebaseConfig = {
 };
 
 var _fbDb = null;
+var _fbSyncStarted = false;
 try {
   firebase.initializeApp(firebaseConfig);
   _fbDb = firebase.database();
+  // Sign in anonymously so Firebase rules requiring auth != null are satisfied
+  firebase.auth().signInAnonymously().catch(function(e) { console.warn('Firebase anon auth error:', e); });
+  // Start sync as soon as auth is confirmed (fires once per page load)
+  firebase.auth().onAuthStateChanged(function(user) {
+    if (user) startFirebaseSync();
+  });
 } catch(e) { console.warn('Firebase init failed:', e); }
 
 function fbSet(path, value) {
   if (!_fbDb) return;
-  _fbDb.ref('fsig/' + path).set(value).catch(function(e) { console.warn('Firebase write error:', e); });
+  _fbDb.ref('fsig/' + path).set(value).catch(function(e) {
+    console.warn('Firebase write error:', e);
+    if (e && e.code === 'PERMISSION_DENIED') showLeadToast('⚠ Firebase: permission denied — check DB rules');
+  });
 }
 
 function fbRemove(path) {
@@ -7506,7 +7517,8 @@ function fbRemove(path) {
 }
 
 function startFirebaseSync() {
-  if (!_fbDb) return;
+  if (!_fbDb || _fbSyncStarted) return;
+  _fbSyncStarted = true;
 
   // On first run: push existing local jobs to Firebase if Firebase is empty
   _fbDb.ref('fsig/jobs').once('value', function(snap) {
@@ -7541,6 +7553,12 @@ function startFirebaseSync() {
       }
     }
   });
+
+  function _fbPermErr(e) {
+    if (e && (e.code === 'PERMISSION_DENIED' || (e.message && e.message.indexOf('permission') !== -1))) {
+      showLeadToast('⚠ Firebase: permission denied — open DB rules in Firebase console');
+    }
+  }
 
   // Real-time listeners
   _fbDb.ref('fsig/jobs').on('value', function(snap) {
@@ -7583,7 +7601,7 @@ function startFirebaseSync() {
         try { showLeadToast('⚠ Job # reassigned to ' + newNum + ' (conflict with another device)'); } catch(e) {}
       }
     }
-  });
+  }, _fbPermErr);
 
   _fbDb.ref('fsig/pipeline').on('value', function(snap) {
     var fbPipe = snap.val();
@@ -7601,7 +7619,7 @@ function startFirebaseSync() {
     localStorage.setItem('fsig-pipeline', JSON.stringify(Object.values(byId)));
     try { renderPipeline(); } catch(e) {}
     try { updateBossDashboard(); } catch(e) {}
-  });
+  }, _fbPermErr);
 
   _fbDb.ref('fsig/inventory').on('value', function(snap) {
     var fbInv = snap.val();
@@ -7610,7 +7628,7 @@ function startFirebaseSync() {
     if (!arr.length) return;
     localStorage.setItem('fsig-inventory', JSON.stringify(arr));
     try { renderInventory(); } catch(e) {}
-  });
+  }, _fbPermErr);
 
   _fbDb.ref('fsig/settings').on('value', function(snap) {
     var s = snap.val() || {};
@@ -7619,7 +7637,7 @@ function startFirebaseSync() {
     if (s.gmapsKey)   localStorage.setItem('fsig-gmaps-key',  s.gmapsKey);
     if (s.claudeKey)  localStorage.setItem('fsig-claude-key', s.claudeKey);
     if (s.appMode)    localStorage.setItem('fsig-app-mode',   s.appMode);
-  });
+  }, _fbPermErr);
 
   showLeadToast('&#9889; Firebase connected — syncing in real-time');
 }
