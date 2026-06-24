@@ -830,6 +830,7 @@
     <button class="print-btn auth-edit-only" onclick="newJob()" style="background:#374a5a">New Job</button>
     <button class="print-btn auth-edit-only" onclick="openVoiceInput()" style="background:#1565C0;font-size:.8rem" title="Voice-fill job details with AI">&#127897;&#65039; Voice Fill</button>
     <button class="print-btn auth-edit-only" onclick="saveJob()" id="save-job-btn">Save Job</button>
+    <button class="print-btn auth-edit-only" onclick="sendInvoiceNotification()" style="background:#5D4037" title="Notify admin to create invoice in Invoice Simple">&#128203; Invoice Ready</button>
     <button class="print-btn auth-edit-only" onclick="textCustomer()" style="background:#2E7D32">Text Customer</button>
     <button class="print-btn auth-edit-only" onclick="textCrew()" style="background:#1565C0">Text Crew</button>
     <button class="print-btn" onclick="printFull()" style="font-size:.75rem;padding:6px 14px">&#128438; Print Job PDF</button>
@@ -3901,6 +3902,29 @@
         agPipeConcrete:   document.getElementById('ag-pipe-concrete')?.checked,
         hasResults:       (document.getElementById('parts-results')?.style.display || 'none') !== 'none',
       },
+      deckStain: {
+        enabled: document.getElementById('dk-enabled')?.checked            || false,
+        len:     document.getElementById('dk-len')?.value                  || '',
+        dep:     document.getElementById('dk-dep')?.value                  || '',
+        hgt:     document.getElementById('dk-hgt')?.value                  || '36',
+        sides:   document.getElementById('dk-sides')?.value                || '3',
+        rate:    document.getElementById('dk-rate')?.value                 || '5.00',
+        cov:     document.getElementById('dk-cov')?.value                  || '150',
+        galCost: document.getElementById('dk-gal-cost')?.value             || '3.85',
+      },
+      totals: {
+        totalCharge:  document.getElementById('total-charged')?.textContent  || '0',
+        totalProfit:  document.getElementById('total-profit')?.textContent   || '0',
+        stainCharge:  document.getElementById('s-charged')?.textContent      || '0',
+        bleachCharge: document.getElementById('b-charged')?.textContent      || '0',
+        deckCharge:   document.getElementById('dk-charged')?.textContent     || '0',
+        stainGal:     document.getElementById('s-gal')?.textContent          || '0',
+        bleachGal:    document.getElementById('b-gal')?.textContent          || '0',
+        deckGal:      document.getElementById('dk-gal')?.textContent         || '0',
+        linFt:        document.getElementById('sum-lin-ft')?.textContent     || '0',
+        estHours:     document.getElementById('tl-hours')?.textContent       || '0',
+      },
+      invoiceNeeded: false,
     };
   }
 
@@ -4090,6 +4114,16 @@
     var ccEl = document.getElementById('companycam-url');
     if (ccEl) ccEl.value = s.companyCamUrl || '';
     renderPhotoGrid();
+    // Restore deck stain
+    var dk = s.deckStain || {};
+    var dkCb = document.getElementById('dk-enabled');
+    if (dkCb) { dkCb.checked = !!dk.enabled; document.getElementById('deck-stain-section').style.display = dk.enabled ? '' : 'none'; }
+    var dkSet = function(id, v) { var el = document.getElementById(id); if (el && v != null) el.value = v; };
+    dkSet('dk-len', dk.len); dkSet('dk-dep', dk.dep); dkSet('dk-hgt', dk.hgt || '36');
+    dkSet('dk-rate', dk.rate || '5.00'); dkSet('dk-cov', dk.cov || '150'); dkSet('dk-gal-cost', dk.galCost || '3.85');
+    var dkSidesEl = document.getElementById('dk-sides');
+    if (dkSidesEl && dk.sides) dkSidesEl.value = dk.sides;
+    updateCosts();
     window.scrollTo(0, 0);
   }
 
@@ -7129,6 +7163,13 @@ ${propPts.map(p => `        ${(+p.lng).toFixed(8)},${(+p.lat).toFixed(8)},0`).jo
       <button onclick="closeAdminPanel()" class="print-btn" style="background:#5f6368">Close</button>
     </div>
     <div style="border-top:1px solid var(--border);padding-top:16px">
+      <div style="font-size:.8rem;font-weight:700;color:var(--brand);margin-bottom:8px">&#128203; Invoice Notification Phone</div>
+      <div style="font-size:.73rem;color:var(--muted);margin-bottom:8px">Admin phone number that receives an SMS when crew taps "Invoice Ready". Used with Invoice Simple.</div>
+      <input id="admin-notify-phone" type="tel" placeholder="(555) 555-5555" autocomplete="off"
+        style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;font-size:.82rem;box-sizing:border-box;margin-bottom:8px">
+      <button onclick="saveAdminPhone()" class="print-btn" style="width:100%;background:#2E7D32">Save Phone Number</button>
+    </div>
+    <div style="border-top:1px solid var(--border);padding-top:16px">
       <div style="font-size:.8rem;font-weight:700;color:var(--brand);margin-bottom:8px">&#127897;&#65039; Voice Fill — Claude AI Key</div>
       <div style="font-size:.73rem;color:var(--muted);margin-bottom:8px">Required for AI-powered voice-to-form. Get a key at console.anthropic.com.</div>
       <input id="claude-api-key-input" type="password" placeholder="sk-ant-..." autocomplete="off"
@@ -7273,6 +7314,8 @@ function openAdminPanel() {
   if (_currentRole !== 'admin') return;
   var ck = document.getElementById('claude-api-key-input');
   if (ck) ck.value = getClaudeKey();
+  var anp = document.getElementById('admin-notify-phone');
+  if (anp) anp.value = localStorage.getItem('fsig-admin-phone') || '';
   // Load checklist items into admin textareas
   ['residential','chainlink','pipe','ag','stain'].forEach(function(type) {
     var ta = document.getElementById('admin-cl-' + type);
@@ -7314,6 +7357,29 @@ function saveAdminChecklists() {
   localStorage.setItem('fsig-checklists', clVal);
   pushSetting('fsig-checklists', clVal);
   alert('Checklists saved.');
+}
+
+function saveAdminPhone() {
+  var ph = (document.getElementById('admin-notify-phone')?.value || '').trim();
+  localStorage.setItem('fsig-admin-phone', ph);
+  alert('Phone number saved.');
+}
+
+function sendInvoiceNotification() {
+  var phone = localStorage.getItem('fsig-admin-phone') || '';
+  if (!phone) { alert('No admin phone set. Admin must open Admin Settings and save a phone number under "Invoice Notification".'); return; }
+  var s = getJobState();
+  var total = parseFloat((document.getElementById('total-charged')?.textContent || '0').replace(/[^0-9.]/g, '')) || 0;
+  var msg = 'INVOICE READY\n';
+  msg += 'Job: ' + (s.jobNumber || '') + '\n';
+  msg += 'Customer: ' + (s.customerName || '') + '\n';
+  if (s.customerPhone) msg += 'Phone: ' + s.customerPhone + '\n';
+  var addr = [s.addr, s.city, s.state, s.zip].filter(Boolean).join(', ');
+  if (addr) msg += 'Address: ' + addr + '\n';
+  if (total > 0) msg += 'Total: $' + total.toFixed(2) + '\n';
+  msg += 'Status: ' + (s.jobStatus || '') + '\n';
+  msg += '\nPlease create invoice in Invoice Simple.';
+  window.open('sms:' + phone + '?body=' + encodeURIComponent(msg));
 }
 
 function closeAdminPanel() { document.getElementById('admin-pin-modal').style.display = 'none'; }
