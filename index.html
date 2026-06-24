@@ -4456,8 +4456,12 @@
     var idx = sj.findIndex(function(j){ return j.id === savedId; });
     if (idx >= 0) {
       sj[idx].pipelineStatus = pipeStatus;
+      sj[idx].updatedAt = Date.now();
       if (extra) { for (var k in extra) sj[idx][k] = extra[k]; }
       localStorage.setItem('fsig-jobs', JSON.stringify(sj));
+      // Sync to Firebase so other devices see the pipeline position change
+      var jn = sj[idx].state && sj[idx].state.jobNumber;
+      if (jn) fbSet('jobs/' + jn, sj[idx]);
     }
   }
 
@@ -4675,7 +4679,10 @@
         sj2[si2].date = entry.startDate;
         sj2[si2].pipeNotes = entry.notes;
         sj2[si2].jobType = _pipeLeadBoth ? 'both' : (localStorage.getItem('fsig-app-mode') || 'fence');
+        sj2[si2].updatedAt = Date.now();
         localStorage.setItem('fsig-jobs', JSON.stringify(sj2));
+        var jn2 = sj2[si2].state && sj2[si2].state.jobNumber;
+        if (jn2) fbSet('jobs/' + jn2, sj2[si2]);
       }
       _pipeEditSavedId = null;
       document.getElementById('pipeline-form').style.display = 'none';
@@ -7606,11 +7613,13 @@ function startFirebaseSync() {
     var byJN = {};
     local.forEach(function(j) { var jn = j.state && j.state.jobNumber; if (jn) byJN[jn] = j; });
     var changed = false;
+    var openJobUpdated = false;
     Object.keys(fbJobs).forEach(function(jn) {
       var fbJ = fbJobs[jn];
       var localJ = byJN[jn];
       if (!localJ || (fbJ.updatedAt || fbJ.id || 0) > (localJ.updatedAt || localJ.id || 0)) {
         byJN[jn] = fbJ; changed = true;
+        if (currentJobNumber && jn === currentJobNumber) openJobUpdated = true;
       }
     });
     if (changed) {
@@ -7619,6 +7628,11 @@ function startFirebaseSync() {
       try { renderJobLog(); } catch(e) {}
       try { renderCalendar(); } catch(e) {}
       try { updateBossDashboard(); } catch(e) {}
+      // If the currently-open job was updated by another device, reload the form silently
+      if (openJobUpdated && byJN[currentJobNumber]) {
+        try { loadJob(byJN[currentJobNumber].id); } catch(e) {}
+        try { showLeadToast('&#8635; Job updated from another device'); } catch(e) {}
+      }
     }
     // Track global max job number from Firebase
     Object.keys(fbJobs).forEach(function(jn) {
