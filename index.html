@@ -810,6 +810,8 @@
     #update-banner .toast-close { background:none; border:none; color:#fff; font-size:1.1rem; cursor:pointer; padding:0 2px; line-height:1; }
   </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body>
 
@@ -2974,6 +2976,9 @@
 
   function saveInventory(items) {
     localStorage.setItem('fsig-inventory', JSON.stringify(items));
+    var obj = {};
+    items.forEach(function(i) { if (i.id) obj[i.id] = i; });
+    fbSet('inventory', obj);
   }
 
   function renderInventory() {
@@ -3168,52 +3173,9 @@
     updateStainOnHand();
   }
 
-  function pushInventoryToSheets(item) {
-    var cfg={};
-    try { cfg=JSON.parse(localStorage.getItem('fsig-gsheets')||'{}'); } catch(e){}
-    if (!cfg.url) return;
-    var qty=parseFloat(item.qty)||0, paid=parseFloat(item.paid)||0;
-    fetch(cfg.url, {
-      method:'POST', mode:'no-cors',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        type:'inventory',
-        id: item.id, name: item.name, category: item.category,
-        unit: item.unit, qty: qty, paid: paid,
-        costPerUnit: (qty>0&&paid>0)?((paid/qty).toFixed(2)):'0',
-        reorderAt: item.reorderAt||0, notes: item.notes||''
-      })
-    }).catch(function(){});
-  }
+  function pushInventoryToSheets() {} // no-op — Firebase handles sync
 
-  function syncInventoryFromSheets(silent) {
-    var cfg={};
-    try { cfg=JSON.parse(localStorage.getItem('fsig-gsheets')||'{}'); } catch(e){}
-    if (!cfg.url) { if (!silent) alert('Configure Google Sheets URL in Settings first.'); return; }
-    fetch(cfg.url+'?type=inventory')
-      .then(function(r){ return r.json(); })
-      .then(function(data){
-        var sheetsItems = data.items || [];
-        if (!sheetsItems.length) { if (!silent) showLeadToast('No inventory found in Google Sheets.'); return; }
-        var local = getInventory();
-        sheetsItems.forEach(function(si){
-          var li = local.find(function(i){ return String(i.id)===String(si.id); });
-          if (li) {
-            li.qty=parseFloat(si.qty)||0; li.paid=parseFloat(si.paid)||0;
-            li.reorderAt=parseFloat(si.reorderAt)||0; li.notes=si.notes||'';
-            li.updatedAt=si.updatedAt||Date.now();
-          } else {
-            local.push({ id:si.id, name:si.name, category:si.category||'other',
-              unit:si.unit||'ea', qty:parseFloat(si.qty)||0, paid:parseFloat(si.paid)||0,
-              reorderAt:parseFloat(si.reorderAt)||0, notes:si.notes||'', pinned:false });
-          }
-        });
-        saveInventory(local);
-        renderInventory();
-        if (!silent) showLeadToast('&#10003; Inventory synced ('+sheetsItems.length+' items)');
-      })
-      .catch(function(){ if (!silent) showLeadToast('Sync failed &mdash; check Google Sheets URL in Settings.'); });
-  }
+  function syncInventoryFromSheets() {} // no-op — Firebase real-time listener handles this
 
   // Keep updateStainOnHand for cost calculator — reads from hidden inputs set by renderInventory()
   function updateStainOnHand() {
@@ -3936,7 +3898,7 @@
     const id = existing >= 0 ? jobs[existing].id : Date.now();
     const name = state.customerName || state.addr || currentJobNumber;
     const label = name;
-    const entry = { id, label, status: state.jobStatus, date: state.jobStartDate, jobType: localStorage.getItem('fsig-app-mode') || 'fence', state };
+    const entry = { id, label, status: state.jobStatus, date: state.jobStartDate, jobType: localStorage.getItem('fsig-app-mode') || 'fence', state, updatedAt: Date.now() };
     if (existing >= 0) {
       // Preserve pipeline fields set by the pipeline board
       const prev = jobs[existing];
@@ -3958,28 +3920,8 @@
     renderCalendar();
     updateStorageMeter();
     renderPipeline();
-    // Push summary row to Jobs sheet (human-readable log for boss)
-    pushToSheets('job', {
-      jobNumber:    state.jobNumber    || '',
-      customerName: state.customerName || '',
-      phone:        state.customerPhone || '',
-      address:      [state.addr, state.city, state.state, state.zip].filter(Boolean).join(', '),
-      jobType:      entry.jobType      || '',
-      status:       state.jobStatus    || '',
-      startDate:    state.jobStartDate || '',
-      endDate:      state.jobEndDate   || '',
-      linFt:        (document.getElementById('sum-lin-ft')        || {}).textContent || '',
-      totalCharge:  (document.getElementById('total-charged')     || {}).textContent || '',
-      materialCost: ((document.getElementById('sum-we-paid')      || {}).textContent || '').replace('$',''),
-      grossProfit:  ((document.getElementById('sum-profit')       || {}).textContent || '').replace('$',''),
-      stainGal:     (document.getElementById('sum-stain-gal')     || {}).textContent || '',
-      bleachGal:    (document.getElementById('sum-bleach-gal')    || {}).textContent || '',
-      crewLead:     state.crewLead      || '',
-      stainProduct: state.stainProduct  || '',
-      notes:        state.changeOrder   || ''
-    });
-    // Push full state to Settings sheet for cross-device sync (no Apps Script changes needed)
-    if (state.jobNumber) pushSetting('fsig-job-' + state.jobNumber, JSON.stringify(entry));
+    // Push to Firebase for real-time cross-device sync
+    if (state.jobNumber) fbSet('jobs/' + state.jobNumber, entry);
 
     const btn = document.getElementById('save-job-btn');
     const orig = btn.textContent;
@@ -4130,7 +4072,11 @@
   function deleteJob(id) {
     if (!confirm('Delete this saved job?')) return;
     const jobs = JSON.parse(localStorage.getItem('fsig-jobs') || '[]');
+    const deleted = jobs.find(j => j.id === id);
     localStorage.setItem('fsig-jobs', JSON.stringify(jobs.filter(j => j.id !== id)));
+    if (deleted && deleted.state && deleted.state.jobNumber) {
+      fbRemove('jobs/' + deleted.state.jobNumber);
+    }
     renderJobLog();
     renderCalendar();
   }
@@ -4326,7 +4272,12 @@
     { id:'complete',    label:'Complete',           color:'#2E7D32' },
   ];
   function getPipeline() { try { return JSON.parse(localStorage.getItem('fsig-pipeline')||'[]'); } catch(e) { return []; } }
-  function savePipeline(a) { localStorage.setItem('fsig-pipeline', JSON.stringify(a)); }
+  function savePipeline(a) {
+    localStorage.setItem('fsig-pipeline', JSON.stringify(a));
+    var obj = {};
+    a.forEach(function(j) { if (j.id) obj[j.id] = j; });
+    fbSet('pipeline', obj);
+  }
   function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
   function setPipeTab(type) {
@@ -5718,7 +5669,7 @@
   function saveGmapsKey() {
     const key = (document.getElementById('gmaps-api-key')?.value || '').trim();
     localStorage.setItem('fsig-gmaps-key', key);
-    pushSetting('fsig-gmaps-key', key);
+    fbSet('settings/gmapsKey', key);
     // Tear down existing map and reinitialize
     if (planMap) {
       planLayers.forEach(l => _mapRemoveLayer(l));
@@ -7199,8 +7150,8 @@ ${propPts.map(p => `        ${(+p.lng).toFixed(8)},${(+p.lat).toFixed(8)},0`).jo
       <button onclick="saveAdminChecklists()" class="print-btn" style="width:100%;background:#2E7D32;margin-top:10px">Save Checklists</button>
     </div>
     <div style="border-top:1px solid var(--border);padding-top:16px;margin-top:4px">
-      <div style="font-size:.8rem;font-weight:700;color:var(--brand);margin-bottom:8px">&#128202; Google Sheets &#8594; Leads</div>
-      <div style="font-size:.73rem;color:var(--muted);margin-bottom:8px">Connect a Google Apps Script Web App to auto-create leads from new form submissions.</div>
+      <div style="font-size:.8rem;font-weight:700;color:var(--brand);margin-bottom:8px">&#128202; Google Sheets — 6-hr Backup</div>
+      <div style="font-size:.73rem;color:var(--muted);margin-bottom:8px">Optional: paste a new Apps Script URL to receive a scheduled 6-hour data dump from Firebase to Google Sheets.</div>
       <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:4px">Apps Script URL<br>
         <input id="gsheets-script-url" type="url" placeholder="https://script.google.com/macros/s/.../exec"
           style="width:100%;padding:7px 8px;border:1px solid var(--border);border-radius:4px;font-size:.8rem;margin-top:3px;box-sizing:border-box">
@@ -7321,20 +7272,14 @@ function openAdminPanel() {
     var ta = document.getElementById('admin-cl-' + type);
     if (ta) ta.value = getChecklist(type).join('\n');
   });
-  // Load gsheets config — seed built-in URL if not yet set
   var gsCfg = {};
   try { gsCfg = JSON.parse(localStorage.getItem('fsig-gsheets') || '{}'); } catch(e) {}
-  if (!gsCfg.url) {
-    gsCfg.url = FSIG_SHEETS_URL;
-    gsCfg.interval = gsCfg.interval || 5;
-    try { localStorage.setItem('fsig-gsheets', JSON.stringify(gsCfg)); } catch(e) {}
-  }
   var gsUrl = document.getElementById('gsheets-script-url');
-  if (gsUrl) gsUrl.value = gsCfg.url || FSIG_SHEETS_URL;
+  if (gsUrl) gsUrl.value = gsCfg.url || '';
   var gsInt = document.getElementById('gsheets-interval');
   if (gsInt && gsCfg.interval !== undefined) gsInt.value = String(gsCfg.interval);
   var gsSt = document.getElementById('gsheets-status');
-  if (gsSt) gsSt.textContent = gsCfg.url ? (gsCfg.interval === 0 ? 'Polling off.' : 'Polling every ' + gsCfg.interval + ' min.') : 'Not configured';
+  if (gsSt) gsSt.textContent = _fbDb ? '&#9889; Firebase active — real-time sync on' : 'Firebase not connected';
   // Load Google auth config
   var gaCfg = {};
   try { gaCfg = JSON.parse(localStorage.getItem('fsig-google-auth') || '{}'); } catch(e) {}
@@ -7355,13 +7300,14 @@ function saveAdminChecklists() {
   });
   var clVal = JSON.stringify(result);
   localStorage.setItem('fsig-checklists', clVal);
-  pushSetting('fsig-checklists', clVal);
+  fbSet('settings/checklists', clVal);
   alert('Checklists saved.');
 }
 
 function saveAdminPhone() {
   var ph = (document.getElementById('admin-notify-phone')?.value || '').trim();
   localStorage.setItem('fsig-admin-phone', ph);
+  fbSet('settings/adminPhone', ph);
   alert('Phone number saved.');
 }
 
@@ -7405,7 +7351,7 @@ function getClaudeKey() { return localStorage.getItem('fsig-claude-key') || ''; 
 function saveClaudeKey() {
   var key = (document.getElementById('claude-api-key-input') || {}).value || '';
   localStorage.setItem('fsig-claude-key', key.trim());
-  pushSetting('fsig-claude-key', key.trim());
+  fbSet('settings/claudeKey', key.trim());
   alert('Claude API key saved.');
 }
 
@@ -7425,42 +7371,8 @@ function saveGsheetsConfig() {
   alert('Google Sheets config saved.');
 }
 
-function startGsheetsPolling() {
-  if (_gsheetsTimer) { clearInterval(_gsheetsTimer); _gsheetsTimer = null; }
-  var cfg = {};
-  try { cfg = JSON.parse(localStorage.getItem('fsig-gsheets') || '{}'); } catch(e) {}
-  if (!cfg.url || !cfg.interval || cfg.interval === 0) {
-    var st = document.getElementById('gsheets-status');
-    if (st) st.textContent = cfg.url ? 'Polling off.' : 'Not configured';
-    return;
-  }
-  var st = document.getElementById('gsheets-status');
-  if (st) st.textContent = 'Polling every ' + cfg.interval + ' min.';
-  _gsheetsTimer = setInterval(gsheetsCheck, cfg.interval * 60000);
-}
-
-function gsheetsCheck() {
-  var cfg = {};
-  try { cfg = JSON.parse(localStorage.getItem('fsig-gsheets') || '{}'); } catch(e) {}
-  if (!cfg.url) return;
-  fetch(cfg.url)
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      var rows = (data && Array.isArray(data.rows)) ? data.rows : [];
-      var newCount = rows.length;
-      if (newCount > _gsheetsLastCount) {
-        var newRows = rows.slice(_gsheetsLastCount);
-        newRows.forEach(function(row) { gsheetsCreateLead(row); });
-        _gsheetsLastCount = newCount;
-        localStorage.setItem('fsig-gsheets-count', String(newCount));
-      }
-    })
-    .catch(function(e) { console.warn('Gsheets poll error:', e); });
-  // Also silently sync settings + inventory on every poll
-  if (typeof syncSettingsFromSheets   === 'function') syncSettingsFromSheets(true);
-  if (typeof syncInventoryFromSheets  === 'function') syncInventoryFromSheets(true);
-  if (typeof syncJobsFromSheets       === 'function') syncJobsFromSheets(true);
-}
+function startGsheetsPolling() { startFirebaseSync(); } // Redirected to Firebase
+function gsheetsCheck() {} // no-op
 
 function gsheetsCreateLead(row) {
   // Build a pipeline lead from the row
@@ -7527,8 +7439,133 @@ function toastViewLead() {
   if (pipeEl) pipeEl.scrollIntoView({ behavior: 'smooth' });
 }
 
-// ── Built-in Google Sheets URL ───────────────────────────────────────────────
-var FSIG_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxSIofCLqHaQgVNys7wVwjvDVO-VAYg7VVbSeYv47eZ4pIoaPamXzr6e-nZsvpzIfNMwQ/exec';
+// ── Firebase Realtime Database ───────────────────────────────────────────────
+var firebaseConfig = {
+  apiKey: "AIzaSyC0B-EJM1gwSIJd3ENdrwboG6XBRbK8LXc",
+  authDomain: "fsig-5f7e9.firebaseapp.com",
+  databaseURL: "https://fsig-5f7e9-default-rtdb.firebaseio.com",
+  projectId: "fsig-5f7e9",
+  storageBucket: "fsig-5f7e9.firebasestorage.app",
+  messagingSenderId: "448445790065",
+  appId: "1:448445790065:web:1747ac7e884b70bd1e68d0"
+};
+
+var _fbDb = null;
+try {
+  firebase.initializeApp(firebaseConfig);
+  _fbDb = firebase.database();
+} catch(e) { console.warn('Firebase init failed:', e); }
+
+function fbSet(path, value) {
+  if (!_fbDb) return;
+  _fbDb.ref('fsig/' + path).set(value).catch(function(e) { console.warn('Firebase write error:', e); });
+}
+
+function fbRemove(path) {
+  if (!_fbDb) return;
+  _fbDb.ref('fsig/' + path).remove().catch(function(e) { console.warn('Firebase remove error:', e); });
+}
+
+function startFirebaseSync() {
+  if (!_fbDb) return;
+
+  // On first run: push existing local jobs to Firebase if Firebase is empty
+  _fbDb.ref('fsig/jobs').once('value', function(snap) {
+    if (!snap.val()) {
+      var localJ = [];
+      try { localJ = JSON.parse(localStorage.getItem('fsig-jobs') || '[]'); } catch(e) {}
+      if (localJ.length) {
+        var obj = {};
+        localJ.forEach(function(j) { var jn = j.state && j.state.jobNumber; if (jn) obj[jn] = j; });
+        if (Object.keys(obj).length) _fbDb.ref('fsig/jobs').set(obj).catch(function(){});
+      }
+    }
+  });
+  _fbDb.ref('fsig/pipeline').once('value', function(snap) {
+    if (!snap.val()) {
+      var localP = [];
+      try { localP = JSON.parse(localStorage.getItem('fsig-pipeline') || '[]'); } catch(e) {}
+      if (localP.length) {
+        var obj = {};
+        localP.forEach(function(j) { if (j.id) obj[j.id] = j; });
+        if (Object.keys(obj).length) _fbDb.ref('fsig/pipeline').set(obj).catch(function(){});
+      }
+    }
+  });
+  _fbDb.ref('fsig/inventory').once('value', function(snap) {
+    if (!snap.val()) {
+      var localI = getInventory();
+      if (localI.length) {
+        var obj = {};
+        localI.forEach(function(i) { if (i.id) obj[i.id] = i; });
+        if (Object.keys(obj).length) _fbDb.ref('fsig/inventory').set(obj).catch(function(){});
+      }
+    }
+  });
+
+  // Real-time listeners
+  _fbDb.ref('fsig/jobs').on('value', function(snap) {
+    var fbJobs = snap.val() || {};
+    if (!Object.keys(fbJobs).length) return;
+    var local = [];
+    try { local = JSON.parse(localStorage.getItem('fsig-jobs') || '[]'); } catch(e) {}
+    var byJN = {};
+    local.forEach(function(j) { var jn = j.state && j.state.jobNumber; if (jn) byJN[jn] = j; });
+    var changed = false;
+    Object.keys(fbJobs).forEach(function(jn) {
+      var fbJ = fbJobs[jn];
+      var localJ = byJN[jn];
+      if (!localJ || (fbJ.updatedAt || fbJ.id || 0) > (localJ.updatedAt || localJ.id || 0)) {
+        byJN[jn] = fbJ; changed = true;
+      }
+    });
+    if (changed) {
+      var merged = Object.values(byJN).sort(function(a,b){ return (b.updatedAt||b.id||0)-(a.updatedAt||a.id||0); });
+      localStorage.setItem('fsig-jobs', JSON.stringify(merged.slice(0, 100)));
+      try { renderJobLog(); } catch(e) {}
+      try { renderCalendar(); } catch(e) {}
+      try { updateBossDashboard(); } catch(e) {}
+    }
+  });
+
+  _fbDb.ref('fsig/pipeline').on('value', function(snap) {
+    var fbPipe = snap.val();
+    if (!fbPipe || typeof fbPipe !== 'object') return;
+    var arr = Object.values(fbPipe).filter(Boolean);
+    if (!arr.length) return;
+    var local = [];
+    try { local = JSON.parse(localStorage.getItem('fsig-pipeline') || '[]'); } catch(e) {}
+    var byId = {};
+    local.forEach(function(j) { if (j.id) byId[j.id] = j; });
+    arr.forEach(function(j) {
+      if (!j || !j.id) return;
+      if (!byId[j.id] || (j.updatedAt || 0) >= (byId[j.id].updatedAt || 0)) byId[j.id] = j;
+    });
+    localStorage.setItem('fsig-pipeline', JSON.stringify(Object.values(byId)));
+    try { renderPipeline(); } catch(e) {}
+    try { updateBossDashboard(); } catch(e) {}
+  });
+
+  _fbDb.ref('fsig/inventory').on('value', function(snap) {
+    var fbInv = snap.val();
+    if (!fbInv || typeof fbInv !== 'object') return;
+    var arr = Object.values(fbInv).filter(Boolean);
+    if (!arr.length) return;
+    localStorage.setItem('fsig-inventory', JSON.stringify(arr));
+    try { renderInventory(); } catch(e) {}
+  });
+
+  _fbDb.ref('fsig/settings').on('value', function(snap) {
+    var s = snap.val() || {};
+    if (s.adminPhone) localStorage.setItem('fsig-admin-phone', s.adminPhone);
+    if (s.checklists) localStorage.setItem('fsig-checklists', s.checklists);
+    if (s.gmapsKey)   localStorage.setItem('fsig-gmaps-key',  s.gmapsKey);
+    if (s.claudeKey)  localStorage.setItem('fsig-claude-key', s.claudeKey);
+    if (s.appMode)    localStorage.setItem('fsig-app-mode',   s.appMode);
+  });
+
+  showLeadToast('&#9889; Firebase connected — syncing in real-time');
+}
 
 // ── Auto-Update: draft save / restore ───────────────────────────────────────
 var _DRAFT_ID = -9999;
@@ -7630,107 +7667,14 @@ function applyUpdate() {
   location.reload(true);
 }
 
-// ── Google Sheets Push ──────────────────────────────────────────────────────
-function pushToSheets(type, data) {
-  var cfg = {};
-  try { cfg = JSON.parse(localStorage.getItem('fsig-gsheets') || '{}'); } catch(e) {}
-  if (!cfg.url) return;
-  data.type = type;
-  data.timestamp = new Date().toISOString();
-  fetch(cfg.url, {
-    method: 'POST',
-    mode: 'no-cors',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  }).catch(function() {});
-}
+// ── Legacy stubs (replaced by Firebase) ─────────────────────────────────────
+function pushToSheets() {}  // no-op — Firebase handles all sync
+function pushSetting() {}   // no-op — Firebase handles all sync
+var SYNCED_SETTING_KEYS = [];
 
-// ── Settings Sync ────────────────────────────────────────────────────────────
-var SYNCED_SETTING_KEYS = [
-  'fsig-gsheets','fsig-claude-key','fsig-gmaps-key',
-  'fsig-google-auth','fsig-checklists',
-  'fsig-inventory','fsig-app-mode'
-];
+function syncSettingsFromSheets() {} // no-op — Firebase real-time listener handles this
 
-function pushSetting(key, value) {
-  var cfg = {};
-  try { cfg = JSON.parse(localStorage.getItem('fsig-gsheets') || '{}'); } catch(e) {}
-  if (!cfg.url) return;
-  var strVal = (typeof value === 'string') ? value : JSON.stringify(value);
-  fetch(cfg.url, {
-    method: 'POST', mode: 'no-cors',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ type: 'settings', key: key, value: strVal })
-  }).catch(function() {});
-}
-
-function syncSettingsFromSheets(silent) {
-  var cfg = {};
-  try { cfg = JSON.parse(localStorage.getItem('fsig-gsheets') || '{}'); } catch(e) {}
-  if (!cfg.url) return;
-  fetch(cfg.url + '?type=settings')
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      var settings = data.settings || {};
-      var applied = 0;
-      SYNCED_SETTING_KEYS.forEach(function(key) {
-        if (!(key in settings) || !settings[key]) return;
-        // Don't overwrite fsig-gsheets with an empty URL
-        if (key === 'fsig-gsheets') {
-          try { if (!JSON.parse(settings[key]).url) return; } catch(e) { return; }
-        }
-        localStorage.setItem(key, settings[key]);
-        applied++;
-      });
-      if (applied > 0) _applySettingsToUI(settings);
-      if (!silent) showLeadToast('&#10003; Settings synced (' + applied + ' keys)');
-    })
-    .catch(function() { if (!silent) console.warn('Settings sync failed'); });
-}
-
-function syncJobsFromSheets(silent) {
-  var cfg = {};
-  try { cfg = JSON.parse(localStorage.getItem('fsig-gsheets') || '{}'); } catch(e) {}
-  if (!cfg.url) return;
-  // Pull from Settings sheet — jobs stored as fsig-job-FS-XXXX keys (no Apps Script changes needed)
-  fetch(cfg.url + '?type=settings')
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      var settings = data.settings || {};
-      var local = [];
-      try { local = JSON.parse(localStorage.getItem('fsig-jobs') || '[]'); } catch(e) {}
-      var byJobNum = {};
-      local.forEach(function(j) {
-        var jn = j.state && j.state.jobNumber;
-        if (jn) byJobNum[jn] = j;
-      });
-      var added = 0;
-      Object.keys(settings).forEach(function(key) {
-        if (key.indexOf('fsig-job-') !== 0) return;
-        try {
-          var entry = JSON.parse(settings[key]);
-          var jn = entry.state && entry.state.jobNumber;
-          if (!jn) return;
-          if (!byJobNum[jn]) {
-            byJobNum[jn] = entry;
-            added++;
-          } else if ((entry.id || 0) > (byJobNum[jn].id || 0)) {
-            byJobNum[jn] = entry;
-          }
-        } catch(e) {}
-      });
-      var merged = Object.keys(byJobNum).map(function(k){ return byJobNum[k]; })
-        .sort(function(a, b) { return (b.id || 0) - (a.id || 0); });
-      localStorage.setItem('fsig-jobs', JSON.stringify(merged.slice(0, 50)));
-      if (added > 0) {
-        try { renderJobLog(); } catch(e) {}
-        try { renderCalendar(); } catch(e) {}
-        try { renderPipeline(); } catch(e) {}
-        if (!silent) showLeadToast('&#10003; ' + added + ' job(s) synced from Sheets');
-      }
-    })
-    .catch(function() { if (!silent) console.warn('Jobs sync failed'); });
-}
+function syncJobsFromSheets() {} // no-op — Firebase real-time listener handles this
 
 function _applySettingsToUI(settings) {
   var sv = function(id, val) { var el=document.getElementById(id); if(el && val) el.value=val; };
