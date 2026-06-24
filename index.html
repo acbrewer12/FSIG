@@ -3784,8 +3784,13 @@
   let currentJobNumber = null;
   function genJobNumber() {
     const jobs = JSON.parse(localStorage.getItem('fsig-jobs') || '[]');
-    const n = jobs.length + 1;
-    return 'FS-' + String(n).padStart(4, '0');
+    let maxN = 0;
+    jobs.forEach(function(j) {
+      var jn = (j.state && j.state.jobNumber) || '';
+      var m = jn.match(/^FS-(\d+)$/);
+      if (m) maxN = Math.max(maxN, parseInt(m[1], 10));
+    });
+    return 'FS-' + String(maxN + 1).padStart(4, '0');
   }
   function initJobNumber() {
     if (!currentJobNumber) currentJobNumber = genJobNumber();
