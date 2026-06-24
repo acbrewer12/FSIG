@@ -3730,6 +3730,7 @@
 
   // ── Job number ──
   let currentJobNumber = null;
+  var _fbMaxJobNumber = 0;
   function genJobNumber() {
     const jobs = JSON.parse(localStorage.getItem('fsig-jobs') || '[]');
     let maxN = 0;
@@ -3738,7 +3739,7 @@
       var m = jn.match(/^FS-(\d+)$/);
       if (m) maxN = Math.max(maxN, parseInt(m[1], 10));
     });
-    return 'FS-' + String(maxN + 1).padStart(4, '0');
+    return 'FS-' + String(Math.max(maxN, _fbMaxJobNumber) + 1).padStart(4, '0');
   }
   function initJobNumber() {
     if (!currentJobNumber) currentJobNumber = genJobNumber();
@@ -7563,6 +7564,24 @@ function startFirebaseSync() {
       try { renderJobLog(); } catch(e) {}
       try { renderCalendar(); } catch(e) {}
       try { updateBossDashboard(); } catch(e) {}
+    }
+    // Track global max job number from Firebase
+    Object.keys(fbJobs).forEach(function(jn) {
+      var m = jn.match(/^FS-(\d+)$/);
+      if (m) _fbMaxJobNumber = Math.max(_fbMaxJobNumber, parseInt(m[1], 10));
+    });
+    // Detect collision: current unsaved job number already exists in Firebase with different data
+    if (currentJobNumber && fbJobs[currentJobNumber]) {
+      var localJobs = [];
+      try { localJobs = JSON.parse(localStorage.getItem('fsig-jobs') || '[]'); } catch(e) {}
+      var alreadySaved = localJobs.find(function(j) { return j.state && j.state.jobNumber === currentJobNumber; });
+      if (!alreadySaved) {
+        var newNum = 'FS-' + String(_fbMaxJobNumber + 1).padStart(4, '0');
+        currentJobNumber = newNum;
+        var jnEl = document.getElementById('job-number');
+        if (jnEl) jnEl.textContent = newNum;
+        try { showLeadToast('⚠ Job # reassigned to ' + newNum + ' (conflict with another device)'); } catch(e) {}
+      }
     }
   });
 
