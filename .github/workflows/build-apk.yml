@@ -60,24 +60,32 @@ jobs:
           tag_name: latest-apk
           name: "FSIG Android App"
           body: |
-            ## Download & Install
+            Latest APK build. Testers receive this automatically via Firebase App Distribution.
 
-            1. Tap **app-debug.apk** below to download
-            2. Open the file on your Android device
-            3. Tap **Install** — if prompted, allow installs from unknown sources in Settings → Apps → Special access
-
-            **Shareable direct link:**
+            **Direct download (backup):**
             ```
             https://github.com/acbrewer12/FSIG/releases/download/latest-apk/app-debug.apk
             ```
-
-            > App content updates automatically — you only need to reinstall when a new APK is published here.
           files: android-twa/app/build/outputs/apk/debug/app-debug.apk
           make_latest: true
+
+      - name: Distribute to testers via Firebase App Distribution
+        if: github.event_name != 'pull_request' && env.FIREBASE_APP_ID != ''
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ secrets.FIREBASE_APP_ID }}
+          token: ${{ secrets.FIREBASE_TOKEN }}
+          groups: team
+          file: android-twa/app/build/outputs/apk/debug/app-debug.apk
+          releaseNotes: "New build pushed to GitHub. Install via Firebase App Tester."
+        env:
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
 
       - name: APK build summary
         run: |
           echo "### APK Build Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Direct team download link:**" >> $GITHUB_STEP_SUMMARY
+          echo "Testers in the **team** group will receive an email from Firebase App Distribution." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Direct download link (backup):**" >> $GITHUB_STEP_SUMMARY
           echo "https://github.com/acbrewer12/FSIG/releases/download/latest-apk/app-debug.apk" >> $GITHUB_STEP_SUMMARY
