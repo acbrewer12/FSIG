@@ -8002,11 +8002,16 @@ var _fbSyncStarted = false;
 try {
   firebase.initializeApp(firebaseConfig);
   _fbDb = firebase.database();
-  // Sign in anonymously so Firebase rules requiring auth != null are satisfied
-  firebase.auth().signInAnonymously().catch(function(e) { console.warn('Firebase anon auth error:', e); });
-  // Start sync as soon as auth is confirmed (fires once per page load)
+  // onAuthStateChanged fires when: (a) Google credential is passed below in handleGoogleCredential,
+  // (b) Firebase restores a persisted session on page reload, or (c) anon fallback resolves.
   firebase.auth().onAuthStateChanged(function(user) {
-    if (user) startFirebaseSync();
+    if (user) {
+      startFirebaseSync();
+    } else {
+      // No persisted session yet — use anonymous auth as fallback until Google sign-in completes.
+      // This lets Firebase sync work even on session restores where the Google token is no longer fresh.
+      firebase.auth().signInAnonymously().catch(function(e) { console.warn('Firebase anon fallback error:', e); });
+    }
   });
 } catch(e) { console.warn('Firebase init failed:', e); }
 
@@ -8372,6 +8377,16 @@ function handleGoogleCredential(response) {
   sessionStorage.setItem('fsig-session', JSON.stringify({ role: role, time: Date.now(), googleEmail: email }));
   _applyRole(role);
   document.getElementById('login-screen').style.display = 'none';
+  // Sign into Firebase with the same Google credential — replaces any anonymous session.
+  // Firebase persists this so page reloads restore the Google identity automatically.
+  if (_fbDb) {
+    try {
+      var googleCred = firebase.auth.GoogleAuthProvider.credential(response.credential);
+      firebase.auth().signInWithCredential(googleCred).catch(function(e) {
+        console.warn('Firebase Google sign-in error:', e);
+      });
+    } catch(e) { console.warn('Firebase credential error:', e); }
+  }
   startGsheetsPolling();
   checkApkUpdate();
 }
