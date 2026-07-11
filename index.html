@@ -1300,8 +1300,8 @@
           <input id="q-name" type="text" placeholder="Full name" style="width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:4px;font-size:.85rem;font-family:inherit;background:var(--card);color:var(--text);box-sizing:border-box">
         </div>
         <div>
-          <div style="font-size:.72rem;font-weight:700;color:var(--brand);margin-bottom:3px">PHONE</div>
-          <input id="q-phone" type="tel" placeholder="(555) 555-5555" style="width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:4px;font-size:.85rem;font-family:inherit;background:var(--card);color:var(--text);box-sizing:border-box">
+          <div style="font-size:.72rem;font-weight:700;color:var(--brand);margin-bottom:3px">EMAIL</div>
+          <input id="q-email" type="email" placeholder="customer@email.com" style="width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:4px;font-size:.85rem;font-family:inherit;background:var(--card);color:var(--text);box-sizing:border-box">
         </div>
         <div style="grid-column:1/-1">
           <div style="font-size:.72rem;font-weight:700;color:var(--brand);margin-bottom:3px">ADDRESS</div>
@@ -1371,7 +1371,7 @@
       <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
         <button class="print-btn auth-edit-only" onclick="saveQuote()" style="flex:1;background:#2E7D32">Save Quote</button>
         <button class="print-btn" onclick="printCurrentQuote()" style="flex:1;background:#1565C0">&#128196; View / Print</button>
-        <button class="print-btn auth-edit-only" onclick="shareQuoteSms()" style="flex:1;background:#5D4037">&#128241; Share SMS</button>
+        <button class="print-btn auth-edit-only" onclick="shareQuoteEmail()" style="flex:1;background:#5D4037">&#9993; Email Quote</button>
       </div>
       <input type="hidden" id="q-editing-id">
       <input type="hidden" id="q-editing-num">
@@ -4935,7 +4935,7 @@
     var today = new Date().toISOString().slice(0, 10);
     var exp   = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
     document.getElementById('q-name').value    = '';
-    document.getElementById('q-phone').value   = '';
+    document.getElementById('q-email').value   = '';
     document.getElementById('q-address').value = '';
     document.getElementById('q-date').value    = today;
     document.getElementById('q-expires').value = exp;
@@ -4950,7 +4950,7 @@
       var q = getQuotes().find(function(x) { return x.id === id; });
       if (q) {
         document.getElementById('q-name').value    = q.customerName || '';
-        document.getElementById('q-phone').value   = q.customerPhone || '';
+        document.getElementById('q-email').value   = q.customerEmail || '';
         document.getElementById('q-address').value = q.customerAddress || '';
         document.getElementById('q-date').value    = q.date || today;
         document.getElementById('q-expires').value = q.expiresDate || exp;
@@ -5044,7 +5044,7 @@
       id:              editId ? parseInt(editId) : Date.now(),
       quoteNumber:     editNum || genQuoteNumber(),
       customerName:    name,
-      customerPhone:   (document.getElementById('q-phone')?.value || '').trim(),
+      customerEmail:   (document.getElementById('q-email')?.value || '').trim(),
       customerAddress: (document.getElementById('q-address')?.value || '').trim(),
       date:            document.getElementById('q-date')?.value || '',
       expiresDate:     document.getElementById('q-expires')?.value || '',
@@ -5102,7 +5102,7 @@
         + '</div>'
         + '<div style="display:flex;gap:6px">'
         + '<button class="jl-btn" onclick="event.stopPropagation();printQuoteById(' + q.id + ')" style="padding:6px 12px;font-size:.78rem">&#128196; Print</button>'
-        + '<button class="jl-btn" onclick="event.stopPropagation();shareQuoteSmsById(' + q.id + ')" style="padding:6px 12px;font-size:.78rem">&#128241; SMS</button>'
+        + '<button class="jl-btn" onclick="event.stopPropagation();shareQuoteEmailById(' + q.id + ')" style="padding:6px 12px;font-size:.78rem">&#9993; Email</button>'
         + '<button class="jl-del auth-edit-only" onclick="event.stopPropagation();deleteQuote(' + q.id + ')" style="padding:6px 10px">&#10005;</button>'
         + '</div>'
         + '</div>'
@@ -5154,7 +5154,7 @@
     var tmpQ = {
       quoteNumber: document.getElementById('q-editing-num')?.value || 'DRAFT',
       customerName: document.getElementById('q-name')?.value || '',
-      customerPhone: document.getElementById('q-phone')?.value || '',
+      customerEmail: document.getElementById('q-email')?.value || '',
       customerAddress: document.getElementById('q-address')?.value || '',
       date: document.getElementById('q-date')?.value || '',
       expiresDate: document.getElementById('q-expires')?.value || '',
@@ -5179,24 +5179,40 @@
     document.getElementById('quote-print-modal').style.display = 'none';
   }
 
-  function shareQuoteSmsById(id) {
+  function shareQuoteEmailById(id) {
     var q = getQuotes().find(function(x){ return x.id === id; });
-    if (q) _sendQuoteSms(q);
+    if (q) _sendQuoteEmail(q);
   }
 
-  function shareQuoteSms() {
+  function shareQuoteEmail() {
     var name   = (document.getElementById('q-name')?.value || '').trim();
     var total  = document.getElementById('q-total')?.textContent || '$0.00';
-    var phone  = (document.getElementById('q-phone')?.value || '').trim();
+    var email  = (document.getElementById('q-email')?.value || '').trim();
     var num    = document.getElementById('q-editing-num')?.value || 'your estimate';
-    _sendQuoteSms({ customerName: name, customerPhone: phone, quoteNumber: num, total: total, notes: document.getElementById('q-notes')?.value || '' });
+    var lines  = _qLines.map(function(l){ return (l.desc||'') + ' — ' + (l.qty||'') + ' ' + (l.unit||'') + ' @ $' + (l.rate||0) + ' = $' + ((parseFloat(l.qty)||0)*(parseFloat(l.rate)||0)).toFixed(2); }).join('\n');
+    _sendQuoteEmail({ customerName: name, customerEmail: email, quoteNumber: num, total: total, lines: lines, notes: document.getElementById('q-notes')?.value || '' });
   }
 
-  function _sendQuoteSms(q) {
-    var phone = (q.customerPhone || '').replace(/\D/g, '');
-    if (!phone) { alert('No customer phone number. Add one first.'); return; }
-    var body = 'Hi ' + (q.customerName || 'there') + ', your estimate from Holliday Welding & Fence (' + (q.quoteNumber || '') + ') is $' + parseFloat(q.total||0).toFixed(2) + '. Valid 30 days. Call us with any questions!';
-    window.open('sms:' + phone + '?body=' + encodeURIComponent(body));
+  function _sendQuoteEmail(q) {
+    var email = (q.customerEmail || '').trim();
+    if (!email) { alert('No customer email. Add one first.'); return; }
+    var subject = 'Estimate from Holliday Welding & Fence — ' + (q.quoteNumber || '');
+    var lineDetails = '';
+    if (q.lines && q.lines.length) {
+      lineDetails = '\n\nESTIMATE DETAILS:\n' + q.lines.map(function(l){
+        return (l.desc||'') + ' — ' + (l.qty||'') + ' ' + (l.unit||'') + ' @ $' + parseFloat(l.rate||0).toFixed(2) + ' = $' + parseFloat(l.total||0).toFixed(2);
+      }).join('\n');
+    } else if (q.lines) {
+      lineDetails = '\n\n' + q.lines;
+    }
+    var body = 'Hi ' + (q.customerName || 'there') + ',\n\n'
+      + 'Thank you for your interest! Please find your estimate below.\n'
+      + lineDetails + '\n\n'
+      + 'TOTAL: $' + parseFloat(q.total||0).toFixed(2) + '\n\n'
+      + (q.notes ? 'Notes: ' + q.notes + '\n\n' : '')
+      + 'Please reply to this email or call us with any questions.\n\n'
+      + 'Holliday Welding & Fence';
+    window.open('mailto:' + encodeURIComponent(email) + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body));
   }
 
   // Initialize quote list on page load
