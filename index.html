@@ -808,6 +808,44 @@
     #update-banner .toast-msg { flex:1; font-weight:600; }
     #update-banner .toast-view { background:rgba(255,255,255,.25); border:1px solid rgba(255,255,255,.5); color:#fff; padding:4px 12px; border-radius:4px; cursor:pointer; font-size:.82rem; font-family:inherit; white-space:nowrap; }
     #update-banner .toast-close { background:none; border:none; color:#fff; font-size:1.1rem; cursor:pointer; padding:0 2px; line-height:1; }
+    /* ── Quotes ── */
+    #quote-modal { position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:9997; display:none; align-items:flex-start; justify-content:center; overflow-y:auto; padding:16px 0; }
+    .quote-modal-box { background:var(--card); border-radius:10px; width:100%; max-width:600px; margin:auto; padding:20px 18px; box-shadow:0 8px 40px rgba(0,0,0,.35); }
+    .quote-line-row { display:grid; grid-template-columns:1fr 60px 80px 80px 32px; gap:6px; align-items:center; margin-bottom:6px; }
+    .quote-line-row input { padding:6px 7px; border:1px solid var(--border); border-radius:4px; font-size:.8rem; font-family:inherit; background:var(--card); color:var(--text); width:100%; box-sizing:border-box; }
+    .quote-status-badge { display:inline-block; font-size:.7rem; font-weight:700; padding:2px 8px; border-radius:10px; text-transform:uppercase; letter-spacing:.03em; }
+    .qs-draft    { background:#ECEFF1; color:#546E7A; }
+    .qs-sent     { background:#E3F2FD; color:#1565C0; }
+    .qs-accepted { background:#E8F5E9; color:#2E7D32; }
+    .qs-declined { background:#FFEBEE; color:#C62828; }
+    /* ── Quote Print View ── */
+    #quote-print-modal { position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:9999; display:none; align-items:flex-start; justify-content:center; overflow-y:auto; padding:20px 0; }
+    .qp-box { background:#fff; color:#111; width:100%; max-width:680px; margin:auto; padding:32px 36px; border-radius:4px; box-shadow:0 8px 48px rgba(0,0,0,.4); font-family:Arial,sans-serif; }
+    .qp-header { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #C8530A; padding-bottom:14px; margin-bottom:18px; }
+    .qp-company { font-size:1.4rem; font-weight:700; color:#C8530A; line-height:1.2; }
+    .qp-company-sub { font-size:.78rem; color:#555; margin-top:3px; }
+    .qp-title { font-size:1.5rem; font-weight:700; color:#333; text-align:right; }
+    .qp-title-num { font-size:.85rem; color:#666; text-align:right; }
+    .qp-info { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:18px; }
+    .qp-info-block label { display:block; font-size:.7rem; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:.04em; margin-bottom:2px; }
+    .qp-info-block .val { font-size:.88rem; color:#222; }
+    .qp-table { width:100%; border-collapse:collapse; margin-bottom:16px; }
+    .qp-table th { background:#C8530A; color:#fff; font-size:.78rem; padding:7px 10px; text-align:left; }
+    .qp-table th:last-child, .qp-table td:last-child { text-align:right; }
+    .qp-table td { font-size:.82rem; padding:7px 10px; border-bottom:1px solid #e5e5e5; vertical-align:top; }
+    .qp-table tr:nth-child(even) td { background:#fafafa; }
+    .qp-totals { max-width:240px; margin-left:auto; margin-bottom:18px; }
+    .qp-totals table { width:100%; border-collapse:collapse; }
+    .qp-totals td { font-size:.85rem; padding:5px 8px; }
+    .qp-totals .grand td { font-weight:700; font-size:.95rem; background:#C8530A; color:#fff; }
+    .qp-notes { background:#f7f6f2; border-left:3px solid #C8530A; padding:10px 14px; font-size:.8rem; color:#444; border-radius:0 4px 4px 0; margin-bottom:18px; }
+    .qp-footer { text-align:center; font-size:.72rem; color:#999; border-top:1px solid #ddd; padding-top:12px; }
+    @media print {
+      body > *:not(#quote-print-modal) { display:none !important; }
+      #quote-print-modal { position:static; background:none; padding:0; display:block !important; }
+      .qp-box { box-shadow:none; padding:20px; max-width:100%; }
+      .qp-print-actions { display:none !important; }
+    }
   </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -1236,6 +1274,119 @@
     </div>
 
     <div id="job-log-list"></div>
+  </div>
+
+  <!-- Quotes & Estimates -->
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <h2 style="margin:0">Quotes &amp; Estimates</h2>
+      <button class="print-btn auth-edit-only" onclick="openQuoteForm(null)" style="background:#C8530A;padding:7px 14px">+ New Quote</button>
+    </div>
+    <div id="quote-list-wrap">
+      <div style="color:var(--muted);font-size:.85rem;font-style:italic">No quotes yet.</div>
+    </div>
+  </div>
+
+  <!-- Quote Create/Edit Modal -->
+  <div id="quote-modal" onclick="if(event.target===this)closeQuoteModal()">
+    <div class="quote-modal-box">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="font-family:'Oswald',Arial,sans-serif;font-size:1.15rem;font-weight:700;color:var(--brand)" id="quote-modal-title">New Quote</div>
+        <button onclick="closeQuoteModal()" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--muted)">&times;</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <div>
+          <div style="font-size:.72rem;font-weight:700;color:var(--brand);margin-bottom:3px">CUSTOMER NAME</div>
+          <input id="q-name" type="text" placeholder="Full name" style="width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:4px;font-size:.85rem;font-family:inherit;background:var(--card);color:var(--text);box-sizing:border-box">
+        </div>
+        <div>
+          <div style="font-size:.72rem;font-weight:700;color:var(--brand);margin-bottom:3px">PHONE</div>
+          <input id="q-phone" type="tel" placeholder="(555) 555-5555" style="width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:4px;font-size:.85rem;font-family:inherit;background:var(--card);color:var(--text);box-sizing:border-box">
+        </div>
+        <div style="grid-column:1/-1">
+          <div style="font-size:.72rem;font-weight:700;color:var(--brand);margin-bottom:3px">ADDRESS</div>
+          <input id="q-address" type="text" placeholder="Street, City, State" style="width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:4px;font-size:.85rem;font-family:inherit;background:var(--card);color:var(--text);box-sizing:border-box">
+        </div>
+        <div>
+          <div style="font-size:.72rem;font-weight:700;color:var(--brand);margin-bottom:3px">DATE</div>
+          <input id="q-date" type="date" style="width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:4px;font-size:.85rem;font-family:inherit;background:var(--card);color:var(--text);box-sizing:border-box">
+        </div>
+        <div>
+          <div style="font-size:.72rem;font-weight:700;color:var(--brand);margin-bottom:3px">VALID UNTIL</div>
+          <input id="q-expires" type="date" style="width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:4px;font-size:.85rem;font-family:inherit;background:var(--card);color:var(--text);box-sizing:border-box">
+        </div>
+        <div>
+          <div style="font-size:.72rem;font-weight:700;color:var(--brand);margin-bottom:3px">STATUS</div>
+          <select id="q-status" style="width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:4px;font-size:.85rem;font-family:inherit;background:var(--card);color:var(--text);box-sizing:border-box">
+            <option value="draft">Draft</option>
+            <option value="sent">Sent</option>
+            <option value="accepted">Accepted</option>
+            <option value="declined">Declined</option>
+          </select>
+        </div>
+        <div>
+          <div style="font-size:.72rem;font-weight:700;color:var(--brand);margin-bottom:3px">JOB TYPE</div>
+          <select id="q-type" style="width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:4px;font-size:.85rem;font-family:inherit;background:var(--card);color:var(--text);box-sizing:border-box">
+            <option value="fence">Fence</option>
+            <option value="stain">Stain</option>
+            <option value="both">Fence + Stain</option>
+            <option value="deck">Deck Stain</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Line Items -->
+      <div style="font-size:.78rem;font-weight:700;color:var(--brand);margin-bottom:6px">LINE ITEMS</div>
+      <div style="display:grid;grid-template-columns:1fr 60px 80px 80px 32px;gap:6px;margin-bottom:4px">
+        <div style="font-size:.68rem;font-weight:700;color:var(--muted)">Description</div>
+        <div style="font-size:.68rem;font-weight:700;color:var(--muted)">Qty</div>
+        <div style="font-size:.68rem;font-weight:700;color:var(--muted)">Unit</div>
+        <div style="font-size:.68rem;font-weight:700;color:var(--muted)">Rate ($)</div>
+        <div></div>
+      </div>
+      <div id="q-lines"></div>
+      <button onclick="addQuoteLine()" style="background:none;border:1px dashed var(--border);color:var(--brand);border-radius:4px;padding:5px 12px;font-size:.78rem;cursor:pointer;width:100%;margin-top:4px">+ Add Line</button>
+
+      <!-- Totals -->
+      <div style="display:flex;justify-content:flex-end;margin-top:14px">
+        <div style="min-width:200px">
+          <div style="display:flex;justify-content:space-between;font-size:.85rem;padding:4px 0;border-bottom:1px solid var(--border)">
+            <span>Subtotal</span><strong id="q-subtotal">$0.00</strong>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:.82rem;padding:4px 0;border-bottom:1px solid var(--border)">
+            <span>Tax&nbsp;<input id="q-tax-pct" type="number" value="0" min="0" max="30" step="0.5" oninput="calcQuoteTotals()" style="width:40px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;font-size:.78rem;font-family:inherit;background:var(--card);color:var(--text)">%</span>
+            <strong id="q-tax-amt">$0.00</strong>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:1rem;font-weight:700;padding:6px 0;color:var(--brand)">
+            <span>TOTAL</span><span id="q-total">$0.00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div style="font-size:.72rem;font-weight:700;color:var(--brand);margin-bottom:4px;margin-top:10px">NOTES / TERMS</div>
+      <textarea id="q-notes" rows="3" placeholder="Payment terms, scope details, warranty, etc." style="width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:4px;font-size:.82rem;font-family:inherit;background:var(--card);color:var(--text);resize:vertical;box-sizing:border-box"></textarea>
+
+      <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+        <button class="print-btn auth-edit-only" onclick="saveQuote()" style="flex:1;background:#2E7D32">Save Quote</button>
+        <button class="print-btn" onclick="printCurrentQuote()" style="flex:1;background:#1565C0">&#128196; View / Print</button>
+        <button class="print-btn auth-edit-only" onclick="shareQuoteSms()" style="flex:1;background:#5D4037">&#128241; Share SMS</button>
+      </div>
+      <input type="hidden" id="q-editing-id">
+      <input type="hidden" id="q-editing-num">
+    </div>
+  </div>
+
+  <!-- Quote Print Modal -->
+  <div id="quote-print-modal" onclick="if(event.target===this)closeQuotePrint()">
+    <div class="qp-box">
+      <div class="qp-print-actions" style="display:flex;gap:8px;margin-bottom:16px;justify-content:flex-end">
+        <button onclick="window.print()" class="print-btn" style="background:#C8530A">&#128196; Print / Save PDF</button>
+        <button onclick="closeQuotePrint()" class="print-btn" style="background:#546E7A">&times; Close</button>
+      </div>
+      <div id="quote-print-body"></div>
+    </div>
   </div>
 
   <!-- Schedule -->
@@ -4755,6 +4906,302 @@
     renderPipeline();
   }
 
+  // ── Quotes & Estimates ───────────────────────────────────────────────────────
+  var _qLineCounter = 0;
+  var _qLines = []; // [{id, desc, qty, unit, rate}]
+
+  function getQuotes() {
+    try { return JSON.parse(localStorage.getItem('fsig-quotes') || '[]'); } catch(e) { return []; }
+  }
+  function saveQuotes(arr) {
+    localStorage.setItem('fsig-quotes', JSON.stringify(arr));
+    var obj = {}; arr.forEach(function(q) { if (q.quoteNumber) obj[q.quoteNumber] = q; });
+    fbSet('quotes', obj);
+  }
+
+  function genQuoteNumber() {
+    var quotes = getQuotes();
+    var maxN = 0;
+    quotes.forEach(function(q) {
+      var m = (q.quoteNumber || '').match(/^Q-(\d+)$/);
+      if (m) maxN = Math.max(maxN, parseInt(m[1], 10));
+    });
+    return 'Q-' + String(maxN + 1).padStart(4, '0');
+  }
+
+  function openQuoteForm(id) {
+    _qLines = [];
+    _qLineCounter = 0;
+    var today = new Date().toISOString().slice(0, 10);
+    var exp   = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+    document.getElementById('q-name').value    = '';
+    document.getElementById('q-phone').value   = '';
+    document.getElementById('q-address').value = '';
+    document.getElementById('q-date').value    = today;
+    document.getElementById('q-expires').value = exp;
+    document.getElementById('q-status').value  = 'draft';
+    document.getElementById('q-type').value    = localStorage.getItem('fsig-app-mode') || 'fence';
+    document.getElementById('q-notes').value   = 'Quote valid for 30 days. 50% deposit required to schedule.';
+    document.getElementById('q-tax-pct').value = '0';
+    document.getElementById('q-editing-id').value  = '';
+    document.getElementById('q-editing-num').value = '';
+    document.getElementById('quote-modal-title').textContent = 'New Quote';
+    if (id) {
+      var q = getQuotes().find(function(x) { return x.id === id; });
+      if (q) {
+        document.getElementById('q-name').value    = q.customerName || '';
+        document.getElementById('q-phone').value   = q.customerPhone || '';
+        document.getElementById('q-address').value = q.customerAddress || '';
+        document.getElementById('q-date').value    = q.date || today;
+        document.getElementById('q-expires').value = q.expiresDate || exp;
+        document.getElementById('q-status').value  = q.status || 'draft';
+        document.getElementById('q-type').value    = q.jobType || 'fence';
+        document.getElementById('q-notes').value   = q.notes || '';
+        document.getElementById('q-tax-pct').value = q.taxPct || '0';
+        document.getElementById('q-editing-id').value  = q.id;
+        document.getElementById('q-editing-num').value = q.quoteNumber;
+        document.getElementById('quote-modal-title').textContent = 'Edit ' + q.quoteNumber;
+        _qLines = (q.lines || []).map(function(l) {
+          _qLineCounter = Math.max(_qLineCounter, l.id || 0);
+          return { id: l.id, desc: l.desc, qty: l.qty, unit: l.unit, rate: l.rate };
+        });
+      }
+    }
+    if (!_qLines.length) {
+      addQuoteLine();
+    } else {
+      renderQuoteLines();
+    }
+    calcQuoteTotals();
+    document.getElementById('quote-modal').style.display = 'flex';
+  }
+
+  function closeQuoteModal() {
+    document.getElementById('quote-modal').style.display = 'none';
+  }
+
+  function addQuoteLine(desc, qty, unit, rate) {
+    var id = ++_qLineCounter;
+    _qLines.push({ id: id, desc: desc || '', qty: qty || '', unit: unit || 'lin ft', rate: rate || '' });
+    renderQuoteLines();
+    calcQuoteTotals();
+  }
+
+  function removeQuoteLine(id) {
+    _qLines = _qLines.filter(function(l) { return l.id !== id; });
+    renderQuoteLines();
+    calcQuoteTotals();
+  }
+
+  function renderQuoteLines() {
+    var container = document.getElementById('q-lines');
+    if (!container) return;
+    container.innerHTML = _qLines.map(function(l) {
+      return '<div class="quote-line-row" id="qrow-' + l.id + '">'
+        + '<input type="text" placeholder="Description" value="' + escHtml(l.desc) + '" oninput="_qLineSync(' + l.id + ',\'desc\',this.value)">'
+        + '<input type="number" placeholder="Qty" value="' + (l.qty || '') + '" min="0" step="any" oninput="_qLineSync(' + l.id + ',\'qty\',this.value);calcQuoteTotals()" style="text-align:right">'
+        + '<input type="text" placeholder="lin ft" value="' + escHtml(l.unit || 'lin ft') + '" oninput="_qLineSync(' + l.id + ',\'unit\',this.value)">'
+        + '<input type="number" placeholder="0.00" value="' + (l.rate || '') + '" min="0" step="any" oninput="_qLineSync(' + l.id + ',\'rate\',this.value);calcQuoteTotals()" style="text-align:right">'
+        + '<button onclick="removeQuoteLine(' + l.id + ')" style="background:#FFEBEE;border:none;border-radius:4px;color:#C62828;cursor:pointer;font-size:.85rem;height:32px;width:32px">&times;</button>'
+        + '</div>';
+    }).join('');
+  }
+
+  function _qLineSync(id, field, val) {
+    var l = _qLines.find(function(x) { return x.id === id; });
+    if (l) l[field] = val;
+  }
+
+  function calcQuoteTotals() {
+    var sub = 0;
+    _qLines.forEach(function(l) {
+      sub += (parseFloat(l.qty) || 0) * (parseFloat(l.rate) || 0);
+    });
+    var taxPct = parseFloat(document.getElementById('q-tax-pct')?.value || '0') || 0;
+    var taxAmt = sub * (taxPct / 100);
+    var total  = sub + taxAmt;
+    var fmt = function(n) { return '$' + n.toFixed(2); };
+    var el = function(id) { return document.getElementById(id); };
+    if (el('q-subtotal')) el('q-subtotal').textContent = fmt(sub);
+    if (el('q-tax-amt'))  el('q-tax-amt').textContent  = fmt(taxAmt);
+    if (el('q-total'))    el('q-total').textContent     = fmt(total);
+  }
+
+  function saveQuote() {
+    var name = (document.getElementById('q-name')?.value || '').trim();
+    if (!name) { alert('Enter a customer name.'); return; }
+    var quotes = getQuotes();
+    var editId  = document.getElementById('q-editing-id')?.value;
+    var editNum = document.getElementById('q-editing-num')?.value;
+    var taxPct  = parseFloat(document.getElementById('q-tax-pct')?.value || '0') || 0;
+    var lines   = _qLines.map(function(l) {
+      return { id: l.id, desc: l.desc, qty: parseFloat(l.qty) || 0, unit: l.unit || 'lin ft', rate: parseFloat(l.rate) || 0,
+               total: (parseFloat(l.qty) || 0) * (parseFloat(l.rate) || 0) };
+    });
+    var sub   = lines.reduce(function(s, l) { return s + l.total; }, 0);
+    var taxAmt = sub * (taxPct / 100);
+    var entry = {
+      id:              editId ? parseInt(editId) : Date.now(),
+      quoteNumber:     editNum || genQuoteNumber(),
+      customerName:    name,
+      customerPhone:   (document.getElementById('q-phone')?.value || '').trim(),
+      customerAddress: (document.getElementById('q-address')?.value || '').trim(),
+      date:            document.getElementById('q-date')?.value || '',
+      expiresDate:     document.getElementById('q-expires')?.value || '',
+      status:          document.getElementById('q-status')?.value || 'draft',
+      jobType:         document.getElementById('q-type')?.value || 'fence',
+      lines:           lines,
+      taxPct:          taxPct,
+      taxAmt:          taxAmt,
+      subtotal:        sub,
+      total:           sub + taxAmt,
+      notes:           (document.getElementById('q-notes')?.value || '').trim(),
+      updatedAt:       Date.now(),
+    };
+    var idx = quotes.findIndex(function(q) { return q.id === entry.id; });
+    if (idx >= 0) { quotes[idx] = entry; } else { quotes.unshift(entry); }
+    saveQuotes(quotes);
+    renderQuoteList();
+    closeQuoteModal();
+    showLeadToast('Quote ' + entry.quoteNumber + ' saved');
+  }
+
+  function deleteQuote(id) {
+    if (!confirm('Delete this quote?')) return;
+    var quotes = getQuotes();
+    var q = quotes.find(function(x) { return x.id === id; });
+    var remaining = quotes.filter(function(x) { return x.id !== id; });
+    localStorage.setItem('fsig-quotes', JSON.stringify(remaining));
+    if (q && q.quoteNumber) fbRemove('quotes/' + q.quoteNumber);
+    renderQuoteList();
+  }
+
+  function renderQuoteList() {
+    var wrap = document.getElementById('quote-list-wrap');
+    if (!wrap) return;
+    var quotes = getQuotes();
+    if (!quotes.length) {
+      wrap.innerHTML = '<div style="color:var(--muted);font-size:.85rem;font-style:italic">No quotes yet.</div>';
+      return;
+    }
+    var statusLabel = { draft:'Draft', sent:'Sent', accepted:'Accepted', declined:'Declined' };
+    var statusCls   = { draft:'qs-draft', sent:'qs-sent', accepted:'qs-accepted', declined:'qs-declined' };
+    wrap.innerHTML = quotes.map(function(q) {
+      return '<div class="boss-job-card" style="cursor:pointer" onclick="openQuoteForm(' + q.id + ')">'
+        + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">'
+        + '<div>'
+        + '<div style="font-family:\'Oswald\',Arial,sans-serif;font-size:1rem;font-weight:700;color:var(--brand)">' + escHtml(q.quoteNumber) + ' — ' + escHtml(q.customerName) + '</div>'
+        + (q.customerAddress ? '<div style="font-size:.78rem;color:var(--muted);margin-top:2px">&#128205; ' + escHtml(q.customerAddress) + '</div>' : '')
+        + '</div>'
+        + '<span class="quote-status-badge ' + (statusCls[q.status] || 'qs-draft') + '">' + (statusLabel[q.status] || q.status) + '</span>'
+        + '</div>'
+        + '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">'
+        + '<div style="display:flex;gap:10px;flex-wrap:wrap">'
+        + (q.date ? '<span style="font-size:.75rem;color:var(--muted)">&#128197; ' + escHtml(q.date) + '</span>' : '')
+        + (q.total ? '<span style="font-size:.88rem;font-weight:700;color:#2E7D32">$' + parseFloat(q.total).toFixed(2) + '</span>' : '')
+        + '</div>'
+        + '<div style="display:flex;gap:6px">'
+        + '<button class="jl-btn" onclick="event.stopPropagation();printQuoteById(' + q.id + ')" style="padding:6px 12px;font-size:.78rem">&#128196; Print</button>'
+        + '<button class="jl-btn" onclick="event.stopPropagation();shareQuoteSmsById(' + q.id + ')" style="padding:6px 12px;font-size:.78rem">&#128241; SMS</button>'
+        + '<button class="jl-del auth-edit-only" onclick="event.stopPropagation();deleteQuote(' + q.id + ')" style="padding:6px 10px">&#10005;</button>'
+        + '</div>'
+        + '</div>'
+        + '</div>';
+    }).join('');
+  }
+
+  function _buildQuotePrintHtml(q) {
+    var company = 'Holliday Welding &amp; Fence';
+    var linesHtml = (q.lines || []).filter(function(l){ return l.desc || l.total; }).map(function(l) {
+      return '<tr><td>' + escHtml(l.desc || '') + '</td><td style="text-align:right">' + (l.qty || '') + '</td>'
+        + '<td>' + escHtml(l.unit || '') + '</td><td style="text-align:right">$' + (parseFloat(l.rate)||0).toFixed(2) + '</td>'
+        + '<td style="text-align:right">$' + (parseFloat(l.total)||0).toFixed(2) + '</td></tr>';
+    }).join('');
+    var taxRow = (q.taxPct && q.taxAmt) ? '<tr><td colspan="4" style="text-align:right;padding-right:8px">Tax (' + q.taxPct + '%)</td><td style="text-align:right;padding:5px 8px">$' + parseFloat(q.taxAmt).toFixed(2) + '</td></tr>' : '';
+    return '<div class="qp-header">'
+      + '<div><div class="qp-company">' + company + '</div><div class="qp-company-sub">Professional Fence &amp; Stain Services</div></div>'
+      + '<div><div class="qp-title">ESTIMATE</div><div class="qp-title-num">' + escHtml(q.quoteNumber) + '</div></div>'
+      + '</div>'
+      + '<div class="qp-info">'
+      + '<div class="qp-info-block"><label>Prepared For</label><div class="val">' + escHtml(q.customerName || '') + '</div>'
+        + (q.customerAddress ? '<div class="val" style="font-size:.78rem;color:#666">' + escHtml(q.customerAddress) + '</div>' : '')
+        + (q.customerPhone   ? '<div class="val" style="font-size:.78rem;color:#666">' + escHtml(q.customerPhone)   + '</div>' : '')
+        + '</div>'
+      + '<div class="qp-info-block">'
+        + '<label>Date</label><div class="val">' + escHtml(q.date || '') + '</div>'
+        + (q.expiresDate ? '<label style="margin-top:8px">Valid Until</label><div class="val">' + escHtml(q.expiresDate) + '</div>' : '')
+        + '</div>'
+      + '</div>'
+      + '<table class="qp-table"><thead><tr><th>Description</th><th style="text-align:right">Qty</th><th>Unit</th><th style="text-align:right">Rate</th><th style="text-align:right">Amount</th></tr></thead>'
+      + '<tbody>' + linesHtml + '</tbody></table>'
+      + '<div class="qp-totals"><table>'
+        + '<tr><td>Subtotal</td><td style="text-align:right">$' + parseFloat(q.subtotal||0).toFixed(2) + '</td></tr>'
+        + taxRow
+        + '<tr class="grand"><td>TOTAL</td><td style="text-align:right">$' + parseFloat(q.total||0).toFixed(2) + '</td></tr>'
+        + '</table></div>'
+      + (q.notes ? '<div class="qp-notes"><strong>Notes:</strong> ' + escHtml(q.notes) + '</div>' : '')
+      + '<div class="qp-footer">Thank you for your business! Contact us with any questions.</div>';
+  }
+
+  function printCurrentQuote() {
+    // Collect current form state as a temp quote object
+    var taxPct = parseFloat(document.getElementById('q-tax-pct')?.value || '0') || 0;
+    var lines = _qLines.map(function(l) {
+      return { desc: l.desc, qty: parseFloat(l.qty)||0, unit: l.unit||'lin ft', rate: parseFloat(l.rate)||0,
+               total: (parseFloat(l.qty)||0)*(parseFloat(l.rate)||0) };
+    });
+    var sub = lines.reduce(function(s,l){ return s+l.total; }, 0);
+    var tmpQ = {
+      quoteNumber: document.getElementById('q-editing-num')?.value || 'DRAFT',
+      customerName: document.getElementById('q-name')?.value || '',
+      customerPhone: document.getElementById('q-phone')?.value || '',
+      customerAddress: document.getElementById('q-address')?.value || '',
+      date: document.getElementById('q-date')?.value || '',
+      expiresDate: document.getElementById('q-expires')?.value || '',
+      lines: lines, taxPct: taxPct, taxAmt: sub*(taxPct/100), subtotal: sub,
+      total: sub + sub*(taxPct/100),
+      notes: document.getElementById('q-notes')?.value || '',
+    };
+    showQuotePrint(tmpQ);
+  }
+
+  function printQuoteById(id) {
+    var q = getQuotes().find(function(x){ return x.id === id; });
+    if (q) showQuotePrint(q);
+  }
+
+  function showQuotePrint(q) {
+    document.getElementById('quote-print-body').innerHTML = _buildQuotePrintHtml(q);
+    document.getElementById('quote-print-modal').style.display = 'flex';
+  }
+
+  function closeQuotePrint() {
+    document.getElementById('quote-print-modal').style.display = 'none';
+  }
+
+  function shareQuoteSmsById(id) {
+    var q = getQuotes().find(function(x){ return x.id === id; });
+    if (q) _sendQuoteSms(q);
+  }
+
+  function shareQuoteSms() {
+    var name   = (document.getElementById('q-name')?.value || '').trim();
+    var total  = document.getElementById('q-total')?.textContent || '$0.00';
+    var phone  = (document.getElementById('q-phone')?.value || '').trim();
+    var num    = document.getElementById('q-editing-num')?.value || 'your estimate';
+    _sendQuoteSms({ customerName: name, customerPhone: phone, quoteNumber: num, total: total, notes: document.getElementById('q-notes')?.value || '' });
+  }
+
+  function _sendQuoteSms(q) {
+    var phone = (q.customerPhone || '').replace(/\D/g, '');
+    if (!phone) { alert('No customer phone number. Add one first.'); return; }
+    var body = 'Hi ' + (q.customerName || 'there') + ', your estimate from Holliday Welding & Fence (' + (q.quoteNumber || '') + ') is $' + parseFloat(q.total||0).toFixed(2) + '. Valid 30 days. Call us with any questions!';
+    window.open('sms:' + phone + '?body=' + encodeURIComponent(body));
+  }
+
+  // Initialize quote list on page load
+  (function() { try { renderQuoteList(); } catch(e) {} })();
+
   // ── Customer Contacts Database ──────────────────────────────────────────────
 
   function getContacts() {
@@ -7688,6 +8135,29 @@ function startFirebaseSync() {
     if (s.gmapsKey)   localStorage.setItem('fsig-gmaps-key',  s.gmapsKey);
     if (s.claudeKey)  localStorage.setItem('fsig-claude-key', s.claudeKey);
     if (s.appMode)    localStorage.setItem('fsig-app-mode',   s.appMode);
+  }, _fbPermErr);
+
+  _fbDb.ref('fsig/quotes').on('value', function(snap) {
+    var fbQ = snap.val();
+    if (!fbQ || typeof fbQ !== 'object') return;
+    var arr = Object.values(fbQ).filter(Boolean);
+    if (!arr.length) return;
+    var local = [];
+    try { local = JSON.parse(localStorage.getItem('fsig-quotes') || '[]'); } catch(e) {}
+    var byNum = {};
+    local.forEach(function(q) { if (q.quoteNumber) byNum[q.quoteNumber] = q; });
+    var changed = false;
+    arr.forEach(function(q) {
+      if (!q || !q.quoteNumber) return;
+      if (!byNum[q.quoteNumber] || (q.updatedAt || 0) > (byNum[q.quoteNumber].updatedAt || 0)) {
+        byNum[q.quoteNumber] = q; changed = true;
+      }
+    });
+    if (changed) {
+      var merged = Object.values(byNum).sort(function(a,b){ return (b.updatedAt||0)-(a.updatedAt||0); });
+      localStorage.setItem('fsig-quotes', JSON.stringify(merged));
+      try { renderQuoteList(); } catch(e) {}
+    }
   }, _fbPermErr);
 
   showLeadToast('&#9889; Firebase connected — syncing in real-time');
