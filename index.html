@@ -1291,87 +1291,120 @@
   <div id="quote-modal" onclick="if(event.target===this)closeQuoteModal()">
     <div class="quote-modal-box">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-        <div style="font-family:'Oswald',Arial,sans-serif;font-size:1.15rem;font-weight:700;color:var(--brand)" id="quote-modal-title">New Quote</div>
+        <div style="font-family:'Oswald',Arial,sans-serif;font-size:1.15rem;font-weight:700;color:var(--brand)" id="quote-modal-title">New Estimate</div>
         <button onclick="closeQuoteModal()" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--muted)">&times;</button>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-        <div>
-          <div style="font-size:.72rem;font-weight:700;color:var(--brand);margin-bottom:3px">CUSTOMER NAME</div>
-          <input id="q-name" type="text" placeholder="Full name" style="width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:4px;font-size:.85rem;font-family:inherit;background:var(--card);color:var(--text);box-sizing:border-box">
-        </div>
-        <div>
-          <div style="font-size:.72rem;font-weight:700;color:var(--brand);margin-bottom:3px">EMAIL</div>
-          <input id="q-email" type="email" placeholder="customer@email.com" style="width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:4px;font-size:.85rem;font-family:inherit;background:var(--card);color:var(--text);box-sizing:border-box">
-        </div>
-        <div style="grid-column:1/-1">
-          <div style="font-size:.72rem;font-weight:700;color:var(--brand);margin-bottom:3px">ADDRESS</div>
-          <input id="q-address" type="text" placeholder="Street, City, State" style="width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:4px;font-size:.85rem;font-family:inherit;background:var(--card);color:var(--text);box-sizing:border-box">
-        </div>
-        <div>
-          <div style="font-size:.72rem;font-weight:700;color:var(--brand);margin-bottom:3px">DATE</div>
-          <input id="q-date" type="date" style="width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:4px;font-size:.85rem;font-family:inherit;background:var(--card);color:var(--text);box-sizing:border-box">
-        </div>
-        <div>
-          <div style="font-size:.72rem;font-weight:700;color:var(--brand);margin-bottom:3px">VALID UNTIL</div>
-          <input id="q-expires" type="date" style="width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:4px;font-size:.85rem;font-family:inherit;background:var(--card);color:var(--text);box-sizing:border-box">
-        </div>
-        <div>
-          <div style="font-size:.72rem;font-weight:700;color:var(--brand);margin-bottom:3px">STATUS</div>
-          <select id="q-status" style="width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:4px;font-size:.85rem;font-family:inherit;background:var(--card);color:var(--text);box-sizing:border-box">
-            <option value="draft">Draft</option>
-            <option value="sent">Sent</option>
-            <option value="accepted">Accepted</option>
-            <option value="declined">Declined</option>
-          </select>
-        </div>
-        <div>
-          <div style="font-size:.72rem;font-weight:700;color:var(--brand);margin-bottom:3px">JOB TYPE</div>
-          <select id="q-type" style="width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:4px;font-size:.85rem;font-family:inherit;background:var(--card);color:var(--text);box-sizing:border-box">
-            <option value="fence">Fence</option>
-            <option value="stain">Stain</option>
-            <option value="both">Fence + Stain</option>
-            <option value="deck">Deck Stain</option>
-            <option value="other">Other</option>
-          </select>
+
+      <!-- Header row -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+        <div><div style="font-size:.68rem;font-weight:700;color:var(--brand);margin-bottom:3px">ESTIMATE DATE</div>
+          <input id="q-date" type="date" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:.8rem;font-family:inherit;background:var(--card);color:var(--text);box-sizing:border-box"></div>
+        <div><div style="font-size:.68rem;font-weight:700;color:var(--brand);margin-bottom:3px">ESTIMATE #</div>
+          <div id="q-num-display" style="padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:.8rem;background:var(--card);color:var(--muted)">Auto</div></div>
+        <div><div style="font-size:.68rem;font-weight:700;color:var(--brand);margin-bottom:3px">SALES REP</div>
+          <input id="q-salesrep" type="text" placeholder="Name" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:.8rem;font-family:inherit;background:var(--card);color:var(--text);box-sizing:border-box"></div>
+        <div><div style="font-size:.68rem;font-weight:700;color:var(--brand);margin-bottom:3px">VALID UNTIL</div>
+          <input id="q-expires" type="date" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:.8rem;font-family:inherit;background:var(--card);color:var(--text);box-sizing:border-box"></div>
+      </div>
+
+      <!-- Customer Information -->
+      <div style="background:#1e3a5f;color:#fff;font-size:.75rem;font-weight:700;padding:6px 10px;border-radius:4px 4px 0 0;letter-spacing:.04em">CUSTOMER INFORMATION</div>
+      <div style="border:1px solid #1e3a5f;border-top:none;border-radius:0 0 4px 4px;padding:10px;margin-bottom:10px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div><div style="font-size:.68rem;font-weight:700;color:var(--brand);margin-bottom:3px">CLIENT FULL NAME</div>
+            <input id="q-name" type="text" placeholder="Full name" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:.82rem;font-family:inherit;background:var(--card);color:var(--text);box-sizing:border-box"></div>
+          <div><div style="font-size:.68rem;font-weight:700;color:var(--brand);margin-bottom:3px">PHONE NUMBER</div>
+            <input id="q-phone" type="tel" placeholder="(555) 555-5555" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:.82rem;font-family:inherit;background:var(--card);color:var(--text);box-sizing:border-box"></div>
+          <div><div style="font-size:.68rem;font-weight:700;color:var(--brand);margin-bottom:3px">SERVICE ADDRESS</div>
+            <input id="q-address" type="text" placeholder="Street address" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:.82rem;font-family:inherit;background:var(--card);color:var(--text);box-sizing:border-box"></div>
+          <div><div style="font-size:.68rem;font-weight:700;color:var(--brand);margin-bottom:3px">EMAIL ADDRESS</div>
+            <input id="q-email" type="email" placeholder="customer@email.com" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:.82rem;font-family:inherit;background:var(--card);color:var(--text);box-sizing:border-box"></div>
+          <div><div style="font-size:.68rem;font-weight:700;color:var(--brand);margin-bottom:3px">CITY, STATE, ZIP</div>
+            <input id="q-city" type="text" placeholder="City, ST 00000" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:.82rem;font-family:inherit;background:var(--card);color:var(--text);box-sizing:border-box"></div>
+          <div><div style="font-size:.68rem;font-weight:700;color:var(--brand);margin-bottom:3px">BILLING ADDRESS (if different)</div>
+            <input id="q-billing" type="text" placeholder="Leave blank if same" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:.82rem;font-family:inherit;background:var(--card);color:var(--text);box-sizing:border-box"></div>
         </div>
       </div>
 
-      <!-- Line Items -->
-      <div style="font-size:.78rem;font-weight:700;color:var(--brand);margin-bottom:6px">LINE ITEMS</div>
-      <div style="display:grid;grid-template-columns:1fr 60px 80px 80px 32px;gap:6px;margin-bottom:4px">
-        <div style="font-size:.68rem;font-weight:700;color:var(--muted)">Description</div>
-        <div style="font-size:.68rem;font-weight:700;color:var(--muted)">Qty</div>
-        <div style="font-size:.68rem;font-weight:700;color:var(--muted)">Unit</div>
-        <div style="font-size:.68rem;font-weight:700;color:var(--muted)">Rate ($)</div>
-        <div></div>
-      </div>
-      <div id="q-lines"></div>
-      <button onclick="addQuoteLine()" style="background:none;border:1px dashed var(--border);color:var(--brand);border-radius:4px;padding:5px 12px;font-size:.78rem;cursor:pointer;width:100%;margin-top:4px">+ Add Line</button>
-
-      <!-- Totals -->
-      <div style="display:flex;justify-content:flex-end;margin-top:14px">
-        <div style="min-width:200px">
-          <div style="display:flex;justify-content:space-between;font-size:.85rem;padding:4px 0;border-bottom:1px solid var(--border)">
-            <span>Subtotal</span><strong id="q-subtotal">$0.00</strong>
+      <!-- Project Specifications -->
+      <div style="background:#1e3a5f;color:#fff;font-size:.75rem;font-weight:700;padding:6px 10px;border-radius:4px 4px 0 0;letter-spacing:.04em">PROJECT SPECIFICATIONS &amp; SCOPE</div>
+      <div style="border:1px solid #1e3a5f;border-top:none;border-radius:0 0 4px 4px;padding:10px;margin-bottom:10px">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+          <div>
+            <div style="font-size:.68rem;font-weight:700;color:var(--brand);margin-bottom:4px">TOTAL LINEAR FOOTAGE</div>
+            <input id="q-linft" type="number" placeholder="0" min="0" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:.82rem;font-family:inherit;background:var(--card);color:var(--text);box-sizing:border-box;margin-bottom:8px">
+            <div style="font-size:.68rem;font-weight:700;color:var(--brand);margin-bottom:4px">FENCE HEIGHT (ft)</div>
+            <input id="q-height" type="number" placeholder="0" min="0" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:.82rem;font-family:inherit;background:var(--card);color:var(--text);box-sizing:border-box">
           </div>
-          <div style="display:flex;justify-content:space-between;align-items:center;font-size:.82rem;padding:4px 0;border-bottom:1px solid var(--border)">
-            <span>Tax&nbsp;<input id="q-tax-pct" type="number" value="0" min="0" max="30" step="0.5" oninput="calcQuoteTotals()" style="width:40px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;font-size:.78rem;font-family:inherit;background:var(--card);color:var(--text)">%</span>
-            <strong id="q-tax-amt">$0.00</strong>
+          <div>
+            <div style="font-size:.68rem;font-weight:700;color:var(--brand);margin-bottom:4px">WOOD CONDITION</div>
+            <label style="display:flex;align-items:center;gap:6px;font-size:.8rem;margin-bottom:5px"><input type="checkbox" id="q-wc-new"> New Wood</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:.8rem;margin-bottom:5px"><input type="checkbox" id="q-wc-weathered"> Weathered (Unstained)</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:.8rem;margin-bottom:5px"><input type="checkbox" id="q-wc-prev-stained"> Previously Stained</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:.8rem"><input type="checkbox" id="q-wc-prev-painted"> Previously Painted</label>
           </div>
-          <div style="display:flex;justify-content:space-between;font-size:1rem;font-weight:700;padding:6px 0;color:var(--brand)">
-            <span>TOTAL</span><span id="q-total">$0.00</span>
+          <div>
+            <div style="font-size:.68rem;font-weight:700;color:var(--brand);margin-bottom:4px">STAIN SPECIFICATIONS</div>
+            <div style="font-size:.7rem;color:var(--muted);margin-bottom:3px">Stain Type / Product:</div>
+            <input id="q-stain-product" type="text" value="Wood Defender" style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:4px;font-size:.8rem;font-family:inherit;background:var(--card);color:var(--text);box-sizing:border-box;margin-bottom:6px">
+            <div style="font-size:.7rem;color:var(--muted);margin-bottom:3px">Stain Color:</div>
+            <input id="q-stain-color" type="text" placeholder="Color name" style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:4px;font-size:.8rem;font-family:inherit;background:var(--card);color:var(--text);box-sizing:border-box">
+          </div>
+        </div>
+        <div style="margin-top:10px">
+          <div style="font-size:.68rem;font-weight:700;color:var(--brand);margin-bottom:6px">SERVICES INCLUDED IN ESTIMATE:</div>
+          <div style="display:flex;gap:20px;flex-wrap:wrap">
+            <label style="display:flex;align-items:center;gap:6px;font-size:.82rem"><input type="checkbox" id="q-svc-wash"> Pressure Wash / Prep</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:.82rem"><input type="checkbox" id="q-svc-mold"> Mold &amp; Mildew Treatment</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:.82rem"><input type="checkbox" id="q-svc-stain"> Stain Application</label>
           </div>
         </div>
       </div>
 
-      <!-- Notes -->
-      <div style="font-size:.72rem;font-weight:700;color:var(--brand);margin-bottom:4px;margin-top:10px">NOTES / TERMS</div>
-      <textarea id="q-notes" rows="3" placeholder="Payment terms, scope details, warranty, etc." style="width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:4px;font-size:.82rem;font-family:inherit;background:var(--card);color:var(--text);resize:vertical;box-sizing:border-box"></textarea>
+      <!-- Cost Breakdown -->
+      <div style="background:#1e3a5f;color:#fff;font-size:.75rem;font-weight:700;padding:6px 10px;border-radius:4px 4px 0 0;letter-spacing:.04em">ESTIMATED COST BREAKDOWN</div>
+      <div style="border:1px solid #1e3a5f;border-top:none;border-radius:0 0 4px 4px;padding:10px;margin-bottom:10px">
+        <div style="display:grid;grid-template-columns:1fr 60px 80px 80px 32px;gap:6px;margin-bottom:4px">
+          <div style="font-size:.68rem;font-weight:700;color:var(--muted)">Description of Work &amp; Materials</div>
+          <div style="font-size:.68rem;font-weight:700;color:var(--muted)">Qty/SqFt</div>
+          <div style="font-size:.68rem;font-weight:700;color:var(--muted)">Unit Price</div>
+          <div style="font-size:.68rem;font-weight:700;color:var(--muted)">Total Price</div>
+          <div></div>
+        </div>
+        <div id="q-lines"></div>
+        <button onclick="addQuoteLine()" style="background:none;border:1px dashed var(--border);color:var(--brand);border-radius:4px;padding:5px 12px;font-size:.78rem;cursor:pointer;width:100%;margin-top:4px">+ Add Line</button>
+        <div style="display:flex;justify-content:flex-end;margin-top:12px">
+          <div style="min-width:220px">
+            <div style="display:flex;justify-content:space-between;font-size:.83rem;padding:5px 8px;border-bottom:1px solid var(--border)">
+              <span>Subtotal</span><strong id="q-subtotal">$0.00</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:.8rem;padding:5px 8px;border-bottom:1px solid var(--border)">
+              <span>Tax / Fees&nbsp;<input id="q-tax-pct" type="number" value="0" min="0" max="30" step="0.5" oninput="calcQuoteTotals()" style="width:38px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;font-size:.75rem;font-family:inherit;background:var(--card);color:var(--text)">%</span>
+              <strong id="q-tax-amt">$0.00</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:.95rem;font-weight:700;padding:6px 8px;background:#1e3a5f;color:#fff;border-radius:0 0 4px 4px">
+              <span>TOTAL ESTIMATE</span><span id="q-total">$0.00</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
-      <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
-        <button class="print-btn auth-edit-only" onclick="saveQuote()" style="flex:1;background:#2E7D32">Save Quote</button>
+      <!-- Status / Job Type (internal tracking) -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+        <div><div style="font-size:.68rem;font-weight:700;color:var(--brand);margin-bottom:3px">STATUS</div>
+          <select id="q-status" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:.82rem;font-family:inherit;background:var(--card);color:var(--text);box-sizing:border-box">
+            <option value="draft">Draft</option><option value="sent">Sent</option><option value="accepted">Accepted</option><option value="declined">Declined</option>
+          </select></div>
+        <div><div style="font-size:.68rem;font-weight:700;color:var(--brand);margin-bottom:3px">JOB TYPE</div>
+          <select id="q-type" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:.82rem;font-family:inherit;background:var(--card);color:var(--text);box-sizing:border-box">
+            <option value="stain">Stain</option><option value="fence">Fence</option><option value="both">Fence + Stain</option><option value="deck">Deck Stain</option><option value="other">Other</option>
+          </select></div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">
+        <button class="print-btn auth-edit-only" onclick="saveQuote()" style="flex:1;background:#2E7D32">Save Estimate</button>
         <button class="print-btn" onclick="printCurrentQuote()" style="flex:1;background:#1565C0">&#128196; View / Print</button>
-        <button class="print-btn auth-edit-only" onclick="shareQuoteEmail()" style="flex:1;background:#5D4037">&#9993; Email Quote</button>
+        <button class="print-btn auth-edit-only" onclick="shareQuoteEmail()" style="flex:1;background:#5D4037">&#9993; Email</button>
       </div>
       <input type="hidden" id="q-editing-id">
       <input type="hidden" id="q-editing-num">
@@ -4934,33 +4967,55 @@
     _qLineCounter = 0;
     var today = new Date().toISOString().slice(0, 10);
     var exp   = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
-    document.getElementById('q-name').value    = '';
-    document.getElementById('q-email').value   = '';
-    document.getElementById('q-address').value = '';
-    document.getElementById('q-date').value    = today;
-    document.getElementById('q-expires').value = exp;
-    document.getElementById('q-status').value  = 'draft';
-    document.getElementById('q-type').value    = localStorage.getItem('fsig-app-mode') || 'fence';
-    document.getElementById('q-notes').value   = 'Quote valid for 30 days. 50% deposit required to schedule.';
-    document.getElementById('q-tax-pct').value = '0';
-    document.getElementById('q-editing-id').value  = '';
-    document.getElementById('q-editing-num').value = '';
-    document.getElementById('quote-modal-title').textContent = 'New Quote';
+    var g = function(eid) { return document.getElementById(eid); };
+    var sv = function(eid, v) { if (g(eid)) g(eid).value = v; };
+    var sc = function(eid, v) { if (g(eid)) g(eid).checked = v; };
+    sv('q-name', ''); sv('q-phone', ''); sv('q-email', ''); sv('q-address', '');
+    sv('q-city', ''); sv('q-billing', ''); sv('q-salesrep', '');
+    sv('q-date', today); sv('q-expires', exp);
+    sv('q-linft', ''); sv('q-height', '');
+    sc('q-wc-new', false); sc('q-wc-weathered', false);
+    sc('q-wc-prev-stained', false); sc('q-wc-prev-painted', false);
+    sv('q-stain-product', 'Wood Defender'); sv('q-stain-color', '');
+    sc('q-svc-wash', false); sc('q-svc-mold', false); sc('q-svc-stain', false);
+    sv('q-status', 'draft');
+    sv('q-type', localStorage.getItem('fsig-app-mode') || 'fence');
+    sv('q-tax-pct', '0');
+    sv('q-editing-id', ''); sv('q-editing-num', '');
+    if (g('q-num-display')) g('q-num-display').textContent = 'Auto';
+    g('quote-modal-title').textContent = 'New Estimate';
     if (id) {
       var q = getQuotes().find(function(x) { return x.id === id; });
       if (q) {
-        document.getElementById('q-name').value    = q.customerName || '';
-        document.getElementById('q-email').value   = q.customerEmail || '';
-        document.getElementById('q-address').value = q.customerAddress || '';
-        document.getElementById('q-date').value    = q.date || today;
-        document.getElementById('q-expires').value = q.expiresDate || exp;
-        document.getElementById('q-status').value  = q.status || 'draft';
-        document.getElementById('q-type').value    = q.jobType || 'fence';
-        document.getElementById('q-notes').value   = q.notes || '';
-        document.getElementById('q-tax-pct').value = q.taxPct || '0';
-        document.getElementById('q-editing-id').value  = q.id;
-        document.getElementById('q-editing-num').value = q.quoteNumber;
-        document.getElementById('quote-modal-title').textContent = 'Edit ' + q.quoteNumber;
+        sv('q-name', q.customerName || '');
+        sv('q-phone', q.customerPhone || '');
+        sv('q-email', q.customerEmail || '');
+        sv('q-address', q.customerAddress || '');
+        sv('q-city', q.customerCity || '');
+        sv('q-billing', q.billingAddress || '');
+        sv('q-salesrep', q.salesRep || '');
+        sv('q-date', q.date || today);
+        sv('q-expires', q.expiresDate || exp);
+        sv('q-linft', q.linearFootage || '');
+        sv('q-height', q.fenceHeight || '');
+        var wc = q.woodCondition || {};
+        sc('q-wc-new', !!wc.newWood);
+        sc('q-wc-weathered', !!wc.weathered);
+        sc('q-wc-prev-stained', !!wc.prevStained);
+        sc('q-wc-prev-painted', !!wc.prevPainted);
+        sv('q-stain-product', q.stainProduct || 'Wood Defender');
+        sv('q-stain-color', q.stainColor || '');
+        var svc = q.services || {};
+        sc('q-svc-wash', !!svc.wash);
+        sc('q-svc-mold', !!svc.mold);
+        sc('q-svc-stain', !!svc.stain);
+        sv('q-status', q.status || 'draft');
+        sv('q-type', q.jobType || 'fence');
+        sv('q-tax-pct', q.taxPct || '0');
+        sv('q-editing-id', q.id);
+        sv('q-editing-num', q.quoteNumber);
+        if (g('q-num-display')) g('q-num-display').textContent = q.quoteNumber;
+        g('quote-modal-title').textContent = 'Edit ' + q.quoteNumber;
         _qLines = (q.lines || []).map(function(l) {
           _qLineCounter = Math.max(_qLineCounter, l.id || 0);
           return { id: l.id, desc: l.desc, qty: l.qty, unit: l.unit, rate: l.rate };
@@ -5031,31 +5086,51 @@
     var name = (document.getElementById('q-name')?.value || '').trim();
     if (!name) { alert('Enter a customer name.'); return; }
     var quotes = getQuotes();
-    var editId  = document.getElementById('q-editing-id')?.value;
-    var editNum = document.getElementById('q-editing-num')?.value;
-    var taxPct  = parseFloat(document.getElementById('q-tax-pct')?.value || '0') || 0;
+    var gv = function(eid) { var e = document.getElementById(eid); return e ? e.value : ''; };
+    var gc = function(eid) { var e = document.getElementById(eid); return e ? e.checked : false; };
+    var editId  = gv('q-editing-id');
+    var editNum = gv('q-editing-num');
+    var taxPct  = parseFloat(gv('q-tax-pct') || '0') || 0;
     var lines   = _qLines.map(function(l) {
       return { id: l.id, desc: l.desc, qty: parseFloat(l.qty) || 0, unit: l.unit || 'lin ft', rate: parseFloat(l.rate) || 0,
                total: (parseFloat(l.qty) || 0) * (parseFloat(l.rate) || 0) };
     });
-    var sub   = lines.reduce(function(s, l) { return s + l.total; }, 0);
+    var sub    = lines.reduce(function(s, l) { return s + l.total; }, 0);
     var taxAmt = sub * (taxPct / 100);
     var entry = {
       id:              editId ? parseInt(editId) : Date.now(),
       quoteNumber:     editNum || genQuoteNumber(),
       customerName:    name,
-      customerEmail:   (document.getElementById('q-email')?.value || '').trim(),
-      customerAddress: (document.getElementById('q-address')?.value || '').trim(),
-      date:            document.getElementById('q-date')?.value || '',
-      expiresDate:     document.getElementById('q-expires')?.value || '',
-      status:          document.getElementById('q-status')?.value || 'draft',
-      jobType:         document.getElementById('q-type')?.value || 'fence',
+      customerPhone:   gv('q-phone').trim(),
+      customerEmail:   gv('q-email').trim(),
+      customerAddress: gv('q-address').trim(),
+      customerCity:    gv('q-city').trim(),
+      billingAddress:  gv('q-billing').trim(),
+      salesRep:        gv('q-salesrep').trim(),
+      date:            gv('q-date'),
+      expiresDate:     gv('q-expires'),
+      linearFootage:   gv('q-linft'),
+      fenceHeight:     gv('q-height'),
+      woodCondition: {
+        newWood:     gc('q-wc-new'),
+        weathered:   gc('q-wc-weathered'),
+        prevStained: gc('q-wc-prev-stained'),
+        prevPainted: gc('q-wc-prev-painted'),
+      },
+      stainProduct:    gv('q-stain-product') || 'Wood Defender',
+      stainColor:      gv('q-stain-color').trim(),
+      services: {
+        wash:  gc('q-svc-wash'),
+        mold:  gc('q-svc-mold'),
+        stain: gc('q-svc-stain'),
+      },
+      status:          gv('q-status') || 'draft',
+      jobType:         gv('q-type') || 'fence',
       lines:           lines,
       taxPct:          taxPct,
       taxAmt:          taxAmt,
       subtotal:        sub,
       total:           sub + taxAmt,
-      notes:           (document.getElementById('q-notes')?.value || '').trim(),
       updatedAt:       Date.now(),
     };
     var idx = quotes.findIndex(function(q) { return q.id === entry.id; });
@@ -5111,56 +5186,232 @@
   }
 
   function _buildQuotePrintHtml(q) {
-    var company = 'Holliday Welding &amp; Fence';
+    var e = escHtml;
+    var wc = q.woodCondition || {};
+    var svc = q.services || {};
+    var cb = function(v) { return v ? '&#9745;' : '&#9744;'; };
+
+    // Cost breakdown rows
     var linesHtml = (q.lines || []).filter(function(l){ return l.desc || l.total; }).map(function(l) {
-      return '<tr><td>' + escHtml(l.desc || '') + '</td><td style="text-align:right">' + (l.qty || '') + '</td>'
-        + '<td>' + escHtml(l.unit || '') + '</td><td style="text-align:right">$' + (parseFloat(l.rate)||0).toFixed(2) + '</td>'
-        + '<td style="text-align:right">$' + (parseFloat(l.total)||0).toFixed(2) + '</td></tr>';
+      return '<tr>'
+        + '<td style="padding:6px 8px;border-bottom:1px solid #e0e0e0">' + e(l.desc || '') + '</td>'
+        + '<td style="padding:6px 8px;border-bottom:1px solid #e0e0e0;text-align:right">' + (l.qty != null ? l.qty : '') + '</td>'
+        + '<td style="padding:6px 8px;border-bottom:1px solid #e0e0e0;text-align:center">' + e(l.unit || '') + '</td>'
+        + '<td style="padding:6px 8px;border-bottom:1px solid #e0e0e0;text-align:right">$' + (parseFloat(l.rate)||0).toFixed(2) + '</td>'
+        + '<td style="padding:6px 8px;border-bottom:1px solid #e0e0e0;text-align:right">$' + (parseFloat(l.total)||0).toFixed(2) + '</td>'
+        + '</tr>';
     }).join('');
-    var taxRow = (q.taxPct && q.taxAmt) ? '<tr><td colspan="4" style="text-align:right;padding-right:8px">Tax (' + q.taxPct + '%)</td><td style="text-align:right;padding:5px 8px">$' + parseFloat(q.taxAmt).toFixed(2) + '</td></tr>' : '';
-    return '<div class="qp-header">'
-      + '<div><div class="qp-company">' + company + '</div><div class="qp-company-sub">Professional Fence &amp; Stain Services</div></div>'
-      + '<div><div class="qp-title">ESTIMATE</div><div class="qp-title-num">' + escHtml(q.quoteNumber) + '</div></div>'
-      + '</div>'
-      + '<div class="qp-info">'
-      + '<div class="qp-info-block"><label>Prepared For</label><div class="val">' + escHtml(q.customerName || '') + '</div>'
-        + (q.customerAddress ? '<div class="val" style="font-size:.78rem;color:#666">' + escHtml(q.customerAddress) + '</div>' : '')
-        + (q.customerPhone   ? '<div class="val" style="font-size:.78rem;color:#666">' + escHtml(q.customerPhone)   + '</div>' : '')
+
+    var taxRow = (q.taxPct && q.taxAmt)
+      ? '<tr><td colspan="4" style="text-align:right;padding:5px 8px;font-size:.85rem">Tax / Fees (' + q.taxPct + '%)</td><td style="text-align:right;padding:5px 8px">$' + parseFloat(q.taxAmt).toFixed(2) + '</td></tr>'
+      : '';
+
+    // Section header helper
+    var sh = function(label) {
+      return '<div style="background:#1e3a5f;color:#fff;font-size:.72rem;font-weight:700;padding:5px 10px;letter-spacing:.06em;margin-top:10px">' + label + '</div>';
+    };
+    var shBox = function(label, content) {
+      return sh(label)
+        + '<div style="border:1px solid #1e3a5f;border-top:none;padding:10px 12px">' + content + '</div>';
+    };
+
+    return ''
+      // ── Company Header ──────────────────────────────────────────────
+      + '<div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1e3a5f;padding-bottom:10px;margin-bottom:0">'
+        + '<div>'
+          + '<div style="font-family:\'Oswald\',Arial,sans-serif;font-size:1.5rem;font-weight:700;color:#1e3a5f;letter-spacing:.02em">Holliday Fencing &amp; Stain</div>'
+          + '<div style="font-size:.78rem;color:#555;margin-top:2px">Professional Fence &amp; Stain Services</div>'
+          + '<div style="font-size:.82rem;color:#333;margin-top:3px;font-weight:600">&#128222; 573-247-8802</div>'
         + '</div>'
-      + '<div class="qp-info-block">'
-        + '<label>Date</label><div class="val">' + escHtml(q.date || '') + '</div>'
-        + (q.expiresDate ? '<label style="margin-top:8px">Valid Until</label><div class="val">' + escHtml(q.expiresDate) + '</div>' : '')
+        + '<div style="text-align:right">'
+          + '<div style="background:#1e3a5f;color:#fff;font-family:\'Oswald\',Arial,sans-serif;font-size:1rem;font-weight:700;padding:5px 14px;letter-spacing:.08em;border-radius:3px">ESTIMATE FORM</div>'
+          + (q.quoteNumber ? '<div style="font-size:.75rem;color:#777;margin-top:4px">' + e(q.quoteNumber) + '</div>' : '')
         + '</div>'
       + '</div>'
-      + '<table class="qp-table"><thead><tr><th>Description</th><th style="text-align:right">Qty</th><th>Unit</th><th style="text-align:right">Rate</th><th style="text-align:right">Amount</th></tr></thead>'
-      + '<tbody>' + linesHtml + '</tbody></table>'
-      + '<div class="qp-totals"><table>'
-        + '<tr><td>Subtotal</td><td style="text-align:right">$' + parseFloat(q.subtotal||0).toFixed(2) + '</td></tr>'
-        + taxRow
-        + '<tr class="grand"><td>TOTAL</td><td style="text-align:right">$' + parseFloat(q.total||0).toFixed(2) + '</td></tr>'
-        + '</table></div>'
-      + (q.notes ? '<div class="qp-notes"><strong>Notes:</strong> ' + escHtml(q.notes) + '</div>' : '')
-      + '<div class="qp-footer">Thank you for your business! Contact us with any questions.</div>';
+
+      // ── Estimate Info Row ────────────────────────────────────────────
+      + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:0;border:1px solid #1e3a5f;border-top:none;margin-bottom:0">'
+        + '<div style="padding:6px 10px;border-right:1px solid #1e3a5f">'
+          + '<div style="font-size:.6rem;font-weight:700;color:#1e3a5f;text-transform:uppercase;margin-bottom:2px">Estimate Date</div>'
+          + '<div style="font-size:.82rem">' + e(q.date || '') + '</div>'
+        + '</div>'
+        + '<div style="padding:6px 10px;border-right:1px solid #1e3a5f">'
+          + '<div style="font-size:.6rem;font-weight:700;color:#1e3a5f;text-transform:uppercase;margin-bottom:2px">Estimate #</div>'
+          + '<div style="font-size:.82rem">' + e(q.quoteNumber || '') + '</div>'
+        + '</div>'
+        + '<div style="padding:6px 10px;border-right:1px solid #1e3a5f">'
+          + '<div style="font-size:.6rem;font-weight:700;color:#1e3a5f;text-transform:uppercase;margin-bottom:2px">Sales Rep</div>'
+          + '<div style="font-size:.82rem">' + e(q.salesRep || '') + '</div>'
+        + '</div>'
+        + '<div style="padding:6px 10px">'
+          + '<div style="font-size:.6rem;font-weight:700;color:#1e3a5f;text-transform:uppercase;margin-bottom:2px">Valid Until</div>'
+          + '<div style="font-size:.82rem">' + e(q.expiresDate || '') + '</div>'
+        + '</div>'
+      + '</div>'
+
+      // ── Customer Information ─────────────────────────────────────────
+      + shBox('CUSTOMER INFORMATION',
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 16px">'
+            + '<div><div style="font-size:.6rem;font-weight:700;color:#1e3a5f;text-transform:uppercase;margin-bottom:2px">Client Full Name</div>'
+              + '<div style="font-size:.85rem;border-bottom:1px solid #ccc;padding-bottom:3px">' + e(q.customerName || '') + '</div></div>'
+            + '<div><div style="font-size:.6rem;font-weight:700;color:#1e3a5f;text-transform:uppercase;margin-bottom:2px">Phone Number</div>'
+              + '<div style="font-size:.85rem;border-bottom:1px solid #ccc;padding-bottom:3px">' + e(q.customerPhone || '') + '</div></div>'
+            + '<div><div style="font-size:.6rem;font-weight:700;color:#1e3a5f;text-transform:uppercase;margin-bottom:2px">Service Address</div>'
+              + '<div style="font-size:.85rem;border-bottom:1px solid #ccc;padding-bottom:3px">' + e(q.customerAddress || '') + '</div></div>'
+            + '<div><div style="font-size:.6rem;font-weight:700;color:#1e3a5f;text-transform:uppercase;margin-bottom:2px">Email Address</div>'
+              + '<div style="font-size:.85rem;border-bottom:1px solid #ccc;padding-bottom:3px">' + e(q.customerEmail || '') + '</div></div>'
+            + '<div><div style="font-size:.6rem;font-weight:700;color:#1e3a5f;text-transform:uppercase;margin-bottom:2px">City, State, ZIP</div>'
+              + '<div style="font-size:.85rem;border-bottom:1px solid #ccc;padding-bottom:3px">' + e(q.customerCity || '') + '</div></div>'
+            + '<div><div style="font-size:.6rem;font-weight:700;color:#1e3a5f;text-transform:uppercase;margin-bottom:2px">Billing Address (if different)</div>'
+              + '<div style="font-size:.85rem;border-bottom:1px solid #ccc;padding-bottom:3px">' + e(q.billingAddress || '') + '</div></div>'
+          + '</div>'
+        )
+
+      // ── Project Specifications & Scope ───────────────────────────────
+      + shBox('PROJECT SPECIFICATIONS &amp; SCOPE',
+          '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px 16px">'
+            // column 1 — footage & height
+            + '<div>'
+              + '<div style="font-size:.6rem;font-weight:700;color:#1e3a5f;text-transform:uppercase;margin-bottom:2px">Total Linear Footage</div>'
+              + '<div style="font-size:.9rem;font-weight:600;border-bottom:1px solid #ccc;padding-bottom:3px;margin-bottom:8px">'
+                + (q.linearFootage ? e(q.linearFootage) + ' ft' : '') + '</div>'
+              + '<div style="font-size:.6rem;font-weight:700;color:#1e3a5f;text-transform:uppercase;margin-bottom:2px">Fence Height</div>'
+              + '<div style="font-size:.9rem;font-weight:600;border-bottom:1px solid #ccc;padding-bottom:3px">'
+                + (q.fenceHeight ? e(q.fenceHeight) + ' ft' : '') + '</div>'
+            + '</div>'
+            // column 2 — wood condition
+            + '<div>'
+              + '<div style="font-size:.6rem;font-weight:700;color:#1e3a5f;text-transform:uppercase;margin-bottom:4px">Wood Condition</div>'
+              + '<div style="font-size:.8rem;line-height:1.8">'
+                + cb(wc.newWood)     + ' New Wood<br>'
+                + cb(wc.weathered)   + ' Weathered (Unstained)<br>'
+                + cb(wc.prevStained) + ' Previously Stained<br>'
+                + cb(wc.prevPainted) + ' Previously Painted'
+              + '</div>'
+            + '</div>'
+            // column 3 — stain specs
+            + '<div>'
+              + '<div style="font-size:.6rem;font-weight:700;color:#1e3a5f;text-transform:uppercase;margin-bottom:4px">Stain Specifications</div>'
+              + '<div style="font-size:.68rem;color:#555;margin-bottom:1px">Stain Type / Product:</div>'
+              + '<div style="font-size:.82rem;border-bottom:1px solid #ccc;padding-bottom:3px;margin-bottom:6px">' + e(q.stainProduct || 'Wood Defender') + '</div>'
+              + '<div style="font-size:.68rem;color:#555;margin-bottom:1px">Stain Color:</div>'
+              + '<div style="font-size:.82rem;border-bottom:1px solid #ccc;padding-bottom:3px">' + e(q.stainColor || '') + '</div>'
+            + '</div>'
+          + '</div>'
+          // services row
+          + '<div style="margin-top:10px;padding-top:8px;border-top:1px solid #ddd">'
+            + '<div style="font-size:.6rem;font-weight:700;color:#1e3a5f;text-transform:uppercase;margin-bottom:5px">Services Included in Estimate:</div>'
+            + '<div style="font-size:.82rem;display:flex;gap:24px;flex-wrap:wrap">'
+              + '<span>' + cb(svc.wash)  + ' Pressure Wash / Prep</span>'
+              + '<span>' + cb(svc.mold)  + ' Mold &amp; Mildew Treatment</span>'
+              + '<span>' + cb(svc.stain) + ' Stain Application</span>'
+            + '</div>'
+          + '</div>'
+        )
+
+      // ── Estimated Cost Breakdown ─────────────────────────────────────
+      + sh('ESTIMATED COST BREAKDOWN')
+      + '<table style="width:100%;border-collapse:collapse;font-size:.82rem;border:1px solid #1e3a5f;border-top:none">'
+        + '<thead><tr style="background:#1e3a5f;color:#fff">'
+          + '<th style="text-align:left;padding:6px 8px;width:45%">Description of Work &amp; Materials</th>'
+          + '<th style="text-align:right;padding:6px 8px;width:12%">Qty / Sq Ft</th>'
+          + '<th style="text-align:center;padding:6px 8px;width:10%">Unit</th>'
+          + '<th style="text-align:right;padding:6px 8px;width:14%">Unit Price</th>'
+          + '<th style="text-align:right;padding:6px 8px;width:14%">Total Price</th>'
+        + '</tr></thead>'
+        + '<tbody>' + linesHtml + '</tbody>'
+        + '<tfoot>'
+          + '<tr><td colspan="4" style="text-align:right;padding:5px 8px;font-size:.85rem;border-top:1px solid #ccc">Subtotal</td>'
+            + '<td style="text-align:right;padding:5px 8px;border-top:1px solid #ccc">$' + parseFloat(q.subtotal||0).toFixed(2) + '</td></tr>'
+          + taxRow
+          + '<tr style="background:#1e3a5f;color:#fff;font-weight:700;font-size:.92rem">'
+            + '<td colspan="4" style="text-align:right;padding:7px 8px">TOTAL ESTIMATE</td>'
+            + '<td style="text-align:right;padding:7px 8px">$' + parseFloat(q.total||0).toFixed(2) + '</td>'
+          + '</tr>'
+        + '</tfoot>'
+      + '</table>'
+
+      // ── Product Warranty Information ─────────────────────────────────
+      + sh('PRODUCT WARRANTY INFORMATION')
+      + '<div style="border:1px solid #1e3a5f;border-top:none;padding:10px 12px;font-size:.75rem;color:#333">'
+        + '<strong style="color:#1e3a5f">Wood Defender&#8482; Warranty:</strong>'
+        + ' <strong>Transparent finish</strong> — 2-year manufacturer warranty against peeling and flaking. '
+        + '<strong>Semi-Transparent finish</strong> — 3-year manufacturer warranty against peeling and flaking. '
+        + 'Warranty is valid when product is applied per manufacturer specifications by a certified applicator. '
+        + 'Natural wood movement, checking, and graying are not covered under warranty.'
+      + '</div>'
+
+      // ── Standard Disclaimers & Terms ─────────────────────────────────
+      + sh('STANDARD DISCLAIMERS &amp; TERMS')
+      + '<div style="border:1px solid #1e3a5f;border-top:none;padding:10px 12px;font-size:.73rem;color:#333;line-height:1.6">'
+        + '<p style="margin:0 0 5px"><strong style="color:#1e3a5f">Scope &amp; Validity:</strong> '
+          + 'This estimate covers only the work described above. Any additional work or changes in scope must be agreed upon in writing prior to commencement. '
+          + 'This estimate is valid for <strong>30 days</strong> from the date issued.</p>'
+        + '<p style="margin:0 0 5px"><strong style="color:#1e3a5f">Weather Constraints:</strong> '
+          + 'Staining services are weather-dependent. Work requiring clear skies and dry conditions may be rescheduled due to rain, high humidity, or extreme temperatures. '
+          + 'Holliday Fencing &amp; Stain will communicate rescheduling as soon as possible.</p>'
+        + '<p style="margin:0 0 5px"><strong style="color:#1e3a5f">Landscaping:</strong> '
+          + 'Holliday Fencing &amp; Stain is not responsible for incidental contact with landscaping, plants, or structures adjacent to the work area. '
+          + 'Customer is responsible for moving or protecting items near the fence line prior to the start of work.</p>'
+        + '<p style="margin:0 0 5px"><strong style="color:#1e3a5f">Natural Wood Characteristics:</strong> '
+          + 'Natural wood checking, cracking, and graying are inherent characteristics of wood and are not considered defects. '
+          + 'Stain penetration and color uniformity may vary based on wood species, age, and prior treatments.</p>'
+        + '<p style="margin:0"><strong style="color:#1e3a5f">Payment Schedule:</strong> '
+          + 'A <strong>10% deposit</strong> is required to secure your scheduled date. The remaining <strong>90% is due upon completion</strong> of work. '
+          + 'Unpaid balances are subject to a <strong>1.5% monthly finance charge</strong>.</p>'
+      + '</div>'
+
+      // ── Signature Lines ──────────────────────────────────────────────
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:18px;font-size:.78rem">'
+        + '<div>'
+          + '<div style="border-bottom:1px solid #333;padding-bottom:20px;margin-bottom:4px"></div>'
+          + '<div style="color:#555">Customer Signature &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Date</div>'
+        + '</div>'
+        + '<div>'
+          + '<div style="border-bottom:1px solid #333;padding-bottom:20px;margin-bottom:4px"></div>'
+          + '<div style="color:#555">Authorized Representative &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Date</div>'
+        + '</div>'
+      + '</div>'
+      + '<div style="text-align:center;margin-top:12px;font-size:.7rem;color:#888">Thank you for choosing Holliday Fencing &amp; Stain &nbsp;|&nbsp; 573-247-8802</div>';
   }
 
   function printCurrentQuote() {
-    // Collect current form state as a temp quote object
-    var taxPct = parseFloat(document.getElementById('q-tax-pct')?.value || '0') || 0;
+    var gv = function(eid) { var e = document.getElementById(eid); return e ? e.value : ''; };
+    var gc = function(eid) { var e = document.getElementById(eid); return e ? e.checked : false; };
+    var taxPct = parseFloat(gv('q-tax-pct') || '0') || 0;
     var lines = _qLines.map(function(l) {
       return { desc: l.desc, qty: parseFloat(l.qty)||0, unit: l.unit||'lin ft', rate: parseFloat(l.rate)||0,
                total: (parseFloat(l.qty)||0)*(parseFloat(l.rate)||0) };
     });
     var sub = lines.reduce(function(s,l){ return s+l.total; }, 0);
     var tmpQ = {
-      quoteNumber: document.getElementById('q-editing-num')?.value || 'DRAFT',
-      customerName: document.getElementById('q-name')?.value || '',
-      customerEmail: document.getElementById('q-email')?.value || '',
-      customerAddress: document.getElementById('q-address')?.value || '',
-      date: document.getElementById('q-date')?.value || '',
-      expiresDate: document.getElementById('q-expires')?.value || '',
+      quoteNumber:     gv('q-editing-num') || 'DRAFT',
+      customerName:    gv('q-name'),
+      customerPhone:   gv('q-phone'),
+      customerEmail:   gv('q-email'),
+      customerAddress: gv('q-address'),
+      customerCity:    gv('q-city'),
+      billingAddress:  gv('q-billing'),
+      salesRep:        gv('q-salesrep'),
+      date:            gv('q-date'),
+      expiresDate:     gv('q-expires'),
+      linearFootage:   gv('q-linft'),
+      fenceHeight:     gv('q-height'),
+      woodCondition: {
+        newWood:     gc('q-wc-new'),
+        weathered:   gc('q-wc-weathered'),
+        prevStained: gc('q-wc-prev-stained'),
+        prevPainted: gc('q-wc-prev-painted'),
+      },
+      stainProduct:  gv('q-stain-product') || 'Wood Defender',
+      stainColor:    gv('q-stain-color'),
+      services: {
+        wash:  gc('q-svc-wash'),
+        mold:  gc('q-svc-mold'),
+        stain: gc('q-svc-stain'),
+      },
       lines: lines, taxPct: taxPct, taxAmt: sub*(taxPct/100), subtotal: sub,
       total: sub + sub*(taxPct/100),
-      notes: document.getElementById('q-notes')?.value || '',
     };
     showQuotePrint(tmpQ);
   }
@@ -5181,37 +5432,84 @@
 
   function shareQuoteEmailById(id) {
     var q = getQuotes().find(function(x){ return x.id === id; });
-    if (q) _sendQuoteEmail(q);
+    if (!q) return;
+    // Convert services object to array for email body
+    var svcArr = [];
+    if (q.services) {
+      if (q.services.wash)  svcArr.push('Pressure Wash / Prep');
+      if (q.services.mold)  svcArr.push('Mold & Mildew Treatment');
+      if (q.services.stain) svcArr.push('Stain Application');
+    }
+    _sendQuoteEmail(Object.assign({}, q, { services: svcArr }));
   }
 
   function shareQuoteEmail() {
-    var name   = (document.getElementById('q-name')?.value || '').trim();
-    var total  = document.getElementById('q-total')?.textContent || '$0.00';
-    var email  = (document.getElementById('q-email')?.value || '').trim();
-    var num    = document.getElementById('q-editing-num')?.value || 'your estimate';
-    var lines  = _qLines.map(function(l){ return (l.desc||'') + ' — ' + (l.qty||'') + ' ' + (l.unit||'') + ' @ $' + (l.rate||0) + ' = $' + ((parseFloat(l.qty)||0)*(parseFloat(l.rate)||0)).toFixed(2); }).join('\n');
-    _sendQuoteEmail({ customerName: name, customerEmail: email, quoteNumber: num, total: total, lines: lines, notes: document.getElementById('q-notes')?.value || '' });
+    var gv = function(eid) { var e = document.getElementById(eid); return e ? e.value : ''; };
+    var gc = function(eid) { var e = document.getElementById(eid); return e ? e.checked : false; };
+    var taxPct = parseFloat(gv('q-tax-pct') || '0') || 0;
+    var lines = _qLines.map(function(l) {
+      return { desc: l.desc, qty: parseFloat(l.qty)||0, unit: l.unit||'', rate: parseFloat(l.rate)||0,
+               total: (parseFloat(l.qty)||0)*(parseFloat(l.rate)||0) };
+    });
+    var sub = lines.reduce(function(s,l){ return s+l.total; }, 0);
+    var svcList = [];
+    if (gc('q-svc-wash'))  svcList.push('Pressure Wash / Prep');
+    if (gc('q-svc-mold'))  svcList.push('Mold & Mildew Treatment');
+    if (gc('q-svc-stain')) svcList.push('Stain Application');
+    _sendQuoteEmail({
+      customerName:    gv('q-name').trim(),
+      customerPhone:   gv('q-phone').trim(),
+      customerEmail:   gv('q-email').trim(),
+      customerAddress: gv('q-address').trim(),
+      customerCity:    gv('q-city').trim(),
+      salesRep:        gv('q-salesrep').trim(),
+      quoteNumber:     gv('q-editing-num') || 'your estimate',
+      date:            gv('q-date'),
+      expiresDate:     gv('q-expires'),
+      linearFootage:   gv('q-linft'),
+      fenceHeight:     gv('q-height'),
+      stainProduct:    gv('q-stain-product') || 'Wood Defender',
+      stainColor:      gv('q-stain-color'),
+      services:        svcList,
+      lines:           lines,
+      taxPct:          taxPct,
+      taxAmt:          sub * (taxPct / 100),
+      subtotal:        sub,
+      total:           sub + sub * (taxPct / 100),
+    });
   }
 
   function _sendQuoteEmail(q) {
     var email = (q.customerEmail || '').trim();
     if (!email) { alert('No customer email. Add one first.'); return; }
-    var subject = 'Estimate from Holliday Welding & Fence — ' + (q.quoteNumber || '');
+    var subject = 'Estimate from Holliday Fencing & Stain — ' + (q.quoteNumber || '');
     var lineDetails = '';
-    if (q.lines && q.lines.length) {
-      lineDetails = '\n\nESTIMATE DETAILS:\n' + q.lines.map(function(l){
+    if (q.lines && Array.isArray(q.lines) && q.lines.length) {
+      lineDetails = '\n\nESTIMATE DETAILS:\n' + q.lines.filter(function(l){ return l.desc || l.total; }).map(function(l){
         return (l.desc||'') + ' — ' + (l.qty||'') + ' ' + (l.unit||'') + ' @ $' + parseFloat(l.rate||0).toFixed(2) + ' = $' + parseFloat(l.total||0).toFixed(2);
       }).join('\n');
-    } else if (q.lines) {
-      lineDetails = '\n\n' + q.lines;
     }
+    var projectInfo = '';
+    if (q.linearFootage) projectInfo += '\nLinear Footage: ' + q.linearFootage + ' ft';
+    if (q.fenceHeight)   projectInfo += '\nFence Height: ' + q.fenceHeight + ' ft';
+    if (q.stainProduct)  projectInfo += '\nStain Product: ' + q.stainProduct;
+    if (q.stainColor)    projectInfo += '\nStain Color: ' + q.stainColor;
+    var svcArr = Array.isArray(q.services) ? q.services : [];
+    if (svcArr.length)   projectInfo += '\nServices: ' + svcArr.join(', ');
     var body = 'Hi ' + (q.customerName || 'there') + ',\n\n'
-      + 'Thank you for your interest! Please find your estimate below.\n'
-      + lineDetails + '\n\n'
-      + 'TOTAL: $' + parseFloat(q.total||0).toFixed(2) + '\n\n'
-      + (q.notes ? 'Notes: ' + q.notes + '\n\n' : '')
-      + 'Please reply to this email or call us with any questions.\n\n'
-      + 'Holliday Welding & Fence';
+      + 'Thank you for your interest in Holliday Fencing & Stain! Please find your estimate below.\n'
+      + '\nEstimate #: ' + (q.quoteNumber || '')
+      + '\nDate: ' + (q.date || '')
+      + '\nValid Until: ' + (q.expiresDate || '')
+      + (q.customerAddress ? '\nService Address: ' + q.customerAddress : '')
+      + (projectInfo ? '\n\nPROJECT DETAILS:' + projectInfo : '')
+      + lineDetails
+      + '\n\nSUBTOTAL: $' + parseFloat(q.subtotal||0).toFixed(2)
+      + (q.taxAmt ? '\nTAX/FEES: $' + parseFloat(q.taxAmt).toFixed(2) : '')
+      + '\nTOTAL ESTIMATE: $' + parseFloat(q.total||0).toFixed(2)
+      + '\n\nThis estimate is valid for 30 days. A 10% deposit is required to secure your scheduled date.'
+      + '\nPlease reply to this email or call us at 573-247-8802 with any questions.\n\n'
+      + 'Holliday Fencing & Stain\n573-247-8802';
     window.open('mailto:' + encodeURIComponent(email) + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body));
   }
 
