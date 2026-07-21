@@ -4079,8 +4079,16 @@
     if (existing >= 0) {
       // Preserve pipeline fields set by the pipeline board
       const prev = jobs[existing];
-      if (prev.pipelineStatus !== undefined) entry.pipelineStatus = prev.pipelineStatus;
-      if (prev.pipelineHidden !== undefined) entry.pipelineHidden = prev.pipelineHidden;
+      // Sync pipeline position when job status changes to complete or cancelled
+      if (entry.status === 'complete') {
+        entry.pipelineStatus = 'complete';
+      } else if (entry.status === 'cancelled') {
+        entry.pipelineStatus = null;
+        entry.pipelineHidden = true;
+      } else {
+        if (prev.pipelineStatus !== undefined) entry.pipelineStatus = prev.pipelineStatus;
+        if (prev.pipelineHidden !== undefined) entry.pipelineHidden = prev.pipelineHidden;
+      }
       if (prev.bidAmountPipe  !== undefined) entry.bidAmountPipe  = prev.bidAmountPipe;
       if (prev.jobType        !== undefined) entry.jobType        = prev.jobType;
       jobs[existing] = entry;
@@ -8297,18 +8305,31 @@ var firebaseConfig = {
 
 var _fbDb = null;
 var _fbSyncStarted = false;
+var _fbAuthReady = false;
 try {
   firebase.initializeApp(firebaseConfig);
   _fbDb = firebase.database();
-  // onAuthStateChanged fires when: (a) Google credential is passed below in handleGoogleCredential,
-  // (b) Firebase restores a persisted session on page reload, or (c) anon fallback resolves.
+  // Try to start sync immediately — Firebase re-evaluates rules on auth changes,
+  // so listeners registered now will automatically deliver data once auth passes.
+  startFirebaseSync();
   firebase.auth().onAuthStateChanged(function(user) {
     if (user) {
-      startFirebaseSync();
+      _fbAuthReady = true;
+      // Sync already started; Firebase re-evaluates listeners with new auth token.
+      // If still not started (shouldn't happen), start now.
+      if (!_fbSyncStarted) startFirebaseSync();
     } else {
-      // No persisted session yet — use anonymous auth as fallback until Google sign-in completes.
-      // This lets Firebase sync work even on session restores where the Google token is no longer fresh.
-      firebase.auth().signInAnonymously().catch(function(e) { console.warn('Firebase anon fallback error:', e); });
+      // Try anonymous auth so DB rules requiring auth != null are satisfied.
+      firebase.auth().signInAnonymously().catch(function(e) {
+        console.warn('Firebase anon auth error:', e);
+        var code = e && e.code;
+        if (code === 'auth/operation-not-allowed' || code === 'auth/admin-restricted-operation') {
+          // Anon auth not enabled — sync only works after Google login or with open DB rules
+          setTimeout(function() {
+            if (!_fbAuthReady) showLeadToast('⚠ Firebase: enable Anonymous Auth in Firebase Console, or sign in with Google');
+          }, 4000);
+        }
+      });
     }
   });
 } catch(e) { console.warn('Firebase init failed:', e); }
@@ -8366,7 +8387,10 @@ function startFirebaseSync() {
 
   function _fbPermErr(e) {
     if (e && (e.code === 'PERMISSION_DENIED' || (e.message && e.message.indexOf('permission') !== -1))) {
-      showLeadToast('⚠ Firebase: permission denied — open DB rules in Firebase console');
+      // Delay so we don't show this before auth has a chance to complete on page load
+      setTimeout(function() {
+        showLeadToast('⚠ Firebase: permission denied — set DB rules to allow auth != null and enable Auth in Firebase Console');
+      }, 3000);
     }
   }
 
@@ -8680,8 +8704,18 @@ function handleGoogleCredential(response) {
   if (_fbDb) {
     try {
       var googleCred = firebase.auth.GoogleAuthProvider.credential(response.credential);
-      firebase.auth().signInWithCredential(googleCred).catch(function(e) {
+      firebase.auth().signInWithCredential(googleCred).then(function() {
+        _fbAuthReady = true;
+      }).catch(function(e) {
         console.warn('Firebase Google sign-in error:', e);
+        var code = e && e.code;
+        if (code === 'auth/operation-not-allowed') {
+          showLeadToast('⚠ Firebase: enable Google sign-in in Firebase Console > Authentication');
+        } else if (code === 'auth/invalid-credential' || code === 'auth/invalid-api-key') {
+          showLeadToast('⚠ Firebase: invalid credentials — check Firebase project config');
+        } else {
+          showLeadToast('⚠ Firebase auth error: ' + (e.message || code || 'unknown'));
+        }
       });
     } catch(e) { console.warn('Firebase credential error:', e); }
   }
