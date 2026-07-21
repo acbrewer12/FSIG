@@ -4496,17 +4496,23 @@
     try { savedJobs = JSON.parse(localStorage.getItem('fsig-jobs') || '[]'); } catch(e){}
     var savedAsPipe = savedJobs
       .filter(function(j){
-        if (j.pipelineHidden) return false;
+        // Always hide hard-hidden jobs (manually removed from pipeline)
+        if (j.pipelineHidden && j.status !== 'complete') return false;
+        // Show jobs that have a pipeline stage or a recognized status
         if (!(j.pipelineStatus || STATUS_MAP[j.status])) return false;
         var jt = j.jobType || currentMode;
         return jt === currentMode || jt === 'both';
       })
       .map(function(j) {
         var st = j.state || {};
+        // Terminal statuses (complete/cancelled) always override pipelineStatus
+        var pipeCol = (j.status === 'complete' || j.status === 'cancelled')
+          ? STATUS_MAP[j.status]
+          : (j.pipelineStatus || STATUS_MAP[j.status]);
         return {
           id: 'saved-' + j.id, _isSaved: true, _savedId: j.id,
           jobNum: j.label && j.label.match(/^FS-\d+$/) ? j.label : (st.jobNumber || ''),
-          status: j.pipelineStatus || STATUS_MAP[j.status],
+          status: pipeCol,
           name:    st.customerName || j.label || 'Saved Job',
           phone:   st.customerPhone || '',
           address: [st.addr, st.city, st.state].filter(Boolean).join(', '),
