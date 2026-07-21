@@ -8484,6 +8484,11 @@ function startFirebaseSync() {
     if (s.gmapsKey)   localStorage.setItem('fsig-gmaps-key',  s.gmapsKey);
     if (s.claudeKey)  localStorage.setItem('fsig-claude-key', s.claudeKey);
     if (s.appMode)    localStorage.setItem('fsig-app-mode',   s.appMode);
+    if (s.googleAuth) {
+      localStorage.setItem('fsig-google-auth', s.googleAuth);
+      // Apply immediately — initializes the Google Sign-In button on new devices
+      try { initGoogleSignIn(); } catch(e) {}
+    }
   }, _fbPermErr);
 
   _fbDb.ref('fsig/quotes').on('value', function(snap) {
@@ -8663,7 +8668,7 @@ function saveGoogleAuth() {
   var emailRoles = (document.getElementById('google-email-roles') || {}).value || '';
   var gaVal = JSON.stringify({ clientId: clientId.trim(), emailRoles: emailRoles.trim() });
   localStorage.setItem('fsig-google-auth', gaVal);
-  pushSetting('fsig-google-auth', gaVal);
+  fbSet('settings/googleAuth', gaVal);
   alert('Google Auth settings saved.');
   initGoogleSignIn();
 }
